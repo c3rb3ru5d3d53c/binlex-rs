@@ -54,6 +54,8 @@ pub struct Args {
     pub disable_feature: bool,
     #[arg(long, default_value_t = false)]
     pub disable_hashing: bool,
+    #[arg(long, default_value_t = false)]
+    pub enable_normalized: bool,
 }
 
 fn validate(args: &mut Args) {

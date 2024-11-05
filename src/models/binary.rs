@@ -67,6 +67,7 @@ impl Binary {
             .collect::<String>()
     }
 
+    #[allow(dead_code)]
     pub fn hexdump(data: &Vec<u8>, address: u64) -> String {
         const BYTES_PER_LINE: usize = 16;
         let mut result = String::new();

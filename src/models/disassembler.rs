@@ -8,58 +8,31 @@ use arch::x86::X86Reg::{
     X86_REG_RIP,
 };
 use capstone::prelude::*;
-use capstone::arch::x86::{
-    X86Insn,
-    X86OperandType
-};
+use capstone::arch::x86::X86Insn;
+use capstone::arch::x86::X86OperandType;
 use capstone::arch::ArchOperand;
-use capstone::{
-    Insn,
-    InsnId,
-    Instructions
-};
-use std::io::{
-    Error,
-    ErrorKind
-};
-use std::collections::{
-    BTreeMap, HashSet, VecDeque
-};
-use crate::models::block::Block;
-use crate::models::function::Function;
+use capstone::Insn;
+use capstone::InsnId;
+use capstone::Instructions;
+use std::io::Error;
+use std::io::ErrorKind;
+use std::collections::BTreeMap;
+use std::collections::HashSet;
 use crate::models::binary::Binary;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::instruction::Instruction;
-use crate::models::debug::Debug;
 use crate::models::cfg::CFG;
-
-#[derive(Clone)]
-pub struct DisassemblerOptions {
-    pub enable_minhash: bool,
-    pub minhash_maximum_byte_size: usize,
-    pub minhash_number_of_hashes: usize,
-    pub minhash_shingle_size: usize,
-    pub minhash_seed: u64,
-    pub enable_tlsh: bool,
-    pub enable_sha256: bool,
-    pub enable_entropy: bool,
-    pub enable_feature: bool,
-    pub tlsh_mininum_byte_size: usize,
-    pub tags: Vec<String>,
-    //pub symbols: HashMap<u64, HashSet<String>>,
-}
 
 pub struct Disassembler {
     cs: Capstone,
     image: Vec<u8>,
     machine: BinaryArchitecture,
     executable_address_ranges: BTreeMap<u64, u64>,
-    options: DisassemblerOptions,
 }
 
 impl Disassembler {
 
-    pub fn new(machine: BinaryArchitecture, image: Vec<u8>, executable_address_ranges: BTreeMap<u64, u64>, options: DisassemblerOptions) -> Result<Self, Error> {
+    pub fn new(machine: BinaryArchitecture, image: Vec<u8>, executable_address_ranges: BTreeMap<u64, u64>) -> Result<Self, Error> {
         let cs = match Disassembler::cs_new(machine, true) {
             Ok(cs) => cs,
             Err(error) => return Err(error),
@@ -69,7 +42,6 @@ impl Disassembler {
             image: image,
             machine: machine,
             executable_address_ranges: executable_address_ranges,
-            options: options,
         })
     }
 
@@ -133,206 +105,169 @@ impl Disassembler {
         return functions;
     }
 
-    #[allow(dead_code)]
-    pub fn disassemble_control_flow(&self, addresses: HashSet<u64>) -> Result<CFG, Error> {
+    pub fn disassemble_control_flow<'a>(&'a self, addresses: HashSet<u64>, cfg: &'a mut CFG) -> Result<(), Error> {
 
-        let mut cfg = CFG::new();
-        let mut functions_queue = VecDeque::<u64>::from_iter(addresses);
-        let mut functions_processed = HashSet::<u64>::new();
+        cfg.functions.enqueue_extend(addresses);
 
-        while let Some(pc) = functions_queue.pop_front() {
-
-            if functions_processed.contains(&pc) {
+        while let Some(function_start_address) = cfg.functions.dequeue() {
+            if let Err(_) = self.disassemble_function(function_start_address, cfg) {
                 continue;
             }
-
-            functions_processed.insert(pc);
-
-            let function = match self.disassemble_function(pc) {
-                Ok(function) => function,
-                Err(_) => continue,
-            };
-
-            for (_, function_address) in function.functions() {
-                if !functions_processed.contains(&function_address) {
-                    functions_queue.push_back(function_address);
-                }
-            }
-
-            for block in function.blocks() {
-                if block.prologue {
-                    if !functions_processed.contains(&block.address) {
-                        functions_queue.push_back(block.address);
-                    }
-                }
-            }
-
-            cfg.functions.insert(function.address, function);
-
         }
-        return Ok(cfg);
+
+        return Ok(());
     }
 
-    #[allow(dead_code)]
-    pub fn disassemble_function(&self, address: u64) -> Result<Function, Error> {
+    pub fn disassemble_function<'a>(&'a self, address: u64, cfg: &'a mut CFG) -> Result<u64, Error> {
 
-        let mut function = Function::new(address, self.options.clone())?;
-        function.options = self.options.clone();
-        let mut block_queue = VecDeque::<u64>::from(vec![address]);
-        let mut block_processed = HashSet::<u64>::new();
+        cfg.functions.set_processed(address);
 
-        while let Some(pc) = block_queue.pop_front() {
-            if block_processed.contains(&pc) {
-                continue;
-            }
+        cfg.blocks.enqueue(address);
 
-            block_processed.insert(pc);
+        while let Some(block_start_address) = cfg.blocks.dequeue() {
 
-            let block = match self.disassemble_block(pc) {
-                Ok(block) => block,
+            let block_end_address = match self.disassemble_block(block_start_address, cfg) {
+                Ok(block_end_address) => block_end_address,
                 Err(error) => {
-                    Debug::print(error.to_string());
+                    cfg.functions.insert_invalid(address);
                     return Err(error);
-                }
-            };
-
-            if let Some(_) = block.error {
-                continue;
-            }
-
-            for &addr in &block.to {
-                if !block_processed.contains(&addr) {
-                    block_queue.push_back(addr);
-                }
-            }
-
-            if let Some(next) = block.next {
-                if !block_processed.contains(&next) {
-                    block_queue.push_back(next);
-                }
-            }
-
-            function.blocks.insert(block.address, block);
-        }
-
-        function.patch_block_overlaps();
-
-        if function.blocks.len() <= 0 {
-            return Err(Error::new(ErrorKind::Other, "function does not contain any blocks"));
-        }
-
-        return Ok(function);
-    }
-
-    #[allow(dead_code)]
-    pub fn get_block_by_address(blocks: &Vec<Block>, address: u64) -> Option<&Block> {
-        for block in blocks {
-            if block.address == address {
-                return Some(block);
-            }
-        }
-        return None;
-    }
-
-    #[allow(dead_code)]
-    pub fn disassemble_block(&self, address: u64) -> Result<Block, Error> {
-
-        if !self.is_executable_address(address) {
-            return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: does not start in executable memory", address)));
-        }
-
-        let mut block = match Block::new(address, self.options.clone()) {
-            Ok(block) => block,
-            Err(error) => return Err(error),
-        };
-
-        block.prologue = self.is_function_prologue(block.address);
-
-        let mut pc: u64 = address;
-        let mut functions: HashSet<u64>= HashSet::<u64>::new();
-        loop {
-
-            let instruction_container = match self.disassemble_instructions(pc, 1) {
-                Ok(instruction_container) => instruction_container,
-                Err(error) => {
-                    block.edges = 0;
-                    block.conditional = false;
-                    block.error = Some(error);
-                    return Ok(block);
                 },
             };
-
-            let instruction = instruction_container.iter().next().unwrap();
-
-            let instruction_signature = match self.get_instruction_signature(&instruction) {
-                Ok(wc) => wc,
-                Err(error) => return Err(error),
-            };
-
-            let block_instruction = Instruction::new(
-                instruction.address(),
-                instruction.bytes().to_vec(),
-                instruction_signature,
-                Disassembler::is_return_instruction(instruction));
-
-            block.instructions.insert(instruction.address(), block_instruction);
-
-            // Starts with Trap Instruction
-            if instruction.address() as u64 == address
-                && Disassembler::is_trap_instruction(instruction) {
-                block.edges = 0;
-                block.conditional = false;
-                return Ok(block);
-            }
-
-            // Ends with Trap Instruction
-            if instruction.address() as u64 != address
-                && Disassembler::is_trap_instruction(instruction){
-                block.edges = self.get_instruction_edges(&instruction);
-                block.conditional = false;
-                return Ok(block);
-            }
-
-            if let Some(imm) = self.get_call_immutable(&instruction) {
-                block.functions.insert(instruction.address(), imm);
-                functions.insert(imm);
-            }
-
-            // Function Executable References
-            let instruction_executable_addresses = self.get_instruction_executable_addresses(instruction);
-            for instruction_executable_address in instruction_executable_addresses {
-                block.functions.insert(instruction.address(), instruction_executable_address);
-            }
-
-            if let Some(imm) = self.get_conditional_jump_immutable(&instruction) {
-                block.edges = self.get_instruction_edges(&instruction);
-                block.next = Some(pc + instruction.bytes().len() as u64);
-                block.to.insert(imm);
-                block.conditional = true;
-                return Ok(block);
-            }
-
-            if Disassembler::is_unconditional_jump_instruction(instruction) {
-                if let Some(imm) = self.get_unconditional_jump_immutable(&instruction) {
-                    block.edges = self.get_instruction_edges(&instruction);
-                    block.to.insert(imm);
-                    block.conditional = false;
-                    return Ok(block);
-                } else {
-                    block.edges = self.get_instruction_edges(&instruction);
-                    block.conditional = false;
-                    return Ok(block);
+            if block_start_address == address {
+                if let Some(instruction) = cfg.get_instruction(block_start_address) {
+                    instruction.is_function_start = true;
                 }
             }
+            if let Some(instruction) = cfg.read_instruction(block_end_address) {
+                cfg.blocks.enqueue_extend(instruction.blocks());
+            }
+        }
 
-            if Disassembler::is_return_instruction(&instruction) {
-                block.conditional = false;
-                block.edges = self.get_instruction_edges(&instruction);
-                return Ok(block);
+        cfg.functions.insert_valid(address);
+
+        return Ok(address);
+    }
+
+    pub fn disassemble_instruction<'a>(&'a self, address: u64, cfg: &'a mut CFG) -> Result<u64, Error> {
+
+        if let Some(instruction) = cfg.get_instruction(address) {
+            return Ok(instruction.address);
+        }
+
+        if !self.is_executable_address(address) {
+            return Err(Error::new(ErrorKind::Other, format!("Instruction -> 0x{:x}: it not in executable memory", address)));
+        }
+
+        let instruction_container = self.disassemble_instructions(address, 1)
+            .map_err(|error| error)?;
+
+        let instruction = instruction_container.iter().next().unwrap();
+
+        let instruction_signature = self.get_instruction_signature(&instruction)
+            .map_err(|error| error)?;
+
+        let mut blinstruction = Instruction::new(instruction.address());
+
+        blinstruction.is_jump = Disassembler::is_jump_instruction(instruction);
+        blinstruction.is_call = Disassembler::is_call_instruction(instruction);
+        blinstruction.is_return = Disassembler::is_return_instruction(instruction);
+        blinstruction.is_trap = Disassembler::is_trap_instruction(instruction);
+
+        if blinstruction.is_jump {
+            if Disassembler::is_conditional_jump_instruction(instruction) {
+                blinstruction.is_conditional = true;
+            }
+            if Disassembler::is_unconditional_jump_instruction(instruction) {
+                blinstruction.is_conditional = false;
+            }
+        }
+
+        blinstruction.edges = self.get_instruction_edges(instruction);
+        blinstruction.bytes = instruction.bytes().to_vec();
+        blinstruction.signature = instruction_signature;
+
+        if let Some(addr) = self.get_conditional_jump_immutable(instruction) {
+            blinstruction.to.insert(addr);
+        }
+        if let Some(addr) = self.get_unconditional_jump_immutable(instruction) {
+            blinstruction.to.insert(addr);
+        }
+
+        if let Some(addr) = self.get_call_immutable(instruction) {
+            cfg.functions.enqueue(addr);
+            blinstruction.functions.insert(addr);
+        }
+
+        if let Some(addr) = self.get_instruction_executable_addresses(instruction) {
+            cfg.functions.enqueue(addr);
+            blinstruction.functions.insert(addr);
+        }
+
+        cfg.insert_instruction(blinstruction);
+
+        return Ok(address);
+
+    }
+
+    #[allow(dead_code)]
+    pub fn disassemble_block<'a>(&'a self, address: u64, cfg: &'a mut CFG) -> Result<u64, Error> {
+
+        cfg.blocks.set_processed(address);
+
+        let mut pc: u64 = address;
+        let mut has_prologue: bool = false;
+        loop {
+
+            if let Err(error) = self.disassemble_instruction(pc, cfg) {
+                cfg.blocks.insert_invalid(address);
+                return Err(error);
             }
 
-            pc += instruction.bytes().len() as u64;
+            let blinstruction = cfg.get_instruction(pc).unwrap();
+
+            if blinstruction.address == address {
+                blinstruction.is_block_start = true;
+            }
+
+            // Is Function Prologue
+            if blinstruction.is_block_start == true && blinstruction.address == address {
+                blinstruction.is_prologue = self.is_function_prologue(blinstruction.address);
+                has_prologue = blinstruction.is_prologue;
+            }
+
+            // Block Starts with Trap Instruction
+            if blinstruction.address == address && blinstruction.is_trap {
+                break;
+            }
+
+            // Block Ends with Trap Instruction
+            if blinstruction.address != address && blinstruction.is_trap {
+                break;
+            }
+
+            // Block Ends with Return Instruction
+            if blinstruction.is_return {
+                break;
+            }
+
+            // Block Ends with Jump Instruction
+            if blinstruction.is_jump {
+                break;
+            }
+
+            // Block Ends with Another Block
+            if blinstruction.address != address && blinstruction.is_block_start {
+                break;
+            }
+
+            pc += blinstruction.size() as u64;
         }
+        if has_prologue {
+            cfg.functions.enqueue(address);
+        }
+        cfg.blocks.insert_valid(address);
+        return Ok(pc);
+
     }
 
     pub fn is_function_prologue(&self, address: u64) -> bool {
@@ -362,50 +297,6 @@ impl Disassembler {
                 },
                 _ => {}
             }
-        }
-
-        let mut pc: u64 = address;
-        let mut search: usize = 0;
-        let mut has_push = false;
-        while let Ok(instructions) = self.disassemble_instructions(pc, 1) {
-            if search > 12 { break; }
-            let instruction = instructions.iter().next().unwrap();
-            if Disassembler::is_trap_instruction(instruction) { break; }
-            if Disassembler::is_call_instruction(instruction) { break; }
-            if Disassembler::is_jump_instruction(instruction) { break; }
-            if Disassembler::is_privilege_instruction(instruction) { break; }
-            if instruction.id() == InsnId(X86Insn::X86_INS_PUSH as u32) { has_push = true; }
-            match self.machine {
-                BinaryArchitecture::AMD64 => {
-                    if instruction.id() == InsnId(X86Insn::X86_INS_ADD as u32)
-                        && self.instruction_has_register_operand(instruction, 0, RegId(X86_REG_RSP as u16))
-                        && self.instruction_contains_immutable_operand(instruction) {
-                        return false;
-                    }
-                    if has_push
-                        && instruction.id() == InsnId(X86Insn::X86_INS_SUB as u32)
-                        && self.instruction_has_register_operand(instruction, 0, RegId(X86_REG_RSP as u16))
-                        && self.instruction_contains_immutable_operand(instruction) {
-                        return true;
-                    }
-                },
-                BinaryArchitecture::I386 => {
-                    if instruction.id() == InsnId(X86Insn::X86_INS_ADD as u32)
-                        && self.instruction_has_register_operand(instruction, 0, RegId(X86_REG_ESP as u16))
-                        && self.instruction_contains_immutable_operand(instruction) {
-                        return false;
-                    }
-                    if has_push
-                        && instruction.id() == InsnId(X86Insn::X86_INS_SUB as u32)
-                        && self.instruction_has_register_operand(instruction, 0, RegId(X86_REG_ESP as u16))
-                        && self.instruction_contains_immutable_operand(instruction) {
-                        return true;
-                    }
-                },
-                _ => {}
-            }
-            pc += instruction.bytes().len() as u64;
-            search += 1;
         }
 
         return false;
@@ -649,14 +540,13 @@ impl Disassembler {
     }
 
     #[allow(dead_code)]
-    pub fn get_instruction_executable_addresses(&self, instruction: &Insn) -> HashSet<u64> {
-        let mut result = HashSet::<u64>::new();
+    pub fn get_instruction_executable_addresses(&self, instruction: &Insn) -> Option<u64> {
         if !Disassembler::is_load_address_instruction(instruction) {
-            return result;
+            return None;
         }
         let operands = match self.get_instruction_operands(instruction) {
             Ok(operands) => operands,
-            Err(_) => return result,
+            Err(_) => return None,
         };
         for operand in operands {
             if let ArchOperand::X86Operand(operand) = operand {
@@ -665,12 +555,11 @@ impl Disassembler {
                     if mem.index() != RegId(0) { continue; }
                     let address: u64 = (instruction.address() as i64 + mem.disp() + instruction.bytes().len() as i64) as u64;
                     if !self.is_executable_address(address) { continue; }
-                    if !self.is_function_prologue(address) { continue; }
-                    result.insert(address);
+                    return Some(address);
                 }
             }
         }
-        result
+        None
     }
 
     #[allow(dead_code)]

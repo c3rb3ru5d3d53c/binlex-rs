@@ -1,13 +1,16 @@
-use std::io::Error;
+
+use crate::models::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use std::io::Error;
 use crate::models::binary::Binary;
-use crate::models::instruction::Instruction;
-use crate::models::disassembler::DisassemblerOptions;
+use crate::models::cfg::CFGOptions;
+
 
 #[derive(Serialize, Deserialize)]
 pub struct SignatureJson {
     pub pattern: String,
+    pub normalized: Option<String>,
     pub feature: Vec<u8>,
     pub entropy: Option<f64>,
     pub sha256: Option<String>,
@@ -17,11 +20,11 @@ pub struct SignatureJson {
 
 pub struct Signature<'a> {
     instructions: &'a Vec<&'a Instruction>,
-    options: DisassemblerOptions,
+    options: CFGOptions,
 }
 
 impl<'a> Signature<'a> {
-    pub fn new(instructions: &'a Vec<&'a Instruction>, options: DisassemblerOptions) -> Self {
+    pub fn new(instructions: &'a Vec<&'a Instruction>, options: CFGOptions) -> Self {
         Self {
             instructions: instructions,
             options: options,
@@ -74,6 +77,11 @@ impl<'a> Signature<'a> {
         bytes
     }
 
+    pub fn normalized(&self) -> Option<String> {
+        if !self.options.enable_normalized { return None; }
+        Some(Binary::to_hex(&self.normalize()))
+    }
+
     pub fn tlsh(&self) -> Option<String> {
         if !self.options.enable_tlsh { return None; }
         Binary::tlsh(&self.normalize(), self.options.tlsh_mininum_byte_size)
@@ -103,6 +111,7 @@ impl<'a> Signature<'a> {
     pub fn process(&self) -> SignatureJson {
         SignatureJson {
             pattern: self.pattern(),
+            normalized: self.normalized(),
             feature: self.feature(),
             sha256: self.sha256(),
             entropy: self.entropy(),

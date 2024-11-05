@@ -1,11 +1,13 @@
-use std::io::Error;
-use std::collections::{HashSet, BTreeMap};
+use crate::models::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use std::collections::{BTreeMap, HashSet};
+use std::io::Error;
+use std::io::ErrorKind;
 use crate::models::binary::Binary;
-use crate::models::instruction::Instruction;
-use crate::models::signature::{Signature, SignatureJson};
-use crate::models::disassembler::DisassemblerOptions;
+use crate::models::cfg::CFG;
+use crate::models::signature::Signature;
+use crate::models::signature::SignatureJson;
 
 #[derive(Serialize, Deserialize)]
 pub struct BlockJson {
@@ -30,34 +32,47 @@ pub struct BlockJson {
     pub tags: Vec<String>,
 }
 
-pub struct Block {
+pub struct Block <'block>{
     pub address: u64,
-    pub functions: BTreeMap<u64, u64>,
-    pub error: Option<Error>,
-    pub next: Option<u64>,
-    pub to: HashSet<u64>,
-    pub edges: usize,
-    pub instructions: BTreeMap<u64, Instruction>,
-    pub prologue: bool,
-    pub conditional: bool,
-    pub options: DisassemblerOptions,
+    pub cfg: &'block CFG,
+    pub terminator: &'block Instruction,
 }
 
-impl Block {
-    #[allow(dead_code)]
-    pub fn new(address: u64, options: DisassemblerOptions) -> Result<Self, Error> {
-        Ok(Self{
+impl<'block> Block<'block> {
+
+    pub fn new(address: u64, cfg: &'block CFG) -> Result<Self, Error> {
+
+        if !cfg.blocks.is_valid(address) {
+            return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: is not valid", address)));
+        }
+
+        let mut terminator: Option<&Instruction> = None;
+
+        for (_, instruction) in cfg.instructions.range(address..){
+            let previous_address: Option<u64> = None;
+            if let Some(previous_address) = previous_address{
+                if instruction.address != previous_address {
+                    return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: is not contiguous", address)));
+                }
+            }
+            if instruction.is_jump
+                || instruction.is_trap
+                || instruction.is_return
+                || (address != instruction.address && instruction.is_block_start) {
+                terminator = Some(instruction);
+                break;
+            }
+        }
+
+        if terminator.is_none() {
+            return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: has no end instruction", address)));
+        }
+
+        return Ok(Self {
             address: address,
-            error: None,
-            next: None,
-            to: HashSet::<u64>::new(),
-            functions: BTreeMap::<u64, u64>::new(),
-            edges: 0,
-            instructions: BTreeMap::<u64, Instruction>::new(),
-            prologue: false,
-            conditional: false,
-            options: options,
-        })
+            cfg: cfg,
+            terminator: terminator.unwrap(),
+        });
     }
 
     #[allow(dead_code)]
@@ -67,120 +82,99 @@ impl Block {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn process(&self) -> BlockJson {
-        BlockJson {
-            address: self.address,
-            type_: "block".to_string(),
-            next: self.next,
-            to: self.to.clone(),
-            edges: self.edges,
-            prologue: self.prologue,
-            conditional: self.conditional,
-            signature: self.signature(),
-            size: self.size(),
-            bytes: self.to_hex(),
-            functions: self.functions().clone(),
-            instructions: self.instructions().len(),
-            entropy: self.entropy(),
-            sha256: self.sha256(),
-            minhash: self.minhash(),
-            tlsh: self.tlsh(),
-            contiguous: self.is_contiguous(),
-            tags: self.options.tags.clone(),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn has_return(&self) -> bool {
-        self.instructions().iter().any(|instruction| instruction.is_ret)
-    }
-
-    #[allow(dead_code)]
     pub fn json(&self) -> Result<String, Error> {
         let raw = self.process();
         let result = serde_json::to_string(&raw)?;
         Ok(result)
     }
 
-    #[allow(dead_code)]
-    pub fn minhash(&self) -> Option<String> {
-        if !self.options.enable_minhash { return None; }
-        Binary::minhash(
-            self.options.minhash_maximum_byte_size,
-            self.options.minhash_number_of_hashes,
-            self.options.minhash_shingle_size,
-            self.options.minhash_seed,
-            &self.bytes())
-    }
-
-    #[allow(dead_code)]
-    pub fn sha256(&self) -> Option<String> {
-        if !self.options.enable_sha256 { return None; }
-        Binary::sha256(&self.bytes())
-    }
-
-    #[allow(dead_code)]
-    pub fn entropy(&self) -> Option<f64> {
-        if !self.options.enable_entropy { return None; }
-        Binary::entropy(&self.bytes())
-    }
-
-    #[allow(dead_code)]
-    pub fn is_contiguous(&self) -> bool {
-        let instructions = self.instructions();
-        for i in 0..instructions.len() - 1 {
-            let current_instr = &instructions[i];
-            let next_instr = &instructions[i + 1];
-            if current_instr.address + current_instr.size() as u64 != next_instr.address {
-                return false;
-            }
+    pub fn process(&self) -> BlockJson {
+        BlockJson {
+            address: self.address,
+            type_: "block".to_string(),
+            next: self.terminator.next(),
+            to: self.terminator.to.clone(),
+            edges: self.edges(),
+            signature: self.signature(),
+            prologue: self.is_prologue(),
+            conditional: self.terminator.is_conditional,
+            size: self.size(),
+            bytes: Binary::to_hex(&self.bytes()),
+            instructions: self.instructions().len(),
+            functions: self.functions(),
+            entropy: self.entropy(),
+            sha256: self.sha256(),
+            minhash: self.minhash(),
+            tlsh: self.tlsh(),
+            contiguous: true,
+            tags: self.cfg.options.tags.clone(),
         }
-        true
     }
 
-    #[allow(dead_code)]
-    pub fn functions(&self) -> &BTreeMap<u64, u64> {
-        &self.functions
+    pub fn is_prologue(&self) -> bool {
+        self.instructions().first().map(|instruction|instruction.is_prologue).unwrap()
     }
 
-    #[allow(dead_code)]
-    pub fn to_hex(&self) -> String {
-        self.bytes().iter()
-            .map(|byte| format!("{:02x}", byte))
-            .collect::<String>()
+    pub fn edges(&self) -> usize {
+        return self.terminator.edges;
     }
 
-    #[allow(dead_code)]
-    pub fn is_conditional(&self) -> bool {
-        self.conditional
+    pub fn next(&self) -> Option<u64> {
+        if self.terminator.is_return { return None; }
+        if self.terminator.is_trap { return None; }
+        if !self.terminator.is_conditional { return None; }
+        self.terminator.next()
     }
 
-    #[allow(dead_code)]
-    pub fn is_unconditional(&self) -> bool {
-        !self.conditional
+    pub fn to(&self) -> HashSet<u64> {
+        self.terminator.to.clone()
     }
 
-    #[allow(dead_code)]
-    pub fn instructions(&self) -> Vec<&Instruction> {
-        self.instructions
-            .values()
-            .collect()
-    }
-
-    #[allow(dead_code)]
-    pub fn size(&self) -> usize {
-        self.instructions()
-            .iter()
-            .map(|instruction| instruction.size())
-            .sum()
+    pub fn blocks(&self) -> HashSet<u64> {
+        self.to().iter().cloned().chain(self.next()).collect()
     }
 
     pub fn signature(&self) -> SignatureJson {
-        Signature::new(&self.instructions(), self.options.clone()).process()
+        Signature::new(&self.instructions(), self.cfg.options.clone()).process()
     }
 
-    #[allow(dead_code)]
+    pub fn functions(&self) -> BTreeMap<u64, u64> {
+        self.instructions()
+            .iter()
+            .flat_map(|instruction| instruction.functions.clone().into_iter()
+            .map(move |function_address| (instruction.address, function_address)))
+            .collect()
+    }
+
+    pub fn entropy(&self) -> Option<f64> {
+        if !self.cfg.options.enable_entropy { return None; }
+        return Binary::entropy(&self.bytes());
+    }
+
+    pub fn tlsh(&self) -> Option<String> {
+        if !self.cfg.options.enable_tlsh { return None; }
+        return Binary::tlsh(&self.bytes(), self.cfg.options.tlsh_mininum_byte_size);
+    }
+
+    pub fn minhash(&self) -> Option<String> {
+        if !self.cfg.options.enable_minhash { return None; }
+        return Binary::minhash(
+            self.cfg.options.minhash_maximum_byte_size,
+            self.cfg.options.minhash_number_of_hashes,
+            self.cfg.options.minhash_shingle_size,
+            self.cfg.options.minhash_seed,
+            &self.bytes());
+    }
+
+    pub fn sha256(&self) -> Option<String> {
+        if !self.cfg.options.enable_sha256 { return None; }
+        return Binary::sha256(&self.bytes());
+    }
+
+    pub fn size(&self) -> usize {
+        self.bytes().len()
+    }
+
     pub fn bytes(&self) -> Vec<u8> {
         self.instructions()
             .iter()
@@ -188,15 +182,17 @@ impl Block {
             .collect()
     }
 
-    #[allow(dead_code)]
-    pub fn tlsh(&self) -> Option<String> {
-        if !self.options.enable_tlsh { return None; }
-        Binary::tlsh(&self.bytes(), self.options.tlsh_mininum_byte_size)
+    pub fn instructions(&self) -> Vec<&Instruction> {
+        self.cfg
+            .instructions
+            .range(self.address..=self.terminator.address)
+            .map(|(_, instr)| instr)
+            .collect()
     }
 
     #[allow(dead_code)]
-   pub fn hexdump(&self) -> String{
-        Binary::hexdump(&self.bytes(), self.address)
-   }
+    pub fn end(&self) -> u64 {
+        return self.terminator.address;
+    }
 
 }

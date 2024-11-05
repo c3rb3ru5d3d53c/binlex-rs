@@ -1,18 +1,16 @@
-use std::io::Error;
-use std::collections::{HashSet, HashMap, BTreeMap};
+
+use crate::models::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use crate::models::block::Block;
-use crate::models::signature::{Signature, SignatureJson};
-use crate::models::instruction::Instruction;
+use std::collections::{BTreeMap, HashSet};
+use std::io::Error;
+use std::io::ErrorKind;
 use crate::models::binary::Binary;
-use crate::models::disassembler::DisassemblerOptions;
-
-pub struct Function {
-    pub address: u64,
-    pub blocks: BTreeMap<u64, Block>,
-    pub options: DisassemblerOptions,
-}
+use crate::models::cfg::CFG;
+use crate::models::cfg::CFGQueue;
+use crate::models::block::Block;
+use crate::models::signature::Signature;
+use crate::models::signature::SignatureJson;
 
 #[derive(Serialize, Deserialize)]
 pub struct FunctionJson {
@@ -22,7 +20,7 @@ pub struct FunctionJson {
     pub edges: usize,
     pub prologue: bool,
     pub signature: Option<SignatureJson>,
-    pub size: usize,
+    pub size: Option<usize>,
     pub bytes: Option<String>,
     pub functions: BTreeMap<u64, u64>,
     pub blocks: HashSet<u64>,
@@ -35,52 +33,70 @@ pub struct FunctionJson {
     pub tags: Vec<String>,
 }
 
-impl Function {
-    #[allow(dead_code)]
-    pub fn new(address: u64, options: DisassemblerOptions) -> Result<Self, Error> {
-        return Ok(Self{
+pub struct Function <'function>{
+    pub address: u64,
+    pub cfg: &'function CFG,
+    pub blocks: BTreeMap<u64, Block <'function>>,
+}
+
+impl<'function> Function<'function> {
+
+    pub fn new(address: u64, cfg: &'function CFG) -> Result<Self, Error> {
+
+        if !cfg.functions.is_valid(address) {
+            return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x}: is not valid", address)));
+        }
+
+        let mut blocks = BTreeMap::<u64, Block>::new();
+
+        let mut queue = CFGQueue::new();
+
+        queue.enqueue(address);
+
+        while let Some(block_address) = queue.dequeue() {
+            queue.set_processed(block_address);
+            if cfg.blocks.is_invalid(block_address) {
+                return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x} -> Block -> 0x{:x}: is invalid", address, block_address)));
+            }
+            match Block::new(block_address, &cfg) {
+                Ok(block) => {
+                    queue.enqueue_extend(block.blocks());
+                    blocks.insert(block_address, block);
+                }
+                Err(error) => {
+                    return Err(Error::new(
+                    ErrorKind::Other,
+                    format!("Function -> 0x{:x} -> Block -> 0x{:x}: {}", address, block_address, error)
+                ))},
+            }
+        }
+
+        return Ok(Self {
             address: address,
-            blocks: BTreeMap::<u64, Block>::new(),
-            options: options,
+            cfg: cfg,
+            blocks: blocks,
         });
-    }
-
-    #[allow(dead_code)]
-    pub fn size(&self) -> usize {
-        self.blocks().iter().map(|block| block.size()).sum()
-    }
-
-    #[allow(dead_code)]
-    pub fn blocks(&self) -> Vec<&Block> {
-        self.blocks.values().collect()
     }
 
     pub fn process(&self) -> FunctionJson {
         FunctionJson {
-            type_: "function".to_string(),
             address: self.address,
+            type_: "function".to_string(),
             edges: self.edges(),
-            prologue: self.prologue(),
+            prologue: self.is_prologue(),
             signature: self.signature(),
+            bytes: self.bytes_to_hex(),
             size: self.size(),
-            bytes: self.to_hex(),
-            functions: self.functions().clone(),
-            blocks: self.blocks().iter().map(|block| block.address).collect::<HashSet<_>>(),
+            functions: self.functions(),
+            blocks: self.block_addresses(),
             instructions: self.instructions().len(),
             entropy: self.entropy(),
             sha256: self.sha256(),
             minhash: self.minhash(),
             tlsh: self.tlsh(),
             contiguous: self.is_contiguous(),
-            tags: self.options.tags.clone(),
+            tags: self.cfg.options.tags.clone(),
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn json(&self) -> Result<String, Error> {
-        let raw = self.process();
-        let result = serde_json::to_string(&raw)?;
-        Ok(result)
     }
 
     #[allow(dead_code)]
@@ -90,183 +106,130 @@ impl Function {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn instructions(&self) -> Vec<&Instruction> {
-        self.blocks().iter().flat_map(|block| block.instructions()).collect()
+    pub fn json(&self) -> Result<String, Error> {
+        let raw = self.process();
+        let result = serde_json::to_string(&raw)?;
+        Ok(result)
     }
 
-    #[allow(dead_code)]
     pub fn signature(&self) -> Option<SignatureJson> {
         if !self.is_contiguous() { return None; }
-        Some(Signature::new(&self.instructions(), self.options.clone()).process())
+        return Some(Signature::new(&self.instructions(), self.cfg.options.clone()).process());
     }
 
-    #[allow(dead_code)]
-    pub fn prologue(&self) -> bool {
+    pub fn instructions(&self) -> Vec<&Instruction> {
+        let mut instructions = Vec::<&Instruction>::new();
+        for (_, block) in self.blocks() {
+            instructions.extend(block.instructions());
+        }
+        return instructions;
+    }
+
+    pub fn is_prologue(&self) -> bool {
         self.blocks()
-            .first()
-            .map(|block| block.prologue)
-            .unwrap_or(false)
+            .first_key_value()
+            .map_or(false, |(_, block)| block.is_prologue())
     }
 
-    #[allow(dead_code)]
+    pub fn block_addresses(&self) -> HashSet<u64> {
+        self.blocks().keys().cloned().collect()
+    }
+
     pub fn edges(&self) -> usize {
-        self.blocks().iter().map(|block| block.edges).sum()
-    }
-
-    #[allow(dead_code)]
-    pub fn bytes(&self) -> Vec<u8> {
-        if !self.is_contiguous() { return Vec::<u8>::new() }
-        self.blocks().iter().flat_map(|block|block.bytes()).collect()
-    }
-
-    #[allow(dead_code)]
-    pub fn to_hex(&self) -> Option<String> {
-        if !self.is_contiguous() { return None; }
-        Some(Binary::to_hex(&self.bytes()))
-    }
-
-    #[allow(dead_code)]
-    pub fn sha256(&self) -> Option<String> {
-        if !self.options.enable_sha256 { return None; }
-        if !self.is_contiguous() { return None; }
-        Binary::sha256(&self.bytes())
-    }
-
-    #[allow(dead_code)]
-    pub fn minhash(&self) -> Option<String> {
-        if !self.options.enable_minhash { return None; }
-        Binary::minhash(
-            self.options.minhash_maximum_byte_size,
-            self.options.minhash_number_of_hashes,
-            self.options.minhash_shingle_size,
-            self.options.minhash_seed,
-            &self.bytes())
-    }
-
-    #[allow(dead_code)]
-    pub fn tlsh(&self) -> Option<String> {
-        if !self.options.enable_tlsh { return None; }
-        if !self.is_contiguous() { return None; }
-        Binary::tlsh(&self.bytes(), self.options.tlsh_mininum_byte_size)
-    }
-
-    #[allow(dead_code)]
-    pub fn entropy(&self) -> Option<f64> {
-        if !self.options.enable_entropy { return None; }
-        let entropi: Vec<f64> = self.blocks()
-            .iter()
-            .filter_map(|block| block.entropy())
-            .collect();
-        if entropi.is_empty() { return None; }
-        Some(entropi.iter().sum::<f64>() / entropi.len() as f64)
-    }
-
-    #[allow(dead_code)]
-    pub fn functions(&self) -> BTreeMap<u64, u64> {
-        let mut result = BTreeMap::<u64, u64>::new();
-        for block in self.blocks() {
-            for (instruction_address, function_address) in block.functions() {
-                result.insert(*instruction_address, *function_address);
-            }
+        let mut result: usize = 0;
+        for (_, block) in self.blocks() {
+            result += block.edges();
         }
         return result;
     }
 
-    #[allow(dead_code)]
-    pub fn patch_block_overlaps(&mut self) {
-        loop {
-            let overlaps = self.get_overlapped_block_addresses();
-
-            if overlaps.is_empty() {
-                break;
-            }
-
-            for (block_start, overlap_address) in overlaps {
-                if let Some((_, block)) = self.blocks.iter_mut().find(|(_, b)| b.address == block_start) {
-                    let mut instructions_to_remove = HashSet::<u64>::new();
-                    for (&instruction_address, _) in &block.instructions {
-                        if instruction_address >= overlap_address {
-                            instructions_to_remove.insert(instruction_address);
-                        }
-                    }
-                    for address in instructions_to_remove {
-                        block.instructions.remove(&address);
-                    }
-
-                    let mut functions_to_remove = HashSet::<u64>::new();
-                    for (&function_address, _) in &block.functions {
-                        if function_address >= overlap_address {
-                            functions_to_remove.insert(function_address);
-                        }
-                    }
-
-                    for address in functions_to_remove {
-                        block.functions.remove(&address);
-                    }
-
-                    block.next = Some(overlap_address);
-                    block.to.clear();
-                    block.edges = 0;
-                    block.conditional = false;
-                }
-            }
+    pub fn bytes_to_hex(&self) -> Option<String> {
+        if let Some(bytes) = self.bytes() {
+            return Some(Binary::to_hex(&bytes));
         }
+        return None;
     }
 
-    #[allow(dead_code)]
-    pub fn get_overlapped_block_addresses(&self) -> HashMap<u64, u64> {
-        let mut overlaps = HashMap::<u64, u64>::new();
+    pub fn size(&self) -> Option<usize> {
+        if !self.is_contiguous() { return None; }
+        if let Some(bytes) = self.bytes() {
+            return Some(bytes.len());
+        }
+        return None;
+    }
 
-        let mut intervals: Vec<(u64, u64)> = self.blocks.iter()
-            .map(|(_, block)| {
-                (block.address, block.address + block.size() as u64)
-            })
+    pub fn bytes(&self) -> Option<Vec<u8>> {
+        if !self.is_contiguous() { return None; }
+        let bytes: Vec<u8> = self.blocks()
+            .iter()
+            .flat_map(|(_, block)| block.bytes())
             .collect();
+        return Some(bytes);
+    }
 
-        intervals.sort_by_key(|&(start, _)| start);
-
-        for i in 0..intervals.len(){
-            let (block_start_0, block_end_0) = intervals[i];
-            for j in (i + 1)..intervals.len() {
-                let block_start_1= intervals[j].0;
-                if block_start_1 >= block_end_0 {
-                    break;
-                }
-                overlaps.insert(block_start_0, block_start_1);
-            }
+    pub fn sha256(&self) -> Option<String> {
+        if !self.cfg.options.enable_sha256 { return None; }
+        if !self.is_contiguous() { return None; }
+        if let Some(bytes) = self.bytes() {
+            return Binary::sha256(&bytes);
         }
-        return overlaps;
+        return None;
     }
 
-    #[allow(dead_code)]
-    pub fn has_return(&self) -> bool {
-        self.blocks().iter().any(|block| block.has_return())
+    pub fn entropy(&self) -> Option<f64> {
+        if !self.cfg.options.enable_entropy { return None; }
+        if !self.is_contiguous() { return None; }
+        if let Some(bytes) = self.bytes() {
+            return Binary::entropy(&bytes);
+        }
+        return None;
     }
 
-    #[allow(dead_code)]
+    pub fn tlsh(&self) -> Option<String> {
+        if !self.cfg.options.enable_tlsh { return None; }
+        if !self.is_contiguous() { return None; }
+        if let Some(bytes) = self.bytes() {
+            return Binary::tlsh(&bytes, self.cfg.options.tlsh_mininum_byte_size);
+        }
+        return None;
+    }
+
+    pub fn minhash(&self) -> Option<String> {
+        if !self.cfg.options.enable_minhash { return None; }
+        if !self.is_contiguous() { return None; }
+        if let Some(bytes) = self.bytes() {
+            return Binary::minhash(
+                self.cfg.options.minhash_maximum_byte_size,
+                self.cfg.options.minhash_number_of_hashes,
+                self.cfg.options.minhash_shingle_size,
+                self.cfg.options.minhash_seed,
+                &bytes);
+        }
+        return None;
+    }
+
+    pub fn blocks(&self) -> &BTreeMap<u64, Block> {
+        return &self.blocks;
+    }
+
+    pub fn functions(&self) -> BTreeMap<u64, u64> {
+        let mut result = BTreeMap::<u64, u64>::new();
+        for (_, block) in self.blocks() {
+            result.extend(block.functions());
+        }
+        return result;
+    }
+
     pub fn is_contiguous(&self) -> bool {
-        if !self.has_return() { return false };
-        let mut previous_end_address: Option<u64> = None;
-        for block in self.blocks() {
-            let start_address = block.address;
-            let end_address = start_address + block.size() as u64;
-
-            if let Some(prev_end) = previous_end_address {
-                if start_address != prev_end {
+        let mut block_previous_end: Option<u64> = None;
+        for (_, block )in self.blocks() {
+            if let Some(previous_end) = block_previous_end {
+                if previous_end != block.address {
                     return false;
                 }
             }
-            previous_end_address = Some(end_address);
+            block_previous_end = Some(block.address + block.size() as u64);
         }
-        true
+        return true;
     }
-
-    #[allow(dead_code)]
-    pub fn print_blocks(&self) {
-        for block in self.blocks() {
-            block.print();
-        }
-    }
-
 }
