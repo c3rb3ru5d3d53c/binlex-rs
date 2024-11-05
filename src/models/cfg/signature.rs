@@ -1,10 +1,10 @@
 
-use crate::models::instruction::Instruction;
+use crate::models::cfg::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::io::Error;
 use crate::models::binary::Binary;
-use crate::models::cfg::CFGOptions;
+use crate::models::cfg::graph::GraphOptions;
 
 
 #[derive(Serialize, Deserialize)]
@@ -20,11 +20,11 @@ pub struct SignatureJson {
 
 pub struct Signature<'a> {
     instructions: &'a Vec<&'a Instruction>,
-    options: CFGOptions,
+    options: GraphOptions,
 }
 
 impl<'a> Signature<'a> {
-    pub fn new(instructions: &'a Vec<&'a Instruction>, options: CFGOptions) -> Self {
+    pub fn new(instructions: &'a Vec<&'a Instruction>, options: GraphOptions) -> Self {
         Self {
             instructions: instructions,
             options: options,

@@ -20,8 +20,8 @@ use std::collections::BTreeMap;
 use std::collections::HashSet;
 use crate::models::binary::Binary;
 use crate::models::binary::BinaryArchitecture;
-use crate::models::instruction::Instruction;
-use crate::models::cfg::CFG;
+use crate::models::cfg::instruction::Instruction;
+use crate::models::cfg::graph::Graph;
 
 pub struct Disassembler {
     cs: Capstone,
@@ -105,7 +105,7 @@ impl Disassembler {
         return functions;
     }
 
-    pub fn disassemble_control_flow<'a>(&'a self, addresses: HashSet<u64>, cfg: &'a mut CFG) -> Result<(), Error> {
+    pub fn disassemble_control_flow<'a>(&'a self, addresses: HashSet<u64>, cfg: &'a mut Graph) -> Result<(), Error> {
 
         cfg.functions.enqueue_extend(addresses);
 
@@ -118,7 +118,7 @@ impl Disassembler {
         return Ok(());
     }
 
-    pub fn disassemble_function<'a>(&'a self, address: u64, cfg: &'a mut CFG) -> Result<u64, Error> {
+    pub fn disassemble_function<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
 
         cfg.functions.set_processed(address);
 
@@ -148,7 +148,7 @@ impl Disassembler {
         return Ok(address);
     }
 
-    pub fn disassemble_instruction<'a>(&'a self, address: u64, cfg: &'a mut CFG) -> Result<u64, Error> {
+    pub fn disassemble_instruction<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
 
         if let Some(instruction) = cfg.get_instruction(address) {
             return Ok(instruction.address);
@@ -210,7 +210,7 @@ impl Disassembler {
     }
 
     #[allow(dead_code)]
-    pub fn disassemble_block<'a>(&'a self, address: u64, cfg: &'a mut CFG) -> Result<u64, Error> {
+    pub fn disassemble_block<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
 
         cfg.blocks.set_processed(address);
 

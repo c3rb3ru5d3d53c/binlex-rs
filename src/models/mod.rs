@@ -1,10 +1,6 @@
 pub mod config;
 pub mod disassembler;
-pub mod block;
-pub mod function;
 pub mod cfg;
 pub mod binary;
 pub mod minhash;
-pub mod signature;
-pub mod instruction;
 pub mod debug;

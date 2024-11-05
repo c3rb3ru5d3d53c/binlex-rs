@@ -11,9 +11,9 @@ use std::fs::File;
 use std::io::Write;
 use std::collections::HashSet;
 use std::io::ErrorKind;
-use crate::models::cfg::CFG;
-use crate::models::block::Block;
-use crate::models::function::Function;
+use crate::models::cfg::graph::Graph;
+use crate::models::cfg::block::Block;
+use crate::models::cfg::function::Function;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::config::ARGS;
 
@@ -49,7 +49,7 @@ fn main() {
 
     entrypoints.extend(pe.functions());
 
-    let mut cfg = CFG::new();
+    let mut cfg = Graph::new();
     cfg.options.enable_sha256 = !ARGS.disable_sha256;
     cfg.options.enable_minhash = !ARGS.disable_minhash;
     cfg.options.enable_tlsh = !ARGS.disable_tlsh;

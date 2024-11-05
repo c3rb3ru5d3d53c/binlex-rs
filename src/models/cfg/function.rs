@@ -1,16 +1,16 @@
 
-use crate::models::instruction::Instruction;
+use crate::models::cfg::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::{BTreeMap, HashSet};
 use std::io::Error;
 use std::io::ErrorKind;
 use crate::models::binary::Binary;
-use crate::models::cfg::CFG;
-use crate::models::cfg::CFGQueue;
-use crate::models::block::Block;
-use crate::models::signature::Signature;
-use crate::models::signature::SignatureJson;
+use crate::models::cfg::graph::Graph;
+use crate::models::cfg::graph::GraphQueue;
+use crate::models::cfg::block::Block;
+use crate::models::cfg::signature::Signature;
+use crate::models::cfg::signature::SignatureJson;
 
 #[derive(Serialize, Deserialize)]
 pub struct FunctionJson {
@@ -35,13 +35,13 @@ pub struct FunctionJson {
 
 pub struct Function <'function>{
     pub address: u64,
-    pub cfg: &'function CFG,
+    pub cfg: &'function Graph,
     pub blocks: BTreeMap<u64, Block <'function>>,
 }
 
 impl<'function> Function<'function> {
 
-    pub fn new(address: u64, cfg: &'function CFG) -> Result<Self, Error> {
+    pub fn new(address: u64, cfg: &'function Graph) -> Result<Self, Error> {
 
         if !cfg.functions.is_valid(address) {
             return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x}: is not valid", address)));
@@ -49,7 +49,7 @@ impl<'function> Function<'function> {
 
         let mut blocks = BTreeMap::<u64, Block>::new();
 
-        let mut queue = CFGQueue::new();
+        let mut queue = GraphQueue::new();
 
         queue.enqueue(address);
 

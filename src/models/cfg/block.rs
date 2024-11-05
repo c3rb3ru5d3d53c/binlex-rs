@@ -1,13 +1,13 @@
-use crate::models::instruction::Instruction;
+use crate::models::cfg::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::{BTreeMap, HashSet};
 use std::io::Error;
 use std::io::ErrorKind;
 use crate::models::binary::Binary;
-use crate::models::cfg::CFG;
-use crate::models::signature::Signature;
-use crate::models::signature::SignatureJson;
+use crate::models::cfg::graph::Graph;
+use crate::models::cfg::signature::Signature;
+use crate::models::cfg::signature::SignatureJson;
 
 #[derive(Serialize, Deserialize)]
 pub struct BlockJson {
@@ -34,13 +34,13 @@ pub struct BlockJson {
 
 pub struct Block <'block>{
     pub address: u64,
-    pub cfg: &'block CFG,
+    pub cfg: &'block Graph,
     pub terminator: &'block Instruction,
 }
 
 impl<'block> Block<'block> {
 
-    pub fn new(address: u64, cfg: &'block CFG) -> Result<Self, Error> {
+    pub fn new(address: u64, cfg: &'block Graph) -> Result<Self, Error> {
 
         if !cfg.blocks.is_valid(address) {
             return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: is not valid", address)));

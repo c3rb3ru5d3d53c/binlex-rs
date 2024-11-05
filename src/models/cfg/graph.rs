@@ -1,8 +1,8 @@
-use crate::models::instruction::Instruction;
+use crate::models::cfg::instruction::Instruction;
 use std::collections::{BTreeMap, HashSet, VecDeque};
 
 #[derive(Clone)]
-pub struct CFGOptions {
+pub struct GraphOptions {
     pub enable_minhash: bool,
     pub minhash_maximum_byte_size: usize,
     pub minhash_number_of_hashes: usize,
@@ -17,7 +17,7 @@ pub struct CFGOptions {
     pub tags: Vec<String>,
 }
 
-impl CFGOptions {
+impl GraphOptions {
     pub fn new() -> Self {
         return Self {
             enable_minhash: true,
@@ -36,14 +36,14 @@ impl CFGOptions {
     }
 }
 
-pub struct CFGQueue {
+pub struct GraphQueue {
     pub queue: VecDeque<u64>,
     pub processed: HashSet<u64>,
     pub valid: HashSet<u64>,
     pub invalid: HashSet<u64>,
 }
 
-impl CFGQueue {
+impl GraphQueue {
     pub fn new() -> Self {
         return Self {
             queue: VecDeque::<u64>::new(),
@@ -109,21 +109,21 @@ impl CFGQueue {
     }
 }
 
-pub struct CFG {
+pub struct Graph {
     pub instructions: BTreeMap<u64, Instruction>,
-    pub blocks: CFGQueue,
-    pub functions: CFGQueue,
-    pub options: CFGOptions,
+    pub blocks: GraphQueue,
+    pub functions: GraphQueue,
+    pub options: GraphOptions,
 }
 
-impl CFG {
+impl Graph {
     #[allow(dead_code)]
     pub fn new() -> Self  {
         return Self{
             instructions: BTreeMap::<u64, Instruction>::new(),
-            blocks: CFGQueue::new(),
-            functions: CFGQueue::new(),
-            options: CFGOptions::new(),
+            blocks: GraphQueue::new(),
+            functions: GraphQueue::new(),
+            options: GraphOptions::new(),
         };
     }
 
