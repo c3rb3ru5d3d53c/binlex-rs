@@ -1,8 +1,11 @@
 
 use crate::models::cfg::instruction::Instruction;
+//use rayon::str::SplitTerminator;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
+use dashmap::DashSet;
+//use crossbeam_skiplist::SkipMap;
 use std::io::Error;
 use std::io::ErrorKind;
 use crate::models::binary::Binary;
@@ -23,7 +26,7 @@ pub struct FunctionJson {
     pub size: Option<usize>,
     pub bytes: Option<String>,
     pub functions: BTreeMap<u64, u64>,
-    pub blocks: HashSet<u64>,
+    pub blocks: DashSet<u64>,
     pub instructions: usize,
     pub entropy: Option<f64>,
     pub sha256: Option<String>,
@@ -33,10 +36,16 @@ pub struct FunctionJson {
     pub tags: Vec<String>,
 }
 
+#[derive(Clone)]
 pub struct Function <'function>{
     pub address: u64,
     pub cfg: &'function Graph,
-    pub blocks: BTreeMap<u64, Block <'function>>,
+    pub blocks: BTreeMap<u64, Instruction>,
+    pub functions: BTreeMap<u64, u64>,
+    pub instruction_count: usize,
+    pub edges: usize,
+    pub is_prologue: bool,
+    pub size: usize,
 }
 
 impl<'function> Function<'function> {
@@ -47,7 +56,12 @@ impl<'function> Function<'function> {
             return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x}: is not valid", address)));
         }
 
-        let mut blocks = BTreeMap::<u64, Block>::new();
+        let mut blocks = BTreeMap::<u64, Instruction>::new();
+        let mut functions = BTreeMap::<u64, u64>::new();
+        let mut instruction_count: usize = 0;
+        let mut edges: usize = 0;
+        let mut is_prologue = false;
+        let mut size: usize = 0;
 
         let mut queue = GraphQueue::new();
 
@@ -60,8 +74,15 @@ impl<'function> Function<'function> {
             }
             match Block::new(block_address, &cfg) {
                 Ok(block) => {
+                    if block.address == address {
+                        is_prologue = block.is_prologue();
+                    }
                     queue.enqueue_extend(block.blocks());
-                    blocks.insert(block_address, block);
+                    functions.extend(block.functions());
+                    size += block.size();
+                    instruction_count += block.instruction_count();
+                    edges += block.edges();
+                    blocks.insert(block_address, block.terminator.clone());
                 }
                 Err(error) => {
                     return Err(Error::new(
@@ -75,6 +96,11 @@ impl<'function> Function<'function> {
             address: address,
             cfg: cfg,
             blocks: blocks,
+            functions: functions,
+            instruction_count: instruction_count,
+            edges: edges,
+            is_prologue: is_prologue,
+            size: size,
         });
     }
 
@@ -89,7 +115,7 @@ impl<'function> Function<'function> {
             size: self.size(),
             functions: self.functions(),
             blocks: self.block_addresses(),
-            instructions: self.instructions().len(),
+            instructions: self.instruction_count(),
             entropy: self.entropy(),
             sha256: self.sha256(),
             minhash: self.minhash(),
@@ -114,33 +140,24 @@ impl<'function> Function<'function> {
 
     pub fn signature(&self) -> Option<SignatureJson> {
         if !self.is_contiguous() { return None; }
-        return Some(Signature::new(&self.instructions(), self.cfg.options.clone()).process());
+        return Some(Signature::new(self.address, self.end().unwrap(), &self.cfg, self.cfg.options.clone()).process());
     }
 
-    pub fn instructions(&self) -> Vec<&Instruction> {
-        let mut instructions = Vec::<&Instruction>::new();
-        for (_, block) in self.blocks() {
-            instructions.extend(block.instructions());
-        }
-        return instructions;
+
+    pub fn instruction_count(&self) -> usize {
+        return self.instruction_count;
     }
 
     pub fn is_prologue(&self) -> bool {
-        self.blocks()
-            .first_key_value()
-            .map_or(false, |(_, block)| block.is_prologue())
+        return self.is_prologue;
     }
 
-    pub fn block_addresses(&self) -> HashSet<u64> {
+    pub fn block_addresses(&self) -> DashSet<u64> {
         self.blocks().keys().cloned().collect()
     }
 
     pub fn edges(&self) -> usize {
-        let mut result: usize = 0;
-        for (_, block) in self.blocks() {
-            result += block.edges();
-        }
-        return result;
+        return self.edges;
     }
 
     pub fn bytes_to_hex(&self) -> Option<String> {
@@ -152,19 +169,22 @@ impl<'function> Function<'function> {
 
     pub fn size(&self) -> Option<usize> {
         if !self.is_contiguous() { return None; }
-        if let Some(bytes) = self.bytes() {
-            return Some(bytes.len());
-        }
-        return None;
+        return Some(self.size);
+    }
+
+    pub fn end(&self) -> Option<u64> {
+        if !self.is_contiguous() { return None; }
+        self.blocks().iter().last().map(|(_, terminator)|terminator.address)
     }
 
     pub fn bytes(&self) -> Option<Vec<u8>> {
         if !self.is_contiguous() { return None; }
-        let bytes: Vec<u8> = self.blocks()
-            .iter()
-            .flat_map(|(_, block)| block.bytes())
-            .collect();
-        return Some(bytes);
+        let mut result = Vec::<u8>::new();
+        for entry in self.cfg.instructions.range(self.address..=self.end().unwrap()) {
+            let instruction = entry.value();
+            result.extend(instruction.bytes.clone());
+        }
+        return Some(result);
     }
 
     pub fn sha256(&self) -> Option<String> {
@@ -208,27 +228,23 @@ impl<'function> Function<'function> {
         return None;
     }
 
-    pub fn blocks(&self) -> &BTreeMap<u64, Block> {
+    pub fn blocks(&self) -> &BTreeMap<u64, Instruction> {
         return &self.blocks;
     }
 
     pub fn functions(&self) -> BTreeMap<u64, u64> {
-        let mut result = BTreeMap::<u64, u64>::new();
-        for (_, block) in self.blocks() {
-            result.extend(block.functions());
-        }
-        return result;
+        return self.functions.clone();
     }
 
     pub fn is_contiguous(&self) -> bool {
         let mut block_previous_end: Option<u64> = None;
-        for (_, block )in self.blocks() {
+        for (block_start_address, terminator )in self.blocks() {
             if let Some(previous_end) = block_previous_end {
-                if previous_end != block.address {
+                if previous_end != *block_start_address {
                     return false;
                 }
             }
-            block_previous_end = Some(block.address + block.size() as u64);
+            block_previous_end = Some(terminator.address + terminator.size() as u64);
         }
         return true;
     }

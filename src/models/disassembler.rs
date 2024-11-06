@@ -16,12 +16,14 @@ use capstone::InsnId;
 use capstone::Instructions;
 use std::io::Error;
 use std::io::ErrorKind;
-use std::collections::BTreeMap;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, BTreeSet};
+use crossbeam_skiplist::SkipSet;
 use crate::models::binary::Binary;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::cfg::instruction::Instruction;
 use crate::models::cfg::graph::Graph;
+
+//use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
 
 pub struct Disassembler {
     cs: Capstone,
@@ -52,9 +54,9 @@ impl Disassembler {
     }
 
     #[allow(dead_code)]
-    pub fn disassemble_linear_pass(&self, valid_jump_threshold: usize, valid_instruction_threshold: usize) -> HashSet<u64> {
+    pub fn disassemble_linear_pass(&self, valid_jump_threshold: usize, valid_instruction_threshold: usize) -> SkipSet<u64> {
 
-        let mut functions = HashSet::<u64>::new();
+        let functions = SkipSet::<u64>::new();
         for (start, end) in self.executable_address_ranges.clone() {
             let mut pc = start;
             let mut valid_instructions = 0;
@@ -105,7 +107,7 @@ impl Disassembler {
         return functions;
     }
 
-    pub fn disassemble_control_flow<'a>(&'a self, addresses: HashSet<u64>, cfg: &'a mut Graph) -> Result<(), Error> {
+    pub fn disassemble_control_flow<'a>(&'a self, addresses: BTreeSet<u64>, cfg: &'a mut Graph) -> Result<(), Error> {
 
         cfg.functions.enqueue_extend(addresses);
 
@@ -116,6 +118,34 @@ impl Disassembler {
         }
 
         return Ok(());
+
+        // cfg.functions.enqueue_extend(addresses);
+
+        // let self_arc = Arc::new(self);
+        // let cfg_arc = Arc::new(cfg);
+        // let active_tasks = Arc::new(AtomicUsize::new(0));
+
+        // rayon::scope(|s| {
+        //     loop {
+        //         let function_start_address = cfg_arc.functions.dequeue();
+
+        //         if let Some(address) = function_start_address {
+        //             active_tasks.fetch_add(1, Ordering::SeqCst);
+        //             let self_clone = Arc::clone(&self_arc);
+        //             let cfg_clone = Arc::clone(&cfg_arc);
+        //             let active_tasks_clone = Arc::clone(&active_tasks);
+
+        //             s.spawn(move |_| {
+        //                 let _ = self_clone.disassemble_function(address, &cfg_clone);
+        //                 active_tasks_clone.fetch_sub(1, Ordering::SeqCst);
+        //             });
+        //         } else if active_tasks.load(Ordering::SeqCst) == 0 {
+        //             break;
+        //         } else {
+        //             std::thread::yield_now();
+        //         }
+        //     }
+        // });
     }
 
     pub fn disassemble_function<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
@@ -134,11 +164,12 @@ impl Disassembler {
                 },
             };
             if block_start_address == address {
-                if let Some(instruction) = cfg.get_instruction(block_start_address) {
+                if let Some(mut instruction) = cfg.get_instruction(block_start_address) {
                     instruction.is_function_start = true;
+                    cfg.update_instruction(instruction);
                 }
             }
-            if let Some(instruction) = cfg.read_instruction(block_end_address) {
+            if let Some(instruction) = cfg.get_instruction(block_end_address) {
                 cfg.blocks.enqueue_extend(instruction.blocks());
             }
         }
@@ -223,16 +254,18 @@ impl Disassembler {
                 return Err(error);
             }
 
-            let blinstruction = cfg.get_instruction(pc).unwrap();
+            let mut blinstruction = cfg.get_instruction(pc).unwrap();
 
             if blinstruction.address == address {
                 blinstruction.is_block_start = true;
+                cfg.update_instruction(blinstruction.clone());
             }
 
             // Is Function Prologue
             if blinstruction.is_block_start == true && blinstruction.address == address {
                 blinstruction.is_prologue = self.is_function_prologue(blinstruction.address);
                 has_prologue = blinstruction.is_prologue;
+                cfg.update_instruction(blinstruction.clone());
             }
 
             // Block Starts with Trap Instruction

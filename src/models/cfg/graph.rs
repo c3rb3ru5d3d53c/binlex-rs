@@ -1,5 +1,9 @@
+use std::collections::BTreeSet;
+
 use crate::models::cfg::instruction::Instruction;
-use std::collections::{BTreeMap, HashSet, VecDeque};
+use crossbeam::queue::SegQueue;
+use crossbeam_skiplist::SkipMap;
+use crossbeam_skiplist::SkipSet;
 
 #[derive(Clone)]
 pub struct GraphOptions {
@@ -37,19 +41,19 @@ impl GraphOptions {
 }
 
 pub struct GraphQueue {
-    pub queue: VecDeque<u64>,
-    pub processed: HashSet<u64>,
-    pub valid: HashSet<u64>,
-    pub invalid: HashSet<u64>,
+    pub queue: SegQueue<u64>,
+    pub processed: SkipSet<u64>,
+    pub valid: SkipSet<u64>,
+    pub invalid: SkipSet<u64>,
 }
 
 impl GraphQueue {
     pub fn new() -> Self {
         return Self {
-            queue: VecDeque::<u64>::new(),
-            processed: HashSet::<u64>::new(),
-            valid: HashSet::<u64>::new(),
-            invalid: HashSet::<u64>::new(),
+            queue: SegQueue::<u64>::new(),
+            processed: SkipSet::<u64>::new(),
+            valid: SkipSet::<u64>::new(),
+            invalid: SkipSet::<u64>::new(),
         }
     }
 
@@ -66,12 +70,12 @@ impl GraphQueue {
     }
 
     #[allow(dead_code)]
-    pub fn invalid(&self) -> HashSet<u64> {
-        return self.invalid.clone();
+    pub fn invalid(&self) -> &SkipSet<u64> {
+        return &self.invalid;
     }
 
-    pub fn valid(&self) -> HashSet<u64> {
-        return self.valid.clone();
+    pub fn valid(&self) -> &SkipSet<u64> {
+        return &self.valid;
     }
 
     pub fn is_valid(&self, address: u64) -> bool {
@@ -84,15 +88,15 @@ impl GraphQueue {
         }
     }
 
-    pub fn set_processed(&mut self, address: u64) -> bool {
-        self.processed.insert(address)
+    pub fn set_processed(&mut self, address: u64) {
+        self.processed.insert(address);
     }
 
     pub fn is_processed(&self, address: u64) -> bool {
         self.processed.contains(&address)
     }
 
-    pub fn enqueue_extend(&mut self, addresses: HashSet<u64>) {
+    pub fn enqueue_extend(&mut self, addresses: BTreeSet<u64>) {
         for address in addresses {
             self.enqueue(address);
         }
@@ -100,17 +104,17 @@ impl GraphQueue {
 
     pub fn enqueue(&mut self, address: u64) -> bool {
         if self.is_processed(address) { return false; }
-        self.queue.push_back(address);
+        self.queue.push(address);
         return true;
     }
 
     pub fn dequeue(&mut self) -> Option<u64> {
-        self.queue.pop_front()
+        self.queue.pop()
     }
 }
 
 pub struct Graph {
-    pub instructions: BTreeMap<u64, Instruction>,
+    pub instructions: SkipMap<u64, Instruction>,
     pub blocks: GraphQueue,
     pub functions: GraphQueue,
     pub options: GraphOptions,
@@ -120,7 +124,7 @@ impl Graph {
     #[allow(dead_code)]
     pub fn new() -> Self  {
         return Self{
-            instructions: BTreeMap::<u64, Instruction>::new(),
+            instructions: SkipMap::<u64, Instruction>::new(),
             blocks: GraphQueue::new(),
             functions: GraphQueue::new(),
             options: GraphOptions::new(),
@@ -133,15 +137,17 @@ impl Graph {
         }
     }
 
+    pub fn update_instruction(&mut self, instruction: Instruction) {
+        if !self.is_instruction_address(instruction.address) { return }
+        self.instructions.insert(instruction.address, instruction);
+    }
+
     pub fn is_instruction_address(&self, address: u64) -> bool {
         self.instructions.contains_key(&address)
     }
 
-    pub fn read_instruction(&self, address: u64) -> Option<&Instruction> {
-        self.instructions.get(&address)
+    pub fn get_instruction(&self, address: u64) -> Option<Instruction> {
+        self.instructions.get(&address).map(|entry|entry.value().clone())
     }
 
-    pub fn get_instruction(&mut self, address: u64) -> Option<&mut Instruction> {
-        self.instructions.get_mut(&address)
-    }
 }

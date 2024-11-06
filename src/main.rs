@@ -9,7 +9,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::process;
 use std::fs::File;
 use std::io::Write;
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::io::ErrorKind;
 use crate::models::cfg::graph::Graph;
 use crate::models::cfg::block::Block;
@@ -41,7 +41,7 @@ fn main() {
         }
     };
 
-    let mut entrypoints = HashSet::<u64>::new();
+    let mut entrypoints = BTreeSet::<u64>::new();
 
     if !ARGS.disable_linear_pass {
         entrypoints.extend(disassembler.disassemble_linear_pass(ARGS.linear_pass_jump_threshold, ARGS.linear_pass_instruction_threshold));
@@ -65,18 +65,27 @@ fn main() {
         process::exit(1);
     }
 
+    // Ensure CFG is now Immutable
+    let cfg = cfg;
+
     ThreadPoolBuilder::new()
         .num_threads(ARGS.threads)
         .build_global()
         .expect("failed to build thread pool");
 
     let blocks: Vec<String> = cfg.blocks.valid()
+        .iter()
+        .map(|entry| *entry)
+        .collect::<Vec<u64>>()
         .par_iter()
         .filter_map(|address| Block::new(*address, &cfg).ok())
         .filter_map(|block|block.json().ok())
         .collect();
 
     let functions: Vec<String> = cfg.functions.valid()
+        .iter()
+        .map(|entry| *entry)
+        .collect::<Vec<u64>>()
         .par_iter()
         .filter_map(|address| Function::new(*address, &cfg).ok())
         .filter_map(|function| function.json().ok())

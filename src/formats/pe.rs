@@ -1,7 +1,7 @@
 use lief::Binary;
 use lief::pe::section::Characteristics;
 use std::io::{Error, ErrorKind};
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::collections::HashMap;
 use lief::pe::headers::MachineType;
 use crate::formats::file::File;
@@ -71,7 +71,7 @@ impl PE {
         result
     }
 
-    pub fn tlscallbacks(&self) -> HashSet<u64> {
+    pub fn tlscallbacks(&self) -> BTreeSet<u64> {
         self._pe.tls()
             .into_iter()
             .flat_map(|tls| tls.callbacks())
@@ -79,8 +79,8 @@ impl PE {
     }
 
     #[allow(dead_code)]
-    pub fn functions(&self) -> HashSet<u64> {
-        let mut addresses = HashSet::<u64>::new();
+    pub fn functions(&self) -> BTreeSet<u64> {
+        let mut addresses = BTreeSet::<u64>::new();
         addresses.insert(self.entrypoint());
         addresses.extend(self.exports());
         addresses.extend(self.tlscallbacks());
@@ -147,8 +147,8 @@ impl PE {
     }
 
     #[allow(dead_code)]
-    pub fn exports(&self) -> HashSet<u64>{
-        let mut addresses = HashSet::<u64>::new();
+    pub fn exports(&self) -> BTreeSet<u64>{
+        let mut addresses = BTreeSet::<u64>::new();
         let export = match self._pe.export(){
             Some(export) => export,
             None => {

@@ -1,11 +1,9 @@
-
-use crate::models::cfg::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::io::Error;
 use crate::models::binary::Binary;
+use crate::models::cfg::graph::Graph;
 use crate::models::cfg::graph::GraphOptions;
-
 
 #[derive(Serialize, Deserialize)]
 pub struct SignatureJson {
@@ -19,30 +17,38 @@ pub struct SignatureJson {
 }
 
 pub struct Signature<'a> {
-    instructions: &'a Vec<&'a Instruction>,
-    options: GraphOptions,
+    pub start_address: u64,
+    pub end_address: u64,
+    pub cfg: &'a Graph,
+    pub options: GraphOptions,
 }
 
 impl<'a> Signature<'a> {
-    pub fn new(instructions: &'a Vec<&'a Instruction>, options: GraphOptions) -> Self {
+    pub fn new(start_address: u64, end_address: u64, cfg: &'a Graph, options: GraphOptions) -> Self {
         Self {
-            instructions: instructions,
+            start_address: start_address,
+            end_address: end_address,
+            cfg: cfg,
             options: options,
         }
     }
 
     pub fn bytes(&self) -> Vec<u8> {
-        self.instructions
-            .iter()
-            .flat_map(|instruction| instruction.bytes.clone())
-            .collect()
+        let mut result = Vec::<u8>::new();
+        for entry in self.cfg.instructions.range(self.start_address..=self.end_address){
+            let instruction = entry.value();
+            result.extend(instruction.bytes.clone());
+        }
+        return result;
     }
 
     pub fn pattern(&self) -> String {
-        self.instructions
-            .iter()
-            .map(|instruction| instruction.signature.as_str())
-            .collect()
+        let mut result: String = String::new();
+        for entry in self.cfg.instructions.range(self.start_address..=self.end_address){
+            let instruction = entry.value();
+            result += instruction.signature.as_str();
+        }
+        return result;
     }
 
     pub fn feature(&self) -> Vec<u8> {

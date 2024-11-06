@@ -1,7 +1,8 @@
 use crate::models::cfg::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::io::Error;
 use std::io::ErrorKind;
 use crate::models::binary::Binary;
@@ -15,7 +16,7 @@ pub struct BlockJson {
     pub type_: String,
     pub address: u64,
     pub next: Option<u64>,
-    pub to: HashSet<u64>,
+    pub to: BTreeSet<u64>,
     pub edges: usize,
     pub prologue: bool,
     pub conditional: bool,
@@ -32,10 +33,11 @@ pub struct BlockJson {
     pub tags: Vec<String>,
 }
 
+#[derive(Clone)]
 pub struct Block <'block>{
     pub address: u64,
     pub cfg: &'block Graph,
-    pub terminator: &'block Instruction,
+    pub terminator: Instruction,
 }
 
 impl<'block> Block<'block> {
@@ -46,12 +48,13 @@ impl<'block> Block<'block> {
             return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: is not valid", address)));
         }
 
-        let mut terminator: Option<&Instruction> = None;
+        let mut terminator: Option<Instruction> = None;
 
-        for (_, instruction) in cfg.instructions.range(address..){
-            let previous_address: Option<u64> = None;
-            if let Some(previous_address) = previous_address{
-                if instruction.address != previous_address {
+        let previous_address: Option<u64> = None;
+        for entry in cfg.instructions.range(address..){
+            let instruction = entry.value();
+            if let Some(prev_addr) = previous_address{
+                if instruction.address != prev_addr {
                     return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: is not contiguous", address)));
                 }
             }
@@ -59,7 +62,7 @@ impl<'block> Block<'block> {
                 || instruction.is_trap
                 || instruction.is_return
                 || (address != instruction.address && instruction.is_block_start) {
-                terminator = Some(instruction);
+                terminator = Some(instruction.clone());
                 break;
             }
         }
@@ -93,14 +96,14 @@ impl<'block> Block<'block> {
             address: self.address,
             type_: "block".to_string(),
             next: self.terminator.next(),
-            to: self.terminator.to.clone(),
+            to: self.terminator.to(),
             edges: self.edges(),
             signature: self.signature(),
             prologue: self.is_prologue(),
             conditional: self.terminator.is_conditional,
             size: self.size(),
             bytes: Binary::to_hex(&self.bytes()),
-            instructions: self.instructions().len(),
+            instructions: self.instruction_count(),
             functions: self.functions(),
             entropy: self.entropy(),
             sha256: self.sha256(),
@@ -112,7 +115,10 @@ impl<'block> Block<'block> {
     }
 
     pub fn is_prologue(&self) -> bool {
-        self.instructions().first().map(|instruction|instruction.is_prologue).unwrap()
+        if let Some(entry) =  self.cfg.instructions.get(&self.address) {
+            return entry.value().is_prologue;
+        }
+        return false;
     }
 
     pub fn edges(&self) -> usize {
@@ -126,24 +132,31 @@ impl<'block> Block<'block> {
         self.terminator.next()
     }
 
-    pub fn to(&self) -> HashSet<u64> {
-        self.terminator.to.clone()
+    pub fn to(&self) -> BTreeSet<u64> {
+        self.terminator.to()
     }
 
-    pub fn blocks(&self) -> HashSet<u64> {
-        self.to().iter().cloned().chain(self.next()).collect()
+    pub fn blocks(&self) -> BTreeSet<u64> {
+        let mut result = BTreeSet::new();
+        for item in self.to().iter().map(|ref_multi| *ref_multi).chain(self.next()) {
+            result.insert(item);
+        }
+        result
     }
 
     pub fn signature(&self) -> SignatureJson {
-        Signature::new(&self.instructions(), self.cfg.options.clone()).process()
+        Signature::new(self.address, self.end(), &self.cfg, self.cfg.options.clone()).process()
     }
 
     pub fn functions(&self) -> BTreeMap<u64, u64> {
-        self.instructions()
-            .iter()
-            .flat_map(|instruction| instruction.functions.clone().into_iter()
-            .map(move |function_address| (instruction.address, function_address)))
-            .collect()
+        let mut result = BTreeMap::<u64, u64>::new();
+        for entry in self.cfg.instructions.range(self.address..=self.terminator.address){
+            let instruction = entry.value();
+            for function_address in instruction.functions.clone() {
+                result.insert(instruction.address, function_address);
+            }
+        }
+        return result;
     }
 
     pub fn entropy(&self) -> Option<f64> {
@@ -176,18 +189,20 @@ impl<'block> Block<'block> {
     }
 
     pub fn bytes(&self) -> Vec<u8> {
-        self.instructions()
-            .iter()
-            .flat_map(|instruction| instruction.bytes.clone())
-            .collect()
+        let mut result = Vec::<u8>::new();
+        for entry in self.cfg.instructions.range(self.address..=self.terminator.address){
+            let instruction = entry.value();
+            result.extend(instruction.bytes.clone());
+        }
+        return result;
     }
 
-    pub fn instructions(&self) -> Vec<&Instruction> {
-        self.cfg
-            .instructions
-            .range(self.address..=self.terminator.address)
-            .map(|(_, instr)| instr)
-            .collect()
+    pub fn instruction_count(&self) -> usize {
+        let mut result: usize = 0;
+        for _ in self.cfg.instructions.range(self.address..=self.terminator.address){
+            result += 1;
+        }
+        return result;
     }
 
     #[allow(dead_code)]
