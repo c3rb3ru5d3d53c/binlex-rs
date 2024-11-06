@@ -14,31 +14,69 @@ use capstone::arch::ArchOperand;
 use capstone::Insn;
 use capstone::InsnId;
 use capstone::Instructions;
+use lief::dwarf::function;
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::io::Error;
 use std::io::ErrorKind;
 use std::collections::{BTreeMap, BTreeSet};
+use std::thread::Thread;
 use crossbeam_skiplist::SkipSet;
 use crate::models::binary::Binary;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::cfg::instruction::Instruction;
 use crate::models::cfg::graph::Graph;
 
+use std::sync::{Arc, Mutex};
+
 //use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
 
-pub struct Disassembler {
-    cs: Capstone,
-    image: Vec<u8>,
+pub struct ThreadSafeCapstone(Capstone);
+
+unsafe impl Send for ThreadSafeCapstone {}
+unsafe impl Sync for ThreadSafeCapstone {}
+
+impl ThreadSafeCapstone {
+    pub fn new(machine: BinaryArchitecture, detail: bool) -> Result<Self, Error> {
+        let capstone = match machine {
+            BinaryArchitecture::AMD64 => {
+                Capstone::new()
+                    .x86()
+                    .mode(arch::x86::ArchMode::Mode64)
+                    .syntax(arch::x86::ArchSyntax::Intel)
+                    .detail(detail)
+                    .build()
+                    .map_err(|e| Error::new(ErrorKind::Other, format!("capstone error: {:?}", e)))?
+            },
+            BinaryArchitecture::I386 => {
+                Capstone::new()
+                    .x86()
+                    .mode(arch::x86::ArchMode::Mode32)
+                    .syntax(arch::x86::ArchSyntax::Intel)
+                    .detail(detail)
+                    .build()
+                    .map_err(|e| Error::new(ErrorKind::Other, format!("capstone error: {:?}", e)))?
+            },
+            _ => return Err(Error::new(ErrorKind::Other, "unsupported architecture")),
+        };
+        Ok(ThreadSafeCapstone(capstone))
+    }
+
+    pub fn get_capstone(&self) -> &Capstone {
+        &self.0
+    }
+}
+
+pub struct Disassembler<'disassembler> {
+    cs: ThreadSafeCapstone,
+    image: &'disassembler[u8],
     machine: BinaryArchitecture,
     executable_address_ranges: BTreeMap<u64, u64>,
 }
 
-impl Disassembler {
+impl<'disassembler> Disassembler<'disassembler> {
 
-    pub fn new(machine: BinaryArchitecture, image: Vec<u8>, executable_address_ranges: BTreeMap<u64, u64>) -> Result<Self, Error> {
-        let cs = match Disassembler::cs_new(machine, true) {
-            Ok(cs) => cs,
-            Err(error) => return Err(error),
-        };
+    pub fn new(machine: BinaryArchitecture, image: &'disassembler[u8], executable_address_ranges: BTreeMap<u64, u64>) -> Result<Self, Error> {
+        let cs = ThreadSafeCapstone::new(machine, true)?;
         Ok(Self{
             cs: cs,
             image: image,
@@ -116,6 +154,19 @@ impl Disassembler {
                 continue;
             }
         }
+
+        // let cfg = Arc::new(Mutex::new(cfg));
+
+        // let functions_to_process: Vec<u64> = (0..cfg.lock().unwrap().functions.queue.len())
+        //     .filter_map(|_| cfg.lock().unwrap().functions.dequeue())
+        //     .collect();
+
+        // functions_to_process.into_par_iter().for_each(|function_address| {
+        //     if let Ok(disassembler) = Disassembler::new(self.machine, self.image, self.executable_address_ranges.clone()) {
+        //         let mut cfg = cfg.lock().unwrap();
+        //         let _ = disassembler.disassemble_function(function_address, &mut cfg);
+        //     }
+        // });
 
         return Ok(());
 
@@ -619,7 +670,7 @@ impl Disassembler {
 
     #[allow(dead_code)]
     pub fn get_instruction_operands(&self, instruction: &Insn) -> Result<Vec<ArchOperand>, Error> {
-        let detail = match self.cs.insn_detail(&instruction) {
+        let detail = match self.cs.get_capstone().insn_detail(&instruction) {
             Ok(detail) => detail,
             Err(_error) => return Err(Error::new(ErrorKind::Other, "failed to get instruction detail")),
         };
@@ -850,6 +901,7 @@ impl Disassembler {
     pub fn disassemble_instructions(&self, address: u64, count: u64) -> Result<Instructions<'_>, Error> {
         let instructions = self
             .cs
+            .get_capstone()
             .disasm_count(&self.image[address as usize..], address, count as usize)
             .map_err(|_| Error::new(ErrorKind::Other, "failed to disassemble instructions"))?;
         if instructions.len() <= 0 {

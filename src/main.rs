@@ -33,7 +33,9 @@ fn main() {
         _ => BinaryArchitecture::UNKNOWN,
     };
 
-    let disassembler = match Disassembler::new(machine, pe.image(), pe.executable_address_ranges()) {
+    let image = pe.image();
+
+    let disassembler = match Disassembler::new(machine, &image, pe.executable_address_ranges()) {
         Ok(disassembler) => disassembler,
         Err(error) => {
             eprintln!("{}", error);
