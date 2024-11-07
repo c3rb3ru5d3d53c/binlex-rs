@@ -120,6 +120,11 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         cfg.functions.set_processed(address);
 
+        if !self.is_executable_address(address) {
+            cfg.functions.insert_invalid(address);
+            return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x}: it not in executable memory", address)));
+        }
+
         cfg.blocks.enqueue(address);
 
         while let Some(block_start_address) = cfg.blocks.dequeue() {
@@ -212,6 +217,11 @@ impl<'disassembler> Disassembler<'disassembler> {
     pub fn disassemble_block<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
 
         cfg.blocks.set_processed(address);
+
+        if !self.is_executable_address(address) {
+            cfg.functions.insert_invalid(address);
+            return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: it not in executable memory", address)));
+        }
 
         let mut pc: u64 = address;
         let mut has_prologue: bool = false;
