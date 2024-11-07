@@ -1,5 +1,6 @@
 mod models;
 mod formats;
+mod types;
 
 use lief::pe::headers::MachineType;
 use rayon::ThreadPoolBuilder;
@@ -15,6 +16,7 @@ use crate::models::controlflow::graph::Graph;
 use crate::models::controlflow::block::Block;
 use crate::models::controlflow::function::Function;
 use crate::models::binary::BinaryArchitecture;
+use crate::types::lz4string::LZ4String;
 use crate::models::config::ARGS;
 
 fn main() {
@@ -91,22 +93,24 @@ fn main() {
 
     let cfg = cfg;
 
-    let blocks: Vec<String> = cfg.blocks.valid()
+    let blocks: Vec<LZ4String> = cfg.blocks.valid()
         .iter()
         .map(|entry| *entry)
         .collect::<Vec<u64>>()
         .par_iter()
         .filter_map(|address| Block::new(*address, &cfg).ok())
         .filter_map(|block|block.json().ok())
+        .map(|js| LZ4String::new(&js))
         .collect();
 
-    let functions: Vec<String> = cfg.functions.valid()
+    let functions: Vec<LZ4String> = cfg.functions.valid()
         .iter()
         .map(|entry| *entry)
         .collect::<Vec<u64>>()
         .par_iter()
         .filter_map(|address| Function::new(*address, &cfg).ok())
         .filter_map(|function| function.json().ok())
+        .map(|js| LZ4String::new(&js))
         .collect();
 
     if ARGS.output.is_none() {
