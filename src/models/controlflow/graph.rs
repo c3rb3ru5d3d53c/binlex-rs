@@ -1,6 +1,5 @@
 use std::collections::BTreeSet;
-
-use crate::models::cfg::instruction::Instruction;
+use crate::models::controlflow::instruction::Instruction;
 use crossbeam::queue::SegQueue;
 use crossbeam_skiplist::SkipMap;
 use crossbeam_skiplist::SkipSet;

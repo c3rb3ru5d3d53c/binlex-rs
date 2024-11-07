@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::io::Error;
 use crate::models::binary::Binary;
-use crate::models::cfg::graph::Graph;
-use crate::models::cfg::graph::GraphOptions;
+use crate::models::controlflow::graph::Graph;
+use crate::models::controlflow::graph::GraphOptions;
 
 #[derive(Serialize, Deserialize)]
 pub struct SignatureJson {

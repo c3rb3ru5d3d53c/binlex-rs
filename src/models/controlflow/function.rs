@@ -1,19 +1,17 @@
 
-use crate::models::cfg::instruction::Instruction;
-//use rayon::str::SplitTerminator;
+use crate::models::controlflow::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::BTreeMap;
-use dashmap::DashSet;
-//use crossbeam_skiplist::SkipMap;
+use std::collections::BTreeSet;
 use std::io::Error;
 use std::io::ErrorKind;
 use crate::models::binary::Binary;
-use crate::models::cfg::graph::Graph;
-use crate::models::cfg::graph::GraphQueue;
-use crate::models::cfg::block::Block;
-use crate::models::cfg::signature::Signature;
-use crate::models::cfg::signature::SignatureJson;
+use crate::models::controlflow::graph::Graph;
+use crate::models::controlflow::graph::GraphQueue;
+use crate::models::controlflow::block::Block;
+use crate::models::controlflow::signature::Signature;
+use crate::models::controlflow::signature::SignatureJson;
 
 #[derive(Serialize, Deserialize)]
 pub struct FunctionJson {
@@ -26,7 +24,7 @@ pub struct FunctionJson {
     pub size: Option<usize>,
     pub bytes: Option<String>,
     pub functions: BTreeMap<u64, u64>,
-    pub blocks: DashSet<u64>,
+    pub blocks: BTreeSet<u64>,
     pub instructions: usize,
     pub entropy: Option<f64>,
     pub sha256: Option<String>,
@@ -152,7 +150,7 @@ impl<'function> Function<'function> {
         return self.is_prologue;
     }
 
-    pub fn block_addresses(&self) -> DashSet<u64> {
+    pub fn block_addresses(&self) -> BTreeSet<u64> {
         self.blocks().keys().cloned().collect()
     }
 

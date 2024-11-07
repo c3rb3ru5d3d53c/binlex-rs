@@ -20,8 +20,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use crossbeam_skiplist::SkipSet;
 use crate::models::binary::Binary;
 use crate::models::binary::BinaryArchitecture;
-use crate::models::cfg::instruction::Instruction;
-use crate::models::cfg::graph::Graph;
+use crate::models::controlflow::instruction::Instruction;
+use crate::models::controlflow::graph::Graph;
 
 pub struct Disassembler<'disassembler> {
     cs: Capstone,
@@ -405,7 +405,6 @@ impl<'disassembler> Disassembler<'disassembler> {
         let total_operand_size = self.get_instruction_total_operand_size(instruction)?;
 
         if total_operand_size > instruction_size {
-            Disassembler::print_instruction(instruction);
             return Err(Error::new(ErrorKind::Other,  format!("Instruction -> 0x{:x}: operand offset exceeds instruction size", instruction.address())));
         }
 
@@ -445,6 +444,7 @@ impl<'disassembler> Disassembler<'disassembler> {
                 }
 
                 if op_size > instruction_size {
+                    Disassembler::print_instruction(instruction);
                     return Err(Error::new(ErrorKind::Other, format!("Instruction -> 0x{:x}: instruction operand size exceeds instruction size", instruction.address())));
                 }
 
@@ -453,6 +453,7 @@ impl<'disassembler> Disassembler<'disassembler> {
                 if should_wildcard {
                     for i in 0..op_size as usize {
                         if operand_offset + i > wildcarded.len() {
+                            Disassembler::print_instruction(instruction);
                             return Err(Error::new(ErrorKind::Other, format!("Instruction -> 0x{:x}: instruction wildcard index is out of bounds", instruction.address())));
                         }
                         wildcarded[operand_offset + i] = true;

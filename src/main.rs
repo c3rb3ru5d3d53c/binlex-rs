@@ -4,16 +4,16 @@ mod formats;
 use lief::pe::headers::MachineType;
 use rayon::ThreadPoolBuilder;
 use formats::pe::PE;
-use models::disassembler::Disassembler;
+use models::disassemblers::capstone::disassembler::Disassembler;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::process;
 use std::fs::File;
 use std::io::Write;
 use std::collections::BTreeSet;
 use std::io::ErrorKind;
-use crate::models::cfg::graph::Graph;
-use crate::models::cfg::block::Block;
-use crate::models::cfg::function::Function;
+use crate::models::controlflow::graph::Graph;
+use crate::models::controlflow::block::Block;
+use crate::models::controlflow::function::Function;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::config::ARGS;
 
@@ -73,7 +73,6 @@ fn main() {
     while !cfg.functions.queue.is_empty() {
         let function_addresses = cfg.functions.dequeue_all();
         cfg.functions.set_processed_extend(function_addresses.clone());
-
         let graphs: Vec<Graph> = function_addresses
             .par_iter()
             .map(|address| {
@@ -85,7 +84,6 @@ fn main() {
                 graph
             })
             .collect();
-
         for mut graph in graphs {
             cfg.absorb(&mut graph);
         }

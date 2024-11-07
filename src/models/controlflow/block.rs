@@ -1,4 +1,4 @@
-use crate::models::cfg::instruction::Instruction;
+use crate::models::controlflow::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::BTreeMap;
@@ -6,9 +6,9 @@ use std::collections::BTreeSet;
 use std::io::Error;
 use std::io::ErrorKind;
 use crate::models::binary::Binary;
-use crate::models::cfg::graph::Graph;
-use crate::models::cfg::signature::Signature;
-use crate::models::cfg::signature::SignatureJson;
+use crate::models::controlflow::graph::Graph;
+use crate::models::controlflow::signature::Signature;
+use crate::models::controlflow::signature::SignatureJson;
 
 #[derive(Serialize, Deserialize)]
 pub struct BlockJson {
