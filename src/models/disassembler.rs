@@ -14,60 +14,17 @@ use capstone::arch::ArchOperand;
 use capstone::Insn;
 use capstone::InsnId;
 use capstone::Instructions;
-use lief::dwarf::function;
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use std::io::Error;
 use std::io::ErrorKind;
 use std::collections::{BTreeMap, BTreeSet};
-use std::thread::Thread;
 use crossbeam_skiplist::SkipSet;
 use crate::models::binary::Binary;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::cfg::instruction::Instruction;
 use crate::models::cfg::graph::Graph;
 
-use std::sync::{Arc, Mutex};
-
-//use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
-
-pub struct ThreadSafeCapstone(Capstone);
-
-unsafe impl Send for ThreadSafeCapstone {}
-unsafe impl Sync for ThreadSafeCapstone {}
-
-impl ThreadSafeCapstone {
-    pub fn new(machine: BinaryArchitecture, detail: bool) -> Result<Self, Error> {
-        let capstone = match machine {
-            BinaryArchitecture::AMD64 => {
-                Capstone::new()
-                    .x86()
-                    .mode(arch::x86::ArchMode::Mode64)
-                    .syntax(arch::x86::ArchSyntax::Intel)
-                    .detail(detail)
-                    .build()
-                    .map_err(|e| Error::new(ErrorKind::Other, format!("capstone error: {:?}", e)))?
-            },
-            BinaryArchitecture::I386 => {
-                Capstone::new()
-                    .x86()
-                    .mode(arch::x86::ArchMode::Mode32)
-                    .syntax(arch::x86::ArchSyntax::Intel)
-                    .detail(detail)
-                    .build()
-                    .map_err(|e| Error::new(ErrorKind::Other, format!("capstone error: {:?}", e)))?
-            },
-            _ => return Err(Error::new(ErrorKind::Other, "unsupported architecture")),
-        };
-        Ok(ThreadSafeCapstone(capstone))
-    }
-
-    pub fn get_capstone(&self) -> &Capstone {
-        &self.0
-    }
-}
-
 pub struct Disassembler<'disassembler> {
-    cs: ThreadSafeCapstone,
+    cs: Capstone,
     image: &'disassembler[u8],
     machine: BinaryArchitecture,
     executable_address_ranges: BTreeMap<u64, u64>,
@@ -76,7 +33,7 @@ pub struct Disassembler<'disassembler> {
 impl<'disassembler> Disassembler<'disassembler> {
 
     pub fn new(machine: BinaryArchitecture, image: &'disassembler[u8], executable_address_ranges: BTreeMap<u64, u64>) -> Result<Self, Error> {
-        let cs = ThreadSafeCapstone::new(machine, true)?;
+        let cs = Disassembler::cs_new(machine, true)?;
         Ok(Self{
             cs: cs,
             image: image,
@@ -145,6 +102,7 @@ impl<'disassembler> Disassembler<'disassembler> {
         return functions;
     }
 
+    #[allow(dead_code)]
     pub fn disassemble_control_flow<'a>(&'a self, addresses: BTreeSet<u64>, cfg: &'a mut Graph) -> Result<(), Error> {
 
         cfg.functions.enqueue_extend(addresses);
@@ -155,48 +113,7 @@ impl<'disassembler> Disassembler<'disassembler> {
             }
         }
 
-        // let cfg = Arc::new(Mutex::new(cfg));
-
-        // let functions_to_process: Vec<u64> = (0..cfg.lock().unwrap().functions.queue.len())
-        //     .filter_map(|_| cfg.lock().unwrap().functions.dequeue())
-        //     .collect();
-
-        // functions_to_process.into_par_iter().for_each(|function_address| {
-        //     if let Ok(disassembler) = Disassembler::new(self.machine, self.image, self.executable_address_ranges.clone()) {
-        //         let mut cfg = cfg.lock().unwrap();
-        //         let _ = disassembler.disassemble_function(function_address, &mut cfg);
-        //     }
-        // });
-
         return Ok(());
-
-        // cfg.functions.enqueue_extend(addresses);
-
-        // let self_arc = Arc::new(self);
-        // let cfg_arc = Arc::new(cfg);
-        // let active_tasks = Arc::new(AtomicUsize::new(0));
-
-        // rayon::scope(|s| {
-        //     loop {
-        //         let function_start_address = cfg_arc.functions.dequeue();
-
-        //         if let Some(address) = function_start_address {
-        //             active_tasks.fetch_add(1, Ordering::SeqCst);
-        //             let self_clone = Arc::clone(&self_arc);
-        //             let cfg_clone = Arc::clone(&cfg_arc);
-        //             let active_tasks_clone = Arc::clone(&active_tasks);
-
-        //             s.spawn(move |_| {
-        //                 let _ = self_clone.disassemble_function(address, &cfg_clone);
-        //                 active_tasks_clone.fetch_sub(1, Ordering::SeqCst);
-        //             });
-        //         } else if active_tasks.load(Ordering::SeqCst) == 0 {
-        //             break;
-        //         } else {
-        //             std::thread::yield_now();
-        //         }
-        //     }
-        // });
     }
 
     pub fn disassemble_function<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
@@ -670,7 +587,7 @@ impl<'disassembler> Disassembler<'disassembler> {
 
     #[allow(dead_code)]
     pub fn get_instruction_operands(&self, instruction: &Insn) -> Result<Vec<ArchOperand>, Error> {
-        let detail = match self.cs.get_capstone().insn_detail(&instruction) {
+        let detail = match self.cs.insn_detail(&instruction) {
             Ok(detail) => detail,
             Err(_error) => return Err(Error::new(ErrorKind::Other, "failed to get instruction detail")),
         };
@@ -901,7 +818,6 @@ impl<'disassembler> Disassembler<'disassembler> {
     pub fn disassemble_instructions(&self, address: u64, count: u64) -> Result<Instructions<'_>, Error> {
         let instructions = self
             .cs
-            .get_capstone()
             .disasm_count(&self.image[address as usize..], address, count as usize)
             .map_err(|_| Error::new(ErrorKind::Other, "failed to disassemble instructions"))?;
         if instructions.len() <= 0 {

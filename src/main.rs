@@ -19,6 +19,11 @@ use crate::models::config::ARGS;
 
 fn main() {
 
+    ThreadPoolBuilder::new()
+        .num_threads(ARGS.threads)
+        .build_global()
+        .expect("failed to build thread pool");
+
     let pe = match PE::new(ARGS.input.clone()) {
         Ok(pe) => pe,
         Err(error) => {
@@ -35,7 +40,9 @@ fn main() {
 
     let image = pe.image();
 
-    let disassembler = match Disassembler::new(machine, &image, pe.executable_address_ranges()) {
+    let executable_address_ranges = pe.executable_address_ranges();
+
+    let disassembler = match Disassembler::new(machine, &image, executable_address_ranges.clone()) {
         Ok(disassembler) => disassembler,
         Err(error) => {
             eprintln!("{}", error);
@@ -61,19 +68,30 @@ fn main() {
     cfg.options.enable_feature = !ARGS.disable_feature;
     cfg.options.enable_normalized = ARGS.enable_normalized;
     cfg.options.tags = ARGS.tags.clone().unwrap_or_default();
+    cfg.functions.enqueue_extend(entrypoints);
 
-    if let Err(error) = disassembler.disassemble_control_flow(entrypoints, &mut cfg) {
-        eprintln!("{}", error);
-        process::exit(1);
+    while !cfg.functions.queue.is_empty() {
+        let function_addresses = cfg.functions.dequeue_all();
+        cfg.functions.set_processed_extend(function_addresses.clone());
+
+        let graphs: Vec<Graph> = function_addresses
+            .par_iter()
+            .map(|address| {
+                let mut graph = Graph::new();
+                graph.options = cfg.options.clone();
+                if let Ok(disasm) = Disassembler::new(machine, &image, executable_address_ranges.clone()) {
+                    let _ = disasm.disassemble_function(*address, &mut graph);
+                }
+                graph
+            })
+            .collect();
+
+        for mut graph in graphs {
+            cfg.absorb(&mut graph);
+        }
     }
 
-    // Ensure CFG is now Immutable
     let cfg = cfg;
-
-    ThreadPoolBuilder::new()
-        .num_threads(ARGS.threads)
-        .build_global()
-        .expect("failed to build thread pool");
 
     let blocks: Vec<String> = cfg.blocks.valid()
         .iter()
@@ -139,86 +157,6 @@ fn main() {
             }
         }
     }
-
-    // if let Some(output_file) = &ARGS.output {
-    //     let mut file = match File::create(output_file) {
-    //         Ok(file) => file,
-    //         Err(error) => {
-    //             eprintln!("{}", error);
-    //             std::process::exit(1);
-    //         }
-    //     };
-
-    //     for block in blocks {
-    //         if let Err(error) = writeln!(file, "{}", block) {
-    //             eprintln!("{}", error);
-    //             std::process::exit(1);
-    //         }
-    //     }
-
-    // }
-
-
-    // stop HERE
-
-
-    // let functions: Vec<String> = cfg.functions()
-    //     .par_iter()
-    //     .filter_map(|function| function.json().ok())
-    //     .collect();
-
-    // let blocks: Vec<String> = cfg.blocks()
-    //     .par_iter()
-    //     .filter_map(|function| function.json().ok())
-    //     .collect();
-
-    // if ARGS.output.is_none() {
-    //     functions.iter().for_each(|result| {
-    //         writeln!(std::io::stdout(), "{}", result).unwrap_or_else(|e| {
-    //             if e.kind() == ErrorKind::BrokenPipe {
-    //                 std::process::exit(0);
-    //             } else {
-    //                 eprintln!("error writing to stdout: {}", e);
-    //                 std::process::exit(1);
-    //             }
-    //         });
-    //     });
-
-    //     blocks.iter().for_each(|result| {
-    //         writeln!(std::io::stdout(), "{}", result).unwrap_or_else(|e| {
-    //             if e.kind() == ErrorKind::BrokenPipe {
-    //                 std::process::exit(0);
-    //             } else {
-    //                 eprintln!("{}", e);
-    //                 std::process::exit(1);
-    //             }
-    //         });
-    //     });
-    // }
-
-    // if let Some(output_file) = &ARGS.output {
-    //     let mut file = match File::create(output_file) {
-    //         Ok(file) => file,
-    //         Err(error) => {
-    //             eprintln!("{}", error);
-    //             std::process::exit(1);
-    //         }
-    //     };
-
-    //     for function in functions {
-    //         if let Err(error) = writeln!(file, "{}", function) {
-    //             eprintln!("{}", error);
-    //             std::process::exit(1);
-    //         }
-    //     }
-    //     for block in blocks {
-    //         if let Err(error) = writeln!(file, "{}", block) {
-    //             eprintln!("{}", error);
-    //             std::process::exit(1);
-    //         }
-    //     }
-
-    // }
 
     process::exit(0);
 

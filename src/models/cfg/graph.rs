@@ -78,6 +78,10 @@ impl GraphQueue {
         return &self.valid;
     }
 
+    pub fn processed(&self) -> &SkipSet<u64> {
+        return &self.processed;
+    }
+
     pub fn is_valid(&self, address: u64) -> bool {
         self.valid.contains(&address)
     }
@@ -85,6 +89,12 @@ impl GraphQueue {
     pub fn insert_valid(&mut self, address: u64) {
         if self.is_processed(address) {
             self.valid.insert(address);
+        }
+    }
+
+    pub fn set_processed_extend(&mut self, addresses: BTreeSet<u64>) {
+        for address in addresses {
+            self.set_processed(address);
         }
     }
 
@@ -111,6 +121,13 @@ impl GraphQueue {
     pub fn dequeue(&mut self) -> Option<u64> {
         self.queue.pop()
     }
+    pub fn dequeue_all(&mut self) -> BTreeSet<u64> {
+        let mut set = BTreeSet::new();
+        while let Some(address) = self.queue.pop() {
+            set.insert(address);
+        }
+        set
+    }
 }
 
 pub struct Graph {
@@ -131,6 +148,10 @@ impl Graph {
         };
     }
 
+    pub fn instructions(&self) -> &SkipMap<u64, Instruction> {
+        return &self.instructions;
+    }
+
     pub fn insert_instruction(&mut self, instruction: Instruction) {
         if !self.is_instruction_address(instruction.address) {
             self.instructions.insert(instruction.address, instruction);
@@ -148,6 +169,43 @@ impl Graph {
 
     pub fn get_instruction(&self, address: u64) -> Option<Instruction> {
         self.instructions.get(&address).map(|entry|entry.value().clone())
+    }
+    pub fn absorb(&mut self, graph: &mut Graph) {
+
+        //self.options = graph.options.clone();
+
+        for entry in graph.instructions() {
+            self.insert_instruction(entry.value().clone());
+        }
+
+        for entry in graph.blocks.processed() {
+            self.blocks.set_processed(entry.value().clone());
+        }
+
+        self.blocks.enqueue_extend(graph.blocks.dequeue_all());
+
+        for entry in graph.functions.processed() {
+            self.functions.set_processed(entry.value().clone());
+        }
+
+        self.functions.enqueue_extend(graph.functions.dequeue_all());
+
+        for entry in graph.blocks.valid() {
+            self.blocks.insert_valid(entry.value().clone());
+        }
+
+        for entry in graph.blocks.invalid() {
+            self.blocks.insert_invalid(entry.value().clone());
+        }
+
+        for entry in graph.functions.valid() {
+            self.functions.insert_valid(entry.value().clone());
+        }
+
+        for entry in graph.functions.invalid() {
+            self.functions.insert_invalid(entry.value().clone());
+        }
+
     }
 
 }
