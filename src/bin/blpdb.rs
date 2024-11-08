@@ -3,6 +3,8 @@ use binlex::models::controlflow::function::FunctionQueueJson;
 use clap::Parser;
 use pdb::FallibleIterator;
 use std::fs::File;
+use binlex::models::terminal::Terminal;
+use binlex::models::symbols::Symbols;
 use binlex::models::config::VERSION;
 use binlex::models::config::AUTHOR;
 
@@ -22,21 +24,6 @@ struct Cli {
     demangle_msvc_names: bool
 }
 
-fn demangle_microsoft_symbol(mangled_name: &str) -> String {
-    if !mangled_name.starts_with('?') {
-        return mangled_name.to_string();
-    }
-    let parts: Vec<&str> = mangled_name.trim_start_matches('?').split('@').collect();
-    let function_name = parts.get(0).unwrap_or(&mangled_name);
-    let mut namespaces: Vec<&str> = parts.iter().skip(1).take_while(|&&s| s != "").map(|&s| s).collect();
-    namespaces.reverse();
-    format!(
-        "{}::{}",
-        namespaces.join("::"),
-        function_name
-    )
-}
-
 fn main() -> pdb::Result<()> {
     let cli = Cli::parse();
 
@@ -54,7 +41,7 @@ fn main() -> pdb::Result<()> {
                 let rva = data.offset.to_rva(&address_map).unwrap_or_default();
                 let mut name = data.name.to_string().into_owned();
                 if cli.demangle_msvc_names {
-                    name = demangle_microsoft_symbol(&name);
+                    name = Symbols::demangle_msvc_symbol(&name);
                 }
                 results.push(FunctionQueueJson{
                     type_: "function".to_string(),
@@ -68,9 +55,17 @@ fn main() -> pdb::Result<()> {
         }
     }
 
+    if let Err(error) = Terminal::STDIN.passthrough() {
+        eprintln!("{}", error);
+        process::exit(1);
+    }
+
     for result in results {
         if let Ok(json_string) = serde_json::to_string(&result){
-            println!("{}", json_string);
+            if let Err(error) = Terminal::STDOUT.print(json_string) {
+                eprintln!("{}", error);
+                process::exit(1);
+            }
         }
     }
 

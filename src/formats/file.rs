@@ -1,5 +1,6 @@
 use std::fs::File as StdFile;
 use std::io::{Read, Error};
+use crate::models::binary::Binary;
 
 pub struct File {
     pub data: Vec<u8>,
@@ -12,6 +13,11 @@ impl File {
             data: Vec::new(),
             path,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn sha256(&self) -> Option<String> {
+        Binary::sha256(&self.data)
     }
 
     #[allow(dead_code)]
