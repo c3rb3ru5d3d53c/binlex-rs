@@ -167,7 +167,7 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         let instruction = instruction_container.iter().next().unwrap();
 
-        let instruction_signature = self.get_instruction_signature(&instruction)
+        let instruction_signature = self.get_instruction_pattern(&instruction)
             .map_err(|error| error)?;
 
         let mut blinstruction = Instruction::new(instruction.address());
@@ -188,7 +188,7 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         blinstruction.edges = self.get_instruction_edges(instruction);
         blinstruction.bytes = instruction.bytes().to_vec();
-        blinstruction.signature = instruction_signature;
+        blinstruction.pattern = instruction_signature;
 
         if let Some(addr) = self.get_conditional_jump_immutable(instruction) {
             blinstruction.to.insert(addr);
@@ -389,9 +389,9 @@ impl<'disassembler> Disassembler<'disassembler> {
     }
 
     #[allow(dead_code)]
-    pub fn get_instruction_signature(&self, instruction: &Insn) -> Result<String, Error> {
+    pub fn get_instruction_pattern(&self, instruction: &Insn) -> Result<String, Error> {
 
-        if Disassembler::is_unsupported_signature_instruction(instruction) {
+        if Disassembler::is_unsupported_pattern_instruction(instruction) {
             return Ok(Binary::to_hex(instruction.bytes()));
         }
 
@@ -420,7 +420,7 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         let instruction_trailing_null_offset = instruction_size - instruction_trailing_null_size;
 
-        let is_immutable_signature = self.is_immutable_instruction_to_signature(instruction);
+        let is_immutable_signature = self.is_immutable_instruction_to_pattern(instruction);
 
         if total_operand_size <= 0 && operands.len() > 0 {
            return Err(Error::new(ErrorKind::Other, format!("Instruction -> 0x{:x}: instruction has operands but missing operand sizes", instruction.address())));
@@ -641,7 +641,7 @@ impl<'disassembler> Disassembler<'disassembler> {
     }
 
     #[allow(dead_code)]
-    pub fn is_immutable_instruction_to_signature(&self, instruction: &Insn) -> bool {
+    pub fn is_immutable_instruction_to_pattern(&self, instruction: &Insn) -> bool {
 
         if !self.instruction_contains_immutable_operand(instruction) {
             return false;
@@ -680,7 +680,7 @@ impl<'disassembler> Disassembler<'disassembler> {
     }
 
     #[allow(dead_code)]
-    pub fn is_unsupported_signature_instruction(instruction: &Insn) -> bool {
+    pub fn is_unsupported_pattern_instruction(instruction: &Insn) -> bool {
         vec![
             InsnId(X86Insn::X86_INS_MOVUPS as u32),
             InsnId(X86Insn::X86_INS_MOVAPS as u32),

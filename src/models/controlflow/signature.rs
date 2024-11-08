@@ -46,7 +46,7 @@ impl<'a> Signature<'a> {
         let mut result: String = String::new();
         for entry in self.cfg.instructions.range(self.start_address..=self.end_address){
             let instruction = entry.value();
-            result += instruction.signature.as_str();
+            result += instruction.pattern.as_str();
         }
         return result;
     }

@@ -14,6 +14,16 @@ use crate::models::controlflow::signature::Signature;
 use crate::models::controlflow::signature::SignatureJson;
 
 #[derive(Serialize, Deserialize)]
+pub struct FunctionQueueJson {
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub name: String,
+    pub offset: Option<u64>,
+    pub relative_virtual_address: Option<u64>,
+    pub virtual_address: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct FunctionJson {
     #[serde(rename = "type")]
     pub type_: String,

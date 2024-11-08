@@ -171,8 +171,6 @@ impl Graph {
     }
     pub fn absorb(&mut self, graph: &mut Graph) {
 
-        //self.options = graph.options.clone();
-
         for entry in graph.instructions() {
             self.insert_instruction(entry.value().clone());
         }
