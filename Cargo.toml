@@ -36,3 +36,7 @@ path = "src/bin/blyara.rs"
 [[bin]]
 name = "blpdb"
 path = "src/bin/blpdb.rs"
+
+[[bin]]
+name = "blscaler"
+path = "src/bin/blscaler.rs"
