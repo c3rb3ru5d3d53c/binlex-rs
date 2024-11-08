@@ -11,13 +11,13 @@ use std::process;
 use std::fs::File;
 use std::io::Write;
 use std::collections::BTreeSet;
-use std::io::ErrorKind;
 use crate::models::controlflow::graph::Graph;
 use crate::models::controlflow::block::Block;
 use crate::models::controlflow::function::Function;
 use crate::models::binary::BinaryArchitecture;
 use crate::types::lz4string::LZ4String;
-use crate::models::config::ARGS;
+use crate::models::terminal::args::ARGS;
+use crate::models::terminal::io::Stdout;
 
 fn main() {
 
@@ -115,25 +115,11 @@ fn main() {
 
     if ARGS.output.is_none() {
         functions.iter().for_each(|result| {
-            writeln!(std::io::stdout(), "{}", result).unwrap_or_else(|e| {
-                if e.kind() == ErrorKind::BrokenPipe {
-                    std::process::exit(0);
-                } else {
-                    eprintln!("error writing to stdout: {}", e);
-                    std::process::exit(1);
-                }
-            });
+            Stdout.print(result);
         });
 
         blocks.iter().for_each(|result| {
-            writeln!(std::io::stdout(), "{}", result).unwrap_or_else(|e| {
-                if e.kind() == ErrorKind::BrokenPipe {
-                    std::process::exit(0);
-                } else {
-                    eprintln!("error writing to stdout: {}", e);
-                    std::process::exit(1);
-                }
-            });
+            Stdout.print(result);
         });
     }
 

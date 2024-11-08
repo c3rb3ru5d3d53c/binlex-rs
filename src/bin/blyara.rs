@@ -3,14 +3,15 @@ use serde_json::{Map, Value};
 use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::process;
-use binlex::models::config::VERSION;
-use binlex::models::config::AUTHOR;
+use binlex::models::terminal::args::VERSION;
+use binlex::models::terminal::args::AUTHOR;
+use binlex::models::terminal::io::Stdout;
 
 #[derive(Parser, Debug)]
 #[command(
     name = "blyara",
     version = VERSION,
-    about = "A Binlex Yara Generation Utility",
+    about = "A Binlex Yara Generation Tool",
     author = AUTHOR,
 )]
 struct Cli {
@@ -51,7 +52,7 @@ fn main() {
             process::exit(1);
         }
     } else {
-        print!("{}", signature);
+        Stdout.print(signature);
     }
 }
 

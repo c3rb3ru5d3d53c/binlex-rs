@@ -3,16 +3,17 @@ use binlex::models::controlflow::function::FunctionQueueJson;
 use clap::Parser;
 use pdb::FallibleIterator;
 use std::fs::File;
-use binlex::models::terminal::Terminal;
+use binlex::models::terminal::io::Stdin;
+use binlex::models::terminal::io::Stdout;
 use binlex::models::symbols::Symbols;
-use binlex::models::config::VERSION;
-use binlex::models::config::AUTHOR;
+use binlex::models::terminal::args::VERSION;
+use binlex::models::terminal::args::AUTHOR;
 
 #[derive(Parser, Debug)]
 #[command(
     name = "blpdb",
     version = VERSION,
-    about = "A Binlex PDB Parsing Utility",
+    about = "A Binlex PDB Parsing Tool",
     author = AUTHOR,
 )]
 struct Cli {
@@ -55,17 +56,11 @@ fn main() -> pdb::Result<()> {
         }
     }
 
-    if let Err(error) = Terminal::STDIN.passthrough() {
-        eprintln!("{}", error);
-        process::exit(1);
-    }
+    Stdin::passthrough();
 
     for result in results {
         if let Ok(json_string) = serde_json::to_string(&result){
-            if let Err(error) = Terminal::STDOUT.print(json_string) {
-                eprintln!("{}", error);
-                process::exit(1);
-            }
+            Stdout.print(json_string);
         }
     }
 

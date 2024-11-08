@@ -10,7 +10,7 @@ pub const AUTHOR: &str = "@c3rb3ru5d3d53c";
 #[command(
     name = "binlex",
     version = VERSION,
-    about = "A Binlex Binary Pattern Lexer",
+    about = "A Binary Pattern Lexer",
     author = AUTHOR,
 )]
 pub struct Args {
