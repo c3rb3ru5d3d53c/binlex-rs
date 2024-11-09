@@ -1,8 +1,4 @@
-//use tlsh::TlshBuilder;
-use tlsh;
 use std::collections::HashMap;
-use ring::digest;
-use crate::models::minhash::MinHash32;
 pub struct Binary;
 
 #[repr(u16)]
@@ -32,33 +28,6 @@ impl Binary {
         });
 
         Some(entropy)
-    }
-
-    pub fn tlsh(bytes: &Vec<u8>, mininum_byte_size: usize) -> Option<String> {
-        if bytes.len() < mininum_byte_size { return None; }
-        tlsh::hash_buf(&bytes).ok().map(|h| h.to_string())
-    }
-
-    pub fn minhash(
-        maximum_byte_size: usize,
-        number_of_hahes: usize,
-        shingle_size: usize,
-        seed: u64,
-        bytes: &Vec<u8>) -> Option<String> {
-        if bytes.len() > maximum_byte_size { return None; }
-        let h = MinHash32::new(
-            number_of_hahes,
-            shingle_size,
-            seed);
-        if let Some(mh) = h.hash(bytes) {
-            return Some(MinHash32::hexdigest(&mh));
-        }
-        return None;
-    }
-
-    pub fn sha256(bytes: &Vec<u8>) -> Option<String> {
-        let digest = digest::digest(&digest::SHA256, bytes);
-        return Some(Binary::to_hex(digest.as_ref()));
     }
 
     pub fn to_hex(data: &[u8]) -> String {

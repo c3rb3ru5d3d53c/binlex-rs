@@ -4,6 +4,9 @@ use std::io::Error;
 use crate::models::binary::Binary;
 use crate::models::controlflow::graph::Graph;
 use crate::models::controlflow::graph::GraphOptions;
+use crate::models::hashing::sha256::SHA256;
+use crate::models::hashing::tlsh::TLSH;
+use crate::models::hashing::minhash::MinHash32;
 
 #[derive(Serialize, Deserialize)]
 pub struct SignatureJson {
@@ -90,23 +93,23 @@ impl<'a> Signature<'a> {
 
     pub fn tlsh(&self) -> Option<String> {
         if !self.options.enable_tlsh { return None; }
-        Binary::tlsh(&self.normalize(), self.options.tlsh_mininum_byte_size)
+        return TLSH::new(&self.normalize(), self.options.tlsh_mininum_byte_size).hexdigest();
     }
 
     #[allow(dead_code)]
     pub fn minhash(&self) -> Option<String> {
         if !self.options.enable_minhash { return None; }
-        Binary::minhash(
-            self.options.minhash_maximum_byte_size,
+        if self.normalize().len() > self.cfg.options.minhash_maximum_byte_size { return None; }
+        return MinHash32::new(
+            &self.normalize(),
             self.options.minhash_number_of_hashes,
             self.options.minhash_shingle_size,
-            self.options.minhash_seed,
-            &self.normalize())
+            self.options.minhash_seed).hexdigest();
     }
 
     pub fn sha256(&self) -> Option<String> {
         if !self.options.enable_sha256 { return None; }
-        Binary::sha256(&self.normalize())
+        SHA256::new(&self.normalize()).hexdigest()
     }
 
     pub fn entropy(&self) -> Option<f64> {

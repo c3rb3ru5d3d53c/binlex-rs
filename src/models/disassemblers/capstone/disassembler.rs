@@ -827,6 +827,9 @@ impl<'disassembler> Disassembler<'disassembler> {
     }
 
     pub fn disassemble_instructions(&self, address: u64, count: u64) -> Result<Instructions<'_>, Error> {
+        if (address as usize) >= self.image.len() {
+            return Err(Error::new(ErrorKind::Other, "address out of bounds"));
+        }
         let instructions = self
             .cs
             .disasm_count(&self.image[address as usize..], address, count as usize)

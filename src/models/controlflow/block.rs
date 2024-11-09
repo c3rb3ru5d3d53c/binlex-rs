@@ -9,6 +9,11 @@ use crate::models::binary::Binary;
 use crate::models::controlflow::graph::Graph;
 use crate::models::controlflow::signature::Signature;
 use crate::models::controlflow::signature::SignatureJson;
+use crate::models::controlflow::file::File;
+use crate::models::controlflow::file::FileJson;
+use crate::models::hashing::sha256::SHA256;
+use crate::models::hashing::tlsh::TLSH;
+use crate::models::hashing::minhash::MinHash32;
 
 #[derive(Serialize, Deserialize)]
 pub struct BlockJson {
@@ -30,6 +35,7 @@ pub struct BlockJson {
     pub minhash: Option<String>,
     pub tlsh: Option<String>,
     pub contiguous: bool,
+    pub file: Option<FileJson>,
     pub tags: Vec<String>,
 }
 
@@ -110,8 +116,13 @@ impl<'block> Block<'block> {
             minhash: self.minhash(),
             tlsh: self.tlsh(),
             contiguous: true,
+            file: self.file(),
             tags: self.cfg.options.tags.clone(),
         }
+    }
+
+    pub fn file(&self) -> Option<FileJson> {
+        Some(File::new(self.cfg.options.clone()).process())
     }
 
     pub fn is_prologue(&self) -> bool {
@@ -166,22 +177,23 @@ impl<'block> Block<'block> {
 
     pub fn tlsh(&self) -> Option<String> {
         if !self.cfg.options.enable_tlsh { return None; }
-        return Binary::tlsh(&self.bytes(), self.cfg.options.tlsh_mininum_byte_size);
+        return TLSH::new(&self.bytes(), self.cfg.options.tlsh_mininum_byte_size).hexdigest();
     }
 
     pub fn minhash(&self) -> Option<String> {
         if !self.cfg.options.enable_minhash { return None; }
-        return Binary::minhash(
-            self.cfg.options.minhash_maximum_byte_size,
+        if self.bytes().len() > self.cfg.options.minhash_maximum_byte_size { return None; }
+        return MinHash32::new(
+            &self.bytes(),
             self.cfg.options.minhash_number_of_hashes,
             self.cfg.options.minhash_shingle_size,
-            self.cfg.options.minhash_seed,
-            &self.bytes());
+            self.cfg.options.minhash_seed
+        ).hexdigest();
     }
 
     pub fn sha256(&self) -> Option<String> {
         if !self.cfg.options.enable_sha256 { return None; }
-        return Binary::sha256(&self.bytes());
+        return SHA256::new(&self.bytes()).hexdigest();
     }
 
     pub fn size(&self) -> usize {

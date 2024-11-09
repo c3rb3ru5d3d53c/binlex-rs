@@ -3,7 +3,6 @@ use serde_json::Value;
 use std::io::{self, BufRead};
 use std::process;
 
-/// Normalizes a vector of numbers to range between 0 and 1.
 fn normalize(data: &[f64]) -> Vec<f64> {
     let min = data.iter().cloned().fold(f64::INFINITY, f64::min);
     let max = data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);

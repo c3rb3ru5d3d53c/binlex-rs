@@ -12,6 +12,11 @@ use crate::models::controlflow::graph::GraphQueue;
 use crate::models::controlflow::block::Block;
 use crate::models::controlflow::signature::Signature;
 use crate::models::controlflow::signature::SignatureJson;
+use crate::models::controlflow::file::FileJson;
+use crate::models::controlflow::file::File;
+use crate::models::hashing::sha256::SHA256;
+use crate::models::hashing::tlsh::TLSH;
+use crate::models::hashing::minhash::MinHash32;
 
 #[derive(Serialize, Deserialize)]
 pub struct FunctionQueueJson {
@@ -35,6 +40,7 @@ pub struct FunctionJson {
     pub bytes: Option<String>,
     pub functions: BTreeMap<u64, u64>,
     pub blocks: BTreeSet<u64>,
+    pub file: Option<FileJson>,
     pub instructions: usize,
     pub entropy: Option<f64>,
     pub sha256: Option<String>,
@@ -129,8 +135,13 @@ impl<'function> Function<'function> {
             minhash: self.minhash(),
             tlsh: self.tlsh(),
             contiguous: self.is_contiguous(),
+            file: self.file(),
             tags: self.cfg.options.tags.clone(),
         }
+    }
+
+    pub fn file(&self) -> Option<FileJson> {
+        Some(File::new(self.cfg.options.clone()).process())
     }
 
     #[allow(dead_code)]
@@ -199,7 +210,7 @@ impl<'function> Function<'function> {
         if !self.cfg.options.enable_sha256 { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
-            return Binary::sha256(&bytes);
+            return SHA256::new(&bytes).hexdigest();
         }
         return None;
     }
@@ -217,7 +228,7 @@ impl<'function> Function<'function> {
         if !self.cfg.options.enable_tlsh { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
-            return Binary::tlsh(&bytes, self.cfg.options.tlsh_mininum_byte_size);
+            return TLSH::new(&bytes, self.cfg.options.tlsh_mininum_byte_size).hexdigest();
         }
         return None;
     }
@@ -226,12 +237,12 @@ impl<'function> Function<'function> {
         if !self.cfg.options.enable_minhash { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
-            return Binary::minhash(
-                self.cfg.options.minhash_maximum_byte_size,
+            if bytes.len() > self.cfg.options.minhash_maximum_byte_size { return None; }
+            return MinHash32::new(
+                &bytes,
                 self.cfg.options.minhash_number_of_hashes,
                 self.cfg.options.minhash_shingle_size,
-                self.cfg.options.minhash_seed,
-                &bytes);
+                self.cfg.options.minhash_seed).hexdigest();
         }
         return None;
     }

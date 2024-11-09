@@ -5,16 +5,17 @@ use std::hash::{Hash, Hasher};
 
 const PRIME_MODULUS: u32 = 4294967291;
 
-pub struct MinHash32 {
+pub struct MinHash32 <'minhash32> {
     a_coefficients: Vec<u32>,
     b_coefficients: Vec<u32>,
     num_hashes: usize,
     shingle_size: usize,
+    bytes: &'minhash32 [u8],
 }
 
-impl MinHash32 {
+impl <'minhash32> MinHash32 <'minhash32> {
 
-    pub fn new(num_hashes: usize, shingle_size: usize, seed: u64) -> Self {
+    pub fn new(bytes: &'minhash32 [u8], num_hashes: usize, shingle_size: usize, seed: u64) -> Self {
         let mut rng = SmallRng::seed_from_u64(seed);
         let max_hash: u32 = u32::MAX;
         let mut a_coefficients = Vec::with_capacity(num_hashes);
@@ -25,13 +26,19 @@ impl MinHash32 {
             b_coefficients.push(rng.gen_range(0..max_hash));
         }
 
-        MinHash32 { a_coefficients, b_coefficients, num_hashes, shingle_size }
+        Self {
+            a_coefficients: a_coefficients,
+            b_coefficients: b_coefficients,
+            num_hashes: num_hashes,
+            shingle_size: shingle_size,
+            bytes: bytes,
+        }
     }
 
-    pub fn hash(&self, data: &[u8]) -> Option<Vec<u32>> {
-        if data.len() < self.shingle_size { return None; }
+    pub fn hash(&self) -> Option<Vec<u32>> {
+        if self.bytes.len() < self.shingle_size { return None; }
         let mut min_hashes = vec![u32::MAX; self.num_hashes];
-        for shingle in data.windows(self.shingle_size) {
+        for shingle in self.bytes.windows(self.shingle_size) {
             let mut hasher = XxHash32::default();
             shingle.hash(&mut hasher);
             let shingle_hash = hasher.finish() as u32;
@@ -44,7 +51,6 @@ impl MinHash32 {
                 }
             }
         }
-
         Some(min_hashes)
     }
 
@@ -60,8 +66,12 @@ impl MinHash32 {
         intersection as f64 / hash1.len() as f64
     }
 
-    pub fn hexdigest(minhash: &[u32]) -> String {
-        minhash.iter().map(|hash| format!("{:08x}", hash)).collect::<String>()
+    pub fn hexdigest(&self) -> Option<String> {
+        self.hash().map(|minhash| {
+            minhash.iter()
+                .map(|hash| format!("{:08x}", hash))
+                .collect()
+        })
     }
 }
 

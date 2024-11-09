@@ -70,6 +70,9 @@ fn main() {
     cfg.options.enable_feature = !ARGS.disable_feature;
     cfg.options.enable_normalized = ARGS.enable_normalized;
     cfg.options.tags = ARGS.tags.clone().unwrap_or_default();
+    cfg.options.file_sha256 = pe.sha256();
+    cfg.options.file_tlsh = pe.tlsh();
+    cfg.options.file_size = Some(pe.size());
     cfg.functions.enqueue_extend(entrypoints);
 
     while !cfg.functions.queue.is_empty() {

@@ -1,6 +1,7 @@
 use std::fs::File as StdFile;
 use std::io::{Read, Error};
-use crate::models::binary::Binary;
+use crate::models::hashing::sha256::SHA256;
+use crate::models::hashing::tlsh::TLSH;
 
 pub struct File {
     pub data: Vec<u8>,
@@ -16,13 +17,18 @@ impl File {
     }
 
     #[allow(dead_code)]
-    pub fn sha256(&self) -> Option<String> {
-        Binary::sha256(&self.data)
+    pub fn tlsh(&self) -> Option<String> {
+        TLSH::new(&self.data, 50).hexdigest()
     }
 
     #[allow(dead_code)]
-    pub fn size(&self) -> usize {
-        self.data.len()
+    pub fn sha256(&self) -> Option<String> {
+        SHA256::new(&self.data).hexdigest()
+    }
+
+    #[allow(dead_code)]
+    pub fn size(&self) -> u64 {
+        self.data.len() as u64
     }
 
     pub fn read(&mut self) -> Result<(), Error> {

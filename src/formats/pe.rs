@@ -142,6 +142,21 @@ impl PE {
     }
 
     #[allow(dead_code)]
+    pub fn size(&self) -> u64 {
+        self.file.size()
+    }
+
+    #[allow(dead_code)]
+    pub fn tlsh(&self) -> Option<String> {
+        self.file.tlsh()
+    }
+
+    #[allow(dead_code)]
+    pub fn sha256(&self) -> Option<String> {
+        self.file.sha256()
+    }
+
+    #[allow(dead_code)]
     pub fn imagebase(&self) -> u64 {
         self._pe.optional_header().imagebase()
     }

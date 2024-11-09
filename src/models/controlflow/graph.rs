@@ -17,6 +17,9 @@ pub struct GraphOptions {
     pub enable_feature: bool,
     pub tlsh_mininum_byte_size: usize,
     pub enable_normalized: bool,
+    pub file_sha256: Option<String>,
+    pub file_tlsh: Option<String>,
+    pub file_size: Option<u64>,
     pub tags: Vec<String>,
 }
 
@@ -34,6 +37,9 @@ impl GraphOptions {
             enable_feature: true,
             tlsh_mininum_byte_size: 50,
             enable_normalized: false,
+            file_sha256: None,
+            file_tlsh: None,
+            file_size: None,
             tags: vec![],
         };
     }
