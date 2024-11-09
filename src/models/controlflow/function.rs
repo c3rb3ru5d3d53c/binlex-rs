@@ -19,14 +19,56 @@ use crate::models::hashing::tlsh::TLSH;
 use crate::models::hashing::minhash::MinHash32;
 
 #[derive(Serialize, Deserialize)]
-pub struct FunctionQueueJson {
+pub struct FunctionSymbolJson {
     #[serde(rename = "type")]
     pub type_: String,
-    pub name: String,
+    pub names: BTreeSet<String>,
     pub offset: Option<u64>,
     pub relative_virtual_address: Option<u64>,
     pub virtual_address: Option<u64>,
 }
+
+// #[derive(Clone)]
+// pub struct FunctionSymbol {
+//     pub names: BTreeSet<String>,
+//     pub offset: Option<u64>,
+//     pub relative_virtual_address: Option<u64>,
+//     pub virtual_address: Option<u64>,
+// }
+
+// impl FunctionSymbol {
+//     pub fn new(
+//         names: BTreeSet<String>,
+//         offset: Option<u64>,
+//         relative_virtual_address: Option<u64>,
+//         virtual_address: Option<u64>,
+//     ) -> Result<Self, Error> {
+//         if !FunctionSymbol::_is_valid(
+//             offset,
+//             relative_virtual_address,
+//             virtual_address,
+//         ) {
+//             return Err(Error::new(ErrorKind::Other, "invalid function symbol"));
+//         }
+//         Ok(Self {
+//             names,
+//             offset,
+//             relative_virtual_address,
+//             virtual_address,
+//         })
+//     }
+
+//     #[allow(dead_code)]
+//     fn _is_valid(
+//         offset: Option<u64>,
+//         relative_virtual_address: Option<u64>,
+//         virtual_address: Option<u64>,
+//     ) -> bool {
+//         offset.is_some()
+//         || relative_virtual_address.is_some()
+//         || virtual_address.is_some()
+//     }
+// }
 
 #[derive(Serialize, Deserialize)]
 pub struct FunctionJson {

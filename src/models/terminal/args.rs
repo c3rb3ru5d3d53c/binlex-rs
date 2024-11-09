@@ -3,15 +3,15 @@ use std::collections::HashSet;
 use clap::Parser;
 use once_cell::sync::Lazy;
 
-pub const VERSION: &str = "1.0.0";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const AUTHOR: &str = "@c3rb3ru5d3d53c";
 
 #[derive(Parser, Debug)]
 #[command(
     name = "binlex",
     version = VERSION,
-    about = "A Binary Pattern Lexer",
-    author = AUTHOR,
+    about = format!("A Binary Pattern Lexer\n\nVersion: {}", VERSION),
+    after_help = format!("Author: {}", AUTHOR),
 )]
 pub struct Args {
     #[arg(short, long)]

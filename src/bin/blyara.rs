@@ -11,8 +11,8 @@ use binlex::models::terminal::io::Stdout;
 #[command(
     name = "blyara",
     version = VERSION,
-    about = "A Binlex Yara Generation Tool",
-    author = AUTHOR,
+    about = format!("A Binlex YARA Generation Tool\n\nVersion: {}", VERSION),
+    after_help = format!("Author: {}", AUTHOR),
 )]
 struct Cli {
     #[arg(short, long)]

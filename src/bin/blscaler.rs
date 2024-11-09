@@ -17,8 +17,8 @@ use binlex::models::terminal::io::Stdout;
 #[command(
     name = "blscaler",
     version = VERSION,
-    about = "A Binlex ML Scaler Tool",
-    author = AUTHOR,
+    about = format!("A Binlex ML Scaler Tool\n\nVersion: {}", VERSION),
+    after_help = format!("Author: {}", AUTHOR),
 )]
 struct Args {
     #[arg(short, long)]
