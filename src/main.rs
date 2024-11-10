@@ -42,6 +42,7 @@ fn main() {
     };
 
 
+    #[allow(unused_assignments)]
     let mut image_bytes = Vec::<u8>::new();
     let image_mmap: Mmap;
     let image: &[u8];
@@ -115,8 +116,6 @@ fn main() {
             cfg.absorb(&mut graph);
         }
     }
-
-    //std::mem::drop(image);
 
     let cfg = cfg;
 
