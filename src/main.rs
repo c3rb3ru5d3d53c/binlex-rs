@@ -18,6 +18,7 @@ use crate::models::binary::BinaryArchitecture;
 use crate::types::lz4string::LZ4String;
 use crate::models::terminal::args::ARGS;
 use crate::models::terminal::io::Stdout;
+use memmap2::Mmap;
 
 fn main() {
 
@@ -40,7 +41,28 @@ fn main() {
         _ => BinaryArchitecture::UNKNOWN,
     };
 
-    let image = pe.image();
+
+    let mut image_bytes = Vec::<u8>::new();
+    let image_mmap: Mmap;
+    let image: &[u8];
+
+    if ARGS.enable_file_mapping {
+        match pe.imagecache(
+            ARGS.file_mapping_directory.clone().unwrap(),
+            ARGS.enable_file_mapping_cache) {
+            Ok(mapped) => {
+                image_mmap = mapped.mmap().unwrap();
+                image = &image_mmap;
+            }
+            Err(error) => {
+                eprintln!("{}", error);
+                process::exit(1);
+            }
+        };
+    } else {
+        image_bytes = pe.image();
+        image = &image_bytes;
+    }
 
     let executable_address_ranges = pe.executable_address_ranges();
 
@@ -93,6 +115,8 @@ fn main() {
             cfg.absorb(&mut graph);
         }
     }
+
+    //std::mem::drop(image);
 
     let cfg = cfg;
 

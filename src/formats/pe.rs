@@ -1,13 +1,14 @@
 use lief::Binary;
 use lief::pe::section::Characteristics;
-use std::io::{Error, ErrorKind};
+use std::io::{Cursor, Error, ErrorKind};
 use std::collections::BTreeSet;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use lief::pe::headers::MachineType;
 use crate::formats::file::File;
 use std::collections::BTreeMap;
 use lief::pe::debug::Entries;
-
+use crate::types::cachedfile::CachedFile;
 pub struct PE {
     pub _pe: lief::pe::Binary,
     pub file: File,
@@ -117,6 +118,35 @@ impl PE {
     #[allow(dead_code)]
     pub fn file_alignment(&self) -> u64 {
         self._pe.optional_header().file_alignment() as u64
+    }
+
+    pub fn imagecache(&self, path: String, cache: bool) -> Result<CachedFile, Error> {
+        let pathbuf = PathBuf::from(path)
+            .join(self.file.sha256().unwrap());
+        let mut tempmap = match CachedFile::new(pathbuf, true, cache) {
+            Ok(tempmmap) => tempmmap,
+            Err(error) => return Err(error),
+        };
+        if tempmap.is_cached() {
+            return Ok(tempmap);
+        }
+        tempmap.write(&self.file.data[0..self.sizeofheaders() as usize])?;
+        for section in self._pe.sections() {
+            if section.virtual_size() == 0 { continue; }
+            if section.sizeof_raw_data() == 0 { continue; }
+            let section_virtual_adddress = PE::align_section_virtual_address(
+                self.imagebase() + section.pointerto_raw_data() as u64,
+                self.section_alignment(),
+                self.file_alignment());
+            if section_virtual_adddress > tempmap.size() as u64 {
+                let padding_length = section_virtual_adddress - tempmap.size() as u64;
+                tempmap.write(&mut Cursor::new(vec![0u8; padding_length as usize]))?;
+            }
+            let pointerto_raw_data = section.pointerto_raw_data() as usize;
+            let sizeof_raw_data = section.sizeof_raw_data() as usize;
+            tempmap.write(&self.file.data[pointerto_raw_data..pointerto_raw_data + sizeof_raw_data])?;
+        }
+        Ok(tempmap)
     }
 
     #[allow(dead_code)]

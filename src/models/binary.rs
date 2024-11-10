@@ -37,7 +37,7 @@ impl Binary {
     }
 
     #[allow(dead_code)]
-    pub fn hexdump(data: &Vec<u8>, address: u64) -> String {
+    pub fn hexdump(data: &[u8], address: u64) -> String {
         const BYTES_PER_LINE: usize = 16;
         let mut result = String::new();
         for (i, chunk) in data.chunks(BYTES_PER_LINE).enumerate() {

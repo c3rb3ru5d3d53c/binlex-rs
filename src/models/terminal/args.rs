@@ -1,10 +1,12 @@
 use std::process;
 use std::collections::HashSet;
 use clap::Parser;
+use dirs;
 use once_cell::sync::Lazy;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const AUTHOR: &str = "@c3rb3ru5d3d53c";
+pub const BINLEX_CACHE_DIRECTORY: &str = "binlex_cache";
 
 #[derive(Parser, Debug)]
 #[command(
@@ -56,6 +58,12 @@ pub struct Args {
     pub disable_hashing: bool,
     #[arg(long, default_value_t = false)]
     pub enable_normalized: bool,
+    #[arg(long, default_value_t = false)]
+    pub enable_file_mapping: bool,
+    #[arg(long, default_value_t = false)]
+    pub enable_file_mapping_cache: bool,
+    #[arg(long)]
+    pub file_mapping_directory: Option<String>,
 }
 
 fn validate(args: &mut Args) {
@@ -88,6 +96,14 @@ fn validate(args: &mut Args) {
         args.disable_tlsh = true;
         args.disable_feature = true;
         args.disable_entropy = true;
+    }
+
+    if args.file_mapping_directory.is_none() {
+        args.file_mapping_directory = dirs::home_dir()
+            .map(|home_dir| home_dir.join(BINLEX_CACHE_DIRECTORY)
+            .to_str()
+            .unwrap()
+            .to_string());
     }
 
     if let Some(tags) = &args.tags {
