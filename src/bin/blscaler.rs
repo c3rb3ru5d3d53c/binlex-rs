@@ -12,6 +12,7 @@ use binlex::types::lz4string::LZ4String;
 use binlex::models::terminal::args::VERSION;
 use binlex::models::terminal::args::AUTHOR;
 use binlex::models::terminal::io::Stdout;
+use serde_json::de::Deserializer;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -35,14 +36,7 @@ fn normalize(data: &[f64]) -> Vec<f64> {
     data.iter().map(|&x| (x - min) / (max - min)).collect()
 }
 
-fn process_line(line: &str) -> String {
-    let mut parsed: Value = match serde_json::from_str(line) {
-        Ok(parsed) => parsed,
-        Err(error) => {
-            eprintln!("{}", error);
-            process::exit(1);
-        }
-    };
+fn process_value(mut parsed: Value) -> String {
     if let Some(feature) = parsed
         .get_mut("signature")
         .and_then(|signature| signature.get_mut("feature"))
@@ -63,11 +57,10 @@ fn process_line(line: &str) -> String {
         Err(error) => {
             eprintln!("{}", error);
             process::exit(1);
-        },
+        }
     };
     return result;
 }
-
 
 fn main() {
 
@@ -78,9 +71,7 @@ fn main() {
         .build_global()
         .expect("failed to build thread pool");
 
-    let mut results = Vec::<LZ4String>::new();
-
-    if let Some(input) = args.input.clone() {
+    let input_reader: Box<dyn BufRead> = if let Some(input) = args.input.clone() {
         let file = match File::open(input) {
             Ok(file) => file,
             Err(error) => {
@@ -88,29 +79,31 @@ fn main() {
                 process::exit(1);
             },
         };
-
-        results = io::BufReader::new(file)
-            .lines()
-            .map(|line| line.expect("failed to read line"))
-            .collect::<Vec<_>>()
-            .par_iter()
-            .map(|str| LZ4String::from(process_line(&str)))
-            .collect();
-    }
-
-    if args.input.is_none() {
+        Box::new(io::BufReader::new(file))
+    } else {
         if io::stdin().is_terminal() {
             eprintln!("failed to read standard input");
             process::exit(1);
         }
-        let stdin = io::stdin();
-        results = stdin.lock().lines()
-            .map(|line| line.expect("failed to read line"))
-            .collect::<Vec<_>>()
-            .par_iter()
-            .map(|str| LZ4String::from(process_line(&str)))
-            .collect();
-    }
+        Box::new(io::BufReader::new(io::stdin()))
+    };
+
+    let values: Vec<Value> = Deserializer::from_reader(input_reader)
+        .into_iter::<Value>()
+        .map(|value| match value {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("Error parsing JSON: {}", error);
+                process::exit(1);
+            }
+        })
+        .collect();
+
+    let results: Vec<LZ4String> = values.into_par_iter()
+        .map(|value| {
+            LZ4String::from(process_value(value))
+        })
+        .collect();
 
     if let Some(output_file) = args.output {
         let mut file = match File::create(output_file) {
