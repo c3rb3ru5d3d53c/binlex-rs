@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use lief::pe::headers::MachineType;
+use crate::models::binary::BinaryArchitecture;
 use crate::formats::file::File;
 use std::collections::BTreeMap;
 use lief::pe::debug::Entries;
@@ -33,8 +34,26 @@ impl PE {
     }
 
     #[allow(dead_code)]
-    pub fn machine(&self) -> MachineType {
-        self._pe.header().machine()
+    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, Error> {
+        let file = File::from_bytes(bytes);
+        let mut cursor = Cursor::new(&file.data);
+        if let Some(Binary::PE(pe)) = Binary::from(&mut cursor) {
+            return Ok(Self{
+                _pe: pe,
+                file: file
+            })
+        }
+        return Err(Error::new(ErrorKind::InvalidInput, "invalid pe file"));
+    }
+
+    #[allow(dead_code)]
+    pub fn machine(&self) -> BinaryArchitecture {
+        let machine = match self._pe.header().machine() {
+            MachineType::AMD64 => BinaryArchitecture::AMD64,
+            MachineType::I386 => BinaryArchitecture::I386,
+            _ => BinaryArchitecture::UNKNOWN,
+        };
+        return machine;
     }
 
     #[allow(dead_code)]
@@ -192,7 +211,7 @@ impl PE {
     }
 
     #[allow(dead_code)]
-    pub fn exports(&self) -> BTreeSet<u64>{
+    pub fn exports(&self) -> BTreeSet<u64> {
         let mut addresses = BTreeSet::<u64>::new();
         let export = match self._pe.export(){
             Some(export) => export,

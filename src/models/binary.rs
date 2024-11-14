@@ -2,7 +2,7 @@ use std::collections::HashMap;
 pub struct Binary;
 
 #[repr(u16)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum BinaryArchitecture {
     AMD64 = 0x00,
     I386 = 0x01,

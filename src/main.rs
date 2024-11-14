@@ -2,7 +2,6 @@ mod models;
 mod formats;
 mod types;
 
-use lief::pe::headers::MachineType;
 use rayon::ThreadPoolBuilder;
 use formats::pe::PE;
 use models::disassemblers::capstone::disassembler::Disassembler;
@@ -14,7 +13,6 @@ use std::collections::BTreeSet;
 use crate::models::controlflow::graph::Graph;
 use crate::models::controlflow::block::Block;
 use crate::models::controlflow::function::Function;
-use crate::models::binary::BinaryArchitecture;
 use crate::types::lz4string::LZ4String;
 use crate::models::terminal::args::ARGS;
 use crate::models::terminal::io::Stdout;
@@ -35,12 +33,7 @@ fn main() {
         }
     };
 
-    let machine = match pe.machine() {
-        MachineType::AMD64 => BinaryArchitecture::AMD64,
-        MachineType::I386 => BinaryArchitecture::I386,
-        _ => BinaryArchitecture::UNKNOWN,
-    };
-
+    let machine = pe.machine();
 
     #[allow(unused_assignments)]
     let mut image_bytes = Vec::<u8>::new();
