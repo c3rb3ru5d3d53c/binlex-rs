@@ -1,6 +1,6 @@
-# Binlex
+# Binlex - A Binary Trait Lexer Framework
 
-The purpose of **Binlex** is to extract basic blocks and functions as traits from binaries for **malware research**, **hunting**, and **detection**. 🦠🔍
+The purpose of **binlex** is to extract basic blocks and functions as traits from binaries for **malware research**, **hunting**, and **detection**. 🦠🔍
 
 Most projects attempting this use pure Python to generate traits, but it’s often **slow** 🐢.
 
