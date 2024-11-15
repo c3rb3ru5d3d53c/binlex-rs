@@ -190,6 +190,8 @@ The following command disassembles `sample.dll` with `16` threads, the relevant 
 binlex -i sample.dll --threads 16 | jq
 ```
 
+### Making a YARA Rule
+
 Here is a general workflow getting started with making YARA rules, where we get 10 unique wildcarded YARA hex strings from a given sample.
 
 ```bash
@@ -226,6 +228,8 @@ rule example {
         1 of them
 ```
 
+### Collecting Machine Learning Features
+
 If you are would like to do some machine learning, you can get features representing the nibbles without memory addressing from binlex like this.
 
 ```bash
@@ -248,6 +252,41 @@ If you would like to refine this for your machine learning model by normalizing 
 binlex -i sample.dll --threads 16 | jq -r -c 'select(.size >= 16 and .size <= 32 and .signature.feature != null)' | blscaler --threads 16 | jq -c -r '.signature.feature' | head -1
 [0.26666666666666666,0.6,0.5333333333333333,0.7333333333333333,0.8,0.0,0.26666666666666666,0.06666666666666667,0.7333333333333333,0.6,0.0,0.2,0.0,0.0,0.06666666666666667,1.0,0.0,0.0,0.26666666666666666,0.3333333333333333,0.2,0.2,0.8,0.0,0.5333333333333333,0.3333333333333333,0.8666666666666667,0.13333333333333333,0.26666666666666666,0.5333333333333333,0.5333333333333333,0.7333333333333333,0.8666666666666667,0.0,0.26666666666666666,0.06666666666666667,0.0,1.0,0.6,0.3333333333333333,0.8,0.0,0.26666666666666666,0.5333333333333333,1.0,1.0,0.13333333333333333,0.3333333333333333]
 ```
+
+### Virtual Image File Mapping Cache with Compression
+To leverage the powerful feature of filemapping to reduce memory usage but still benifit from virtual images.
+
+```bash
+# Install BTRFS
+sudo pacman -S btrfs-progs compsize
+# Enable the Kernel Module on Boot
+echo "btrfs" | sudo tee /etc/modules-load.d/btrfs.conf
+# Reboot
+reboot
+# Create Virtual Image Cache Storage Pool
+dd if=/dev/zero of=btrfs.img bs=1M count=2048
+# Make it BTRFS
+mkfs.btrfs btrfs.img
+# Make a Cache Directory in /tmp/
+mkdir -p /tmp/binlex/
+# Mount the Cache (Multiple Compression Options Available)
+sudo mount -o compress=lzo btrfs.img /tmp/binlex/
+# Run Binlex
+binlex -i sample.dll --threads 16 --enable-file-mapping --file-mapping-directory /tmp/binlex/ --enable-file-mapping-cache
+sudo compsize ec1426109420445df8e9799ac21a4c13364dc12229fb16197e428803bece1140
+# Virtual Image 6GB vs Stored Size of 192MB
+# Processed 1 file, 49156 regular extents (49156 refs), 0 inline.
+# Type       Perc     Disk Usage   Uncompressed Referenced
+# TOTAL        3%      192M         6.0G         6.0G
+# none       100%      384K         384K         384K
+# lzo          3%      192M         6.0G         6.0G
+```
+
+This can set this up to be on disk or if `/tmp/` directory is mapped to RAM.
+
+When mapped to RAM, we are taking advantage of virtual image disassembling but without the additional RAM penalty where repetitive tasks almost double in processing speed.
+
+Since `btrfs` abstracts the access to the mapped file in kernel we are able to access it as we would any mapped file but with the benefit of compression.
 
 ## Python API
 
