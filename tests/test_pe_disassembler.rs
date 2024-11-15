@@ -161,7 +161,9 @@ static DATA: &[u8] = &[0x04, 0x22, 0x4d, 0x18, 0x64, 0x40, 0xa7, 0x0a, 0x28, 0x0
 #[cfg(test)]
 mod tests {
 
-    use std::{collections::BTreeMap, io::Read};
+    use std::io::Read;
+    use std::collections::BTreeSet;
+    use std::collections::BTreeMap;
     use lz4;
     use super::DATA;
     use binlex::formats::pe::PE;
@@ -190,5 +192,19 @@ mod tests {
         assert_eq!(pe.imagebase(), 0x140000000, "the pe imagebase is incorrect");
         assert_eq!(pe.sizeofheaders(), 1024, "the pe header size is incorrect");
         assert_eq!(pe.size(), 18432, "the size of the pe file in bytes is incorrect");
+        let set: BTreeSet<u64> = [
+                0x140001180,
+                0x1400012a0,
+                0x1400013b0,
+                0x140001420,
+                0x140001450,
+                0x140001480,
+                0x1400014b0,
+                0x140001530,
+            ]
+            .into_iter()
+            .collect();
+        assert_eq!(pe.exports(), set, "missing pe exports");
+
     }
 }

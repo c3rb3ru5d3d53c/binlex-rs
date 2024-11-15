@@ -1,3 +1,4 @@
+//use lief::generic::Binary;
 use lief::Binary;
 use lief::pe::section::Characteristics;
 use std::io::{Cursor, Error, ErrorKind};
@@ -13,7 +14,7 @@ use crate::types::cachedfile::CachedFile;
 
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
 pub struct PE {
-    pub _pe: lief::pe::Binary,
+    pub pe: lief::pe::Binary,
     pub file: File,
 }
 
@@ -35,7 +36,7 @@ impl PE {
         };
         if let Some(Binary::PE(pe)) = Binary::parse(&path) {
             return Ok(Self {
-                _pe: pe,
+                pe: pe,
                 file: file,
             });
         }
@@ -55,7 +56,7 @@ impl PE {
         let mut cursor = Cursor::new(&file.data);
         if let Some(Binary::PE(pe)) = Binary::from(&mut cursor) {
             return Ok(Self{
-                _pe: pe,
+                pe: pe,
                 file: file
             })
         }
@@ -68,7 +69,7 @@ impl PE {
     /// The `BinaryArchitecture` enum value corresponding to the PE machine type (e.g., AMD64, I386, or UNKNOWN).
     #[allow(dead_code)]
     pub fn machine(&self) -> BinaryArchitecture {
-        let machine = match self._pe.header().machine() {
+        let machine = match self.pe.header().machine() {
             MachineType::AMD64 => BinaryArchitecture::AMD64,
             MachineType::I386 => BinaryArchitecture::I386,
             _ => BinaryArchitecture::UNKNOWN,
@@ -85,7 +86,7 @@ impl PE {
     #[allow(dead_code)]
     pub fn executable_address_ranges(&self) -> BTreeMap<u64, u64> {
         let mut result = BTreeMap::<u64, u64>::new();
-        for section in self._pe.sections() {
+        for section in self.pe.sections() {
             if (section.characteristics().bits() & u64::from(Characteristics::MEM_EXECUTE)) == 0 { continue; }
             if section.virtual_size() == 0 { continue; }
             if section.sizeof_raw_data() == 0 { continue; }
@@ -107,7 +108,7 @@ impl PE {
     #[allow(dead_code)]
     pub fn pogos(&self) -> HashMap<u64, String> {
         let mut result = HashMap::<u64, String>::new();
-        for entry in self._pe.debug() {
+        for entry in self.pe.debug() {
             match entry {
                 Entries::Pogo(pogos) => {
                     for pogo in pogos.entries() {
@@ -130,7 +131,7 @@ impl PE {
     /// # Returns
     /// A `BTreeSet<u64>` containing the addresses of the TLS callback functions.
     pub fn tlscallbacks(&self) -> BTreeSet<u64> {
-        self._pe.tls()
+        self.pe.tls()
             .into_iter()
             .flat_map(|tls| tls.callbacks())
             .collect()
@@ -156,7 +157,7 @@ impl PE {
     /// The entry point address as a `u64` value.
     #[allow(dead_code)]
     pub fn entrypoint(&self) -> u64 {
-        self.imagebase() + self._pe.optional_header().addressof_entrypoint() as u64
+        self.imagebase() + self.pe.optional_header().addressof_entrypoint() as u64
     }
 
     /// Returns the size of the headers of the PE file.
@@ -165,7 +166,7 @@ impl PE {
     /// The size of the headers as a `u64` value.
     #[allow(dead_code)]
     pub fn sizeofheaders(&self) -> u64 {
-        self._pe.optional_header().sizeof_headers() as u64
+        self.pe.optional_header().sizeof_headers() as u64
     }
 
     /// Aligns a section's virtual address to the specified section and file alignment boundaries.
@@ -194,7 +195,7 @@ impl PE {
     /// The section alignment value as a `u64`.
     #[allow(dead_code)]
     pub fn section_alignment(&self) -> u64 {
-        self._pe.optional_header().section_alignment() as u64
+        self.pe.optional_header().section_alignment() as u64
     }
 
     /// Returns the file alignment used in the PE file.
@@ -203,7 +204,41 @@ impl PE {
     /// The file alignment value as a `u64`.
     #[allow(dead_code)]
     pub fn file_alignment(&self) -> u64 {
-        self._pe.optional_header().file_alignment() as u64
+        self.pe.optional_header().file_alignment() as u64
+    }
+
+    /// Converts a relative virtual address to a virtual address
+    ///
+    /// # Returns
+    /// The virtual address as a `u64`.
+    #[allow(dead_code)]
+    pub fn relative_virtual_address_to_virtual_address(&self, relative_virtual_address: u64) -> u64 {
+        self.imagebase() + relative_virtual_address
+    }
+
+    /// Converts a file offset to a virtual address.
+    ///
+    /// This method looks through the PE file's sections to determine which section contains the file offset.
+    /// It then computes the corresponding virtual address within that section.
+    ///
+    /// # Parameters
+    /// - `file_offset`: The file offset (raw data offset) to convert to a virtual address.
+    ///
+    /// # Returns
+    /// The corresponding virtual address as a `u64`.
+    #[allow(dead_code)]
+    pub fn file_offset_to_virtual_address(&self, file_offset: u64) -> Option<u64> {
+        for section in self.pe.sections() {
+            let section_raw_data_offset = section.pointerto_raw_data() as u64;
+            let section_raw_data_size = section.sizeof_raw_data() as u64;
+            if file_offset >= section_raw_data_offset && file_offset < section_raw_data_offset + section_raw_data_size {
+                let section_virtual_address = self.imagebase() + section.pointerto_raw_data() as u64;
+                let section_offset = file_offset - section_raw_data_offset;
+                let virtual_address = section_virtual_address + section_offset;
+                return Some(virtual_address);
+            }
+        }
+        None
     }
 
     /// Caches the PE file contents and returns a `CachedFile` object.
@@ -225,7 +260,7 @@ impl PE {
             return Ok(tempmap);
         }
         tempmap.write(&self.file.data[0..self.sizeofheaders() as usize])?;
-        for section in self._pe.sections() {
+        for section in self.pe.sections() {
             if section.virtual_size() == 0 { continue; }
             if section.sizeof_raw_data() == 0 { continue; }
             let section_virtual_adddress = PE::align_section_virtual_address(
@@ -251,7 +286,7 @@ impl PE {
     pub fn image(&self) -> Vec<u8> {
         let mut data = Vec::<u8>::new();
         data.extend_from_slice(&self.file.data[0..self.sizeofheaders() as usize]);
-        for section in self._pe.sections() {
+        for section in self.pe.sections() {
             if section.virtual_size() == 0 { continue; }
             if section.sizeof_raw_data() == 0 { continue; }
             let section_virtual_adddress = PE::align_section_virtual_address(
@@ -302,7 +337,7 @@ impl PE {
     /// The image base address as a `u64`.
     #[allow(dead_code)]
     pub fn imagebase(&self) -> u64 {
-        self._pe.optional_header().imagebase()
+        self.pe.optional_header().imagebase()
     }
 
     /// Returns a set of exported function addresses in the PE file.
@@ -312,7 +347,7 @@ impl PE {
     #[allow(dead_code)]
     pub fn exports(&self) -> BTreeSet<u64> {
         let mut addresses = BTreeSet::<u64>::new();
-        let export = match self._pe.export(){
+        let export = match self.pe.export(){
             Some(export) => export,
             None => {
                 return addresses;

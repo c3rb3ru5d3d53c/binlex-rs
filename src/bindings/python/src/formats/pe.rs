@@ -32,6 +32,16 @@ impl PE {
         Ok(Self { inner })
     }
 
+    #[pyo3(text_signature = "($self, relative_virtual_address)")]
+    pub fn relative_virtual_address_to_virtual_address(&self, relative_virtual_address: u64) -> u64 {
+        self.inner.relative_virtual_address_to_virtual_address(relative_virtual_address)
+    }
+
+    #[pyo3(text_signature = "($self, offset)")]
+    pub fn file_offset_to_virtual_address(&self, file_offset: u64) -> Option<u64> {
+        self.inner.file_offset_to_virtual_address(file_offset)
+    }
+
     #[pyo3(text_signature = "($self)")]
     pub fn machine(&self) -> BinaryArchitecture {
         return BinaryArchitecture::new(self.inner.machine() as u16);
