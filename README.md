@@ -1,26 +1,19 @@
 # Binlex
 
-The purpose of binlex is to extract basic blocks and functions as traits from binaries for malware research, hunting and detection.
+The purpose of **Binlex** is to extract basic blocks and functions as traits from binaries for **malware research**, **hunting**, and **detection**. 🦠🔍
 
-Most projects attempting this use pure Python to generate traits, but it is very slow.
+Most projects attempting this use pure Python to generate traits, but it’s often **slow** 🐢.
 
-The design philosophy behind binlex is it to keep it simple and extendable with an ecosystem of helpful tools and library code.
+The design philosophy behind **Binlex** is to keep it **simple** and **extendable**, with an ecosystem of helpful tools and library code. ⚙️
 
-The simple command-line interface allows malware researchers and analysts to hunt traits across hundreds or thousands of potentially similar malware saving time and money in production environments.
+The simple **command-line interface** allows malware researchers and analysts to hunt for traits across **hundreds** or **thousands** of potentially similar malware samples, saving **time** ⏳ and **money** 💰 in production environments.
 
-While the Rust API and Python bindings enable developers to get creative with their own detection solutions, completely unencumbered by license limitations.
+The **Rust API** and **Python bindings** let developers create their own detection solutions without **license limitations**. 🔓
 
-To help combat malware, we firmly commit our work to the public domain for the greater good.
+To help combat malware, we **commit** our work to the **public domain** for the greater good. 🌍
 
-No installation needed, just download the binaries from the release page!
+No installation needed—just **download the binaries** from the **release page**! 📥
 
-## Why Rust?
-
-🚀✨ I've decided to move the entire binlex project to Rust—it's the perfect mix of performance and safety! 🦀💪
-
-When working with malware 🕵️, safety-first tech is a must, and Rust totally delivers. Plus, Rust embodies the core principles of binlex: simplicity, safety, and speed! ⚡🔥
-
-Not to mention, Rust makes cross-platform compatibility a breeze 🌍, so you can now use binlex on a variety of systems! 🎉
 
 ## 🚀 Features
 
@@ -79,6 +72,15 @@ To offset the increased RAM usage, binlex includes a **file mapping feature**:
 - **🚀 Improved Performance with Caching**: Cached runs often achieve **up to twice the performance** by leveraging a write-once, read-many approach.
 
 By caching virtual images, binlex maintains high performance while conserving RAM, making repeat runs faster and more efficient.
+
+
+## Why Rust?
+
+🚀✨ I've decided to move the entire binlex project to Rust—it's the perfect mix of performance and safety! 🦀💪
+
+When working with malware 🕵️, safety-first tech is a must, and Rust totally delivers. Plus, Rust embodies the core principles of binlex: simplicity, safety, and speed! ⚡🔥
+
+Not to mention, Rust makes cross-platform compatibility a breeze 🌍, so you can now use binlex on a variety of systems! 🎉
 
 ## Building
 
@@ -288,7 +290,19 @@ When mapped to RAM, we are taking advantage of virtual image disassembling but w
 
 Since `btrfs` abstracts the access to the mapped file in kernel we are able to access it as we would any mapped file but with the benefit of compression.
 
-## Python API
+## Binlex API
+
+The philophsy of the binlex project is focused on security, simplicity, speed and extendability.
+
+Part of this is providing an API for developers to write their own detection and hunting logic.
+
+At this time, binlex provides both Rust and Python bindings.
+
+### Rust API
+
+Placeholder
+
+### Python API
 
 The binlex Python API is now designed to abstract the disassembler and the controlflow graph.
 
