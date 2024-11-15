@@ -8,25 +8,50 @@ use crate::models::hashing::sha256::SHA256;
 use crate::models::hashing::tlsh::TLSH;
 use crate::models::hashing::minhash::MinHash32;
 
+/// Represents a JSON-serializable structure containing metadata about a signature.
 #[derive(Serialize, Deserialize)]
 pub struct SignatureJson {
+    /// The raw pattern string of the signature.
     pub pattern: String,
+    /// The normalized form of the signature, if enabled.
     pub normalized: Option<String>,
+    /// The feature vector extracted from the signature.
     pub feature: Vec<u8>,
+    /// The entropy of the normalized signature, if enabled.
     pub entropy: Option<f64>,
+    /// The SHA-256 hash of the normalized signature, if enabled.
     pub sha256: Option<String>,
+    /// The MinHash of the normalized signature, if enabled.
     pub minhash: Option<String>,
+    /// The TLSH (Locality Sensitive Hash) of the normalized signature, if enabled.
     pub tlsh: Option<String>,
 }
 
+/// Represents a signature within a control flow graph.
 pub struct Signature<'a> {
+    /// The starting address of the signature.
     pub start_address: u64,
+    /// The ending address of the signature.
     pub end_address: u64,
+    /// The control flow graph the signature belongs to.
     pub cfg: &'a Graph,
+    /// The graph options containing signature-related settings.
     pub options: GraphOptions,
 }
 
 impl<'a> Signature<'a> {
+    /// Creates a new `Signature` instance for a specified address range within a control flow graph.
+    ///
+    /// # Arguments
+    ///
+    /// * `start_address` - The starting address of the signature.
+    /// * `end_address` - The ending address of the signature.
+    /// * `cfg` - A reference to the control flow graph the signature belongs to.
+    /// * `options` - Graph options containing signature-related settings.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `Signature` instance.
     pub fn new(start_address: u64, end_address: u64, cfg: &'a Graph, options: GraphOptions) -> Self {
         Self {
             start_address: start_address,
@@ -36,6 +61,11 @@ impl<'a> Signature<'a> {
         }
     }
 
+    /// Retrieves the raw bytes within the address range of the signature.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Vec<u8>` containing the raw bytes of the signature.
     pub fn bytes(&self) -> Vec<u8> {
         let mut result = Vec::<u8>::new();
         for entry in self.cfg.instructions.range(self.start_address..=self.end_address){
@@ -45,6 +75,11 @@ impl<'a> Signature<'a> {
         return result;
     }
 
+    /// Retrieves the pattern string representation of the signature.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `String` containing the pattern representation of the signature.
     pub fn pattern(&self) -> String {
         let mut result: String = String::new();
         for entry in self.cfg.instructions.range(self.start_address..=self.end_address){
@@ -54,6 +89,11 @@ impl<'a> Signature<'a> {
         return result;
     }
 
+    /// Extracts the feature vector from the normalized signature, if enabled.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Vec<u8>` containing the feature vector, or an empty vector if feature extraction is disabled.
     pub fn feature(&self) -> Vec<u8> {
         if !self.options.enable_feature { return Vec::<u8>::new(); }
         self.normalize()
@@ -62,6 +102,11 @@ impl<'a> Signature<'a> {
             .collect()
     }
 
+    /// Normalizes the signature to remove unknown bytes and reconstruct valid bytes.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Vec<u8>` containing the normalized bytes of the signature.
     pub fn normalize(&self) -> Vec<u8> {
         let signature: Vec<char> = self.pattern().chars().collect();
         let mut bytes = Vec::<u8>::new();
@@ -86,16 +131,31 @@ impl<'a> Signature<'a> {
         bytes
     }
 
+    /// Retrieves the normalized form of the signature as a hexadecimal string, if enabled.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(String)` containing the normalized hexadecimal representation, or `None` if normalization is disabled.
     pub fn normalized(&self) -> Option<String> {
         if !self.options.enable_normalized { return None; }
         Some(Binary::to_hex(&self.normalize()))
     }
 
+    /// Computes the TLSH (Locality Sensitive Hash) of the normalized signature, if enabled.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(String)` containing the TLSH, or `None` if TLSH is disabled.
     pub fn tlsh(&self) -> Option<String> {
         if !self.options.enable_tlsh { return None; }
         return TLSH::new(&self.normalize(), self.options.tlsh_mininum_byte_size).hexdigest();
     }
 
+    /// Computes the MinHash of the normalized signature, if enabled.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(String)` containing the MinHash, or `None` if MinHash is disabled.
     #[allow(dead_code)]
     pub fn minhash(&self) -> Option<String> {
         if !self.options.enable_minhash { return None; }
@@ -107,16 +167,31 @@ impl<'a> Signature<'a> {
             self.options.minhash_seed).hexdigest();
     }
 
+    /// Computes the SHA-256 hash of the normalized signature, if enabled.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(String)` containing the SHA-256 hash, or `None` if SHA-256 is disabled.
     pub fn sha256(&self) -> Option<String> {
         if !self.options.enable_sha256 { return None; }
         SHA256::new(&self.normalize()).hexdigest()
     }
 
+    /// Computes the entropy of the normalized signature, if enabled.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Some(f64)` containing the entropy, or `None` if entropy calculation is disabled.
     pub fn entropy(&self) -> Option<f64> {
         if !self.options.enable_entropy { return None; }
         Binary::entropy(&self.normalize())
     }
 
+    /// Processes the signature into its JSON-serializable representation.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `SignatureJson` struct containing metadata about the signature.
     pub fn process(&self) -> SignatureJson {
         SignatureJson {
             pattern: self.pattern(),
@@ -129,6 +204,12 @@ impl<'a> Signature<'a> {
         }
     }
 
+    /// Converts the signature metadata into a JSON string representation.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(String)` containing the JSON representation of the signature,
+    /// or an `Err` if serialization fails.
     #[allow(dead_code)]
     pub fn json(&self) -> Result<String, Error> {
         let raw = self.process();
