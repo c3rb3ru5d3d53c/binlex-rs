@@ -1,7 +1,9 @@
-<div align="left" style="display: flex; align-items: center;">
-  <img src="./assets/binlex.png" alt="Alt text" width="100" style="vertical-align: middle;" />
-  <span style="font-size: 2em; margin-left: 10px;">Binlex - A Binary Trait Lexer Framework</span>
-</div>
+<table>
+  <tr>
+    <td><img src="./assets/binlex.png" alt="Binlex logo" width="100"></td>
+    <td style="vertical-align: middle; font-size: 2em; padding-left: 10px;">Binlex - A Binary Trait Lexer Framework</td>
+  </tr>
+</table>
 
 The purpose of **binlex** is to extract basic blocks and functions as traits from binaries for **malware research**, **hunting**, and **detection**. 🦠🔍
 
