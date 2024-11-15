@@ -101,7 +101,19 @@ python
 >> import binlex
 ```
 
-### JSON Trait Format
+### Documentation
+
+```bash
+cargo doc
+```
+
+You can also open the docs.
+
+```bash
+cargo doc --open
+```
+
+## JSON Trait Format
 
 In the JSON format, binlex treats addresses as virtual addresses, and provides various properties to help you make decisions on your detection and hunting strategy.
 
@@ -235,12 +247,6 @@ If you would like to refine this for your machine learning model by normalizing 
 ```bash
 binlex -i sample.dll --threads 16 | jq -r -c 'select(.size >= 16 and .size <= 32 and .signature.feature != null)' | blscaler --threads 16 | jq -c -r '.signature.feature' | head -1
 [0.26666666666666666,0.6,0.5333333333333333,0.7333333333333333,0.8,0.0,0.26666666666666666,0.06666666666666667,0.7333333333333333,0.6,0.0,0.2,0.0,0.0,0.06666666666666667,1.0,0.0,0.0,0.26666666666666666,0.3333333333333333,0.2,0.2,0.8,0.0,0.5333333333333333,0.3333333333333333,0.8666666666666667,0.13333333333333333,0.26666666666666666,0.5333333333333333,0.5333333333333333,0.7333333333333333,0.8666666666666667,0.0,0.26666666666666666,0.06666666666666667,0.0,1.0,0.6,0.3333333333333333,0.8,0.0,0.26666666666666666,0.5333333333333333,1.0,1.0,0.13333333333333333,0.3333333333333333]
-```
-
-If you would like to then train a model of your sample.
-
-```bash
-
 ```
 
 ## Python API
