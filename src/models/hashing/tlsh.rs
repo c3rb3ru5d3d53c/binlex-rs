@@ -36,16 +36,6 @@ impl <'tlsh> TLSH <'tlsh> {
     ///
     /// Returns `Some(String)` containing the hexadecimal digest of the TLSH hash if the byte slice
     /// length is greater than or equal to `mininum_byte_size`. Returns `None` otherwise.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let data = vec![1, 2, 3, 4, 5];
-    /// let tlsh = TLSH::new(&data, 5);
-    /// if let Some(digest) = tlsh.hexdigest() {
-    ///     println!("TLSH digest: {}", digest);
-    /// }
-    /// ```
     #[allow(dead_code)]
     pub fn hexdigest(&self) -> Option<String> {
         if self.bytes.len() < self.mininum_byte_size { return None; }

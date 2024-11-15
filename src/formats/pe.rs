@@ -10,12 +10,21 @@ use crate::formats::file::File;
 use std::collections::BTreeMap;
 use lief::pe::debug::Entries;
 use crate::types::cachedfile::CachedFile;
+
+/// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
 pub struct PE {
     pub _pe: lief::pe::Binary,
     pub file: File,
 }
 
 impl PE {
+    /// Creates a new `PE` instance by reading a PE file from the provided path.
+    ///
+    /// # Parameters
+    /// - `path`: The file path to the PE file to be loaded.
+    ///
+    /// # Returns
+    /// A `Result` containing the `PE` object on success or an `Error` on failure.
     pub fn new(path: String) -> Result<Self, Error> {
         let mut file = File::new(path.clone());
         match file.read() {
@@ -33,6 +42,13 @@ impl PE {
         return Err(Error::new(ErrorKind::InvalidInput, "invalid pe file"));
     }
 
+    /// Creates a new `PE` instance from a byte vector containing PE file data.
+    ///
+    /// # Parameters
+    /// - `bytes`: A vector of bytes representing the PE file data.
+    ///
+    /// # Returns
+    /// A `Result` containing the `PE` object on success or an `Error` on failure.
     #[allow(dead_code)]
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, Error> {
         let file = File::from_bytes(bytes);
@@ -46,6 +62,10 @@ impl PE {
         return Err(Error::new(ErrorKind::InvalidInput, "invalid pe file"));
     }
 
+    /// Returns the architecture of the PE file based on its machine type.
+    ///
+    /// # Returns
+    /// The `BinaryArchitecture` enum value corresponding to the PE machine type (e.g., AMD64, I386, or UNKNOWN).
     #[allow(dead_code)]
     pub fn machine(&self) -> BinaryArchitecture {
         let machine = match self._pe.header().machine() {
@@ -56,6 +76,12 @@ impl PE {
         return machine;
     }
 
+    /// Returns the ranges of executable memory addresses within the PE file.
+    ///
+    /// This includes sections marked as executable (`MEM_EXECUTE`) and with valid data.
+    ///
+    /// # Returns
+    /// A `BTreeMap` where the key is the start address of the executable range and the value is the end address.
     #[allow(dead_code)]
     pub fn executable_address_ranges(&self) -> BTreeMap<u64, u64> {
         let mut result = BTreeMap::<u64, u64>::new();
@@ -74,6 +100,10 @@ impl PE {
         return result;
     }
 
+    /// Returns a map of Pogo (debug) entries found in the PE file, keyed by their start RVA (Relative Virtual Address).
+    ///
+    /// # Returns
+    /// A `HashMap` where the key is the RVA of the start of the Pogo entry and the value is the name of the entry.
     #[allow(dead_code)]
     pub fn pogos(&self) -> HashMap<u64, String> {
         let mut result = HashMap::<u64, String>::new();
@@ -91,6 +121,14 @@ impl PE {
         result
     }
 
+    /// Returns a set of TLS (Thread Local Storage) callback addresses in the PE file.
+    ///
+    /// The method retrieves the TLS callbacks from the PE file's TLS data directory, if present.
+    /// TLS callbacks are functions that are called when a thread is created or terminated, and they
+    /// are often used in applications to initialize or clean up thread-local data.
+    ///
+    /// # Returns
+    /// A `BTreeSet<u64>` containing the addresses of the TLS callback functions.
     pub fn tlscallbacks(&self) -> BTreeSet<u64> {
         self._pe.tls()
             .into_iter()
@@ -98,6 +136,10 @@ impl PE {
             .collect()
     }
 
+    /// Returns a set of function addresses (entry point, exports, TLS callbacks, and Pogo entries) in the PE file.
+    ///
+    /// # Returns
+    /// A `BTreeSet` of function addresses in the PE file.
     #[allow(dead_code)]
     pub fn functions(&self) -> BTreeSet<u64> {
         let mut addresses = BTreeSet::<u64>::new();
@@ -108,16 +150,33 @@ impl PE {
         return addresses;
     }
 
+    /// Returns the entry point address of the PE file.
+    ///
+    /// # Returns
+    /// The entry point address as a `u64` value.
     #[allow(dead_code)]
     pub fn entrypoint(&self) -> u64 {
         self.imagebase() + self._pe.optional_header().addressof_entrypoint() as u64
     }
 
+    /// Returns the size of the headers of the PE file.
+    ///
+    /// # Returns
+    /// The size of the headers as a `u64` value.
     #[allow(dead_code)]
     pub fn sizeofheaders(&self) -> u64 {
         self._pe.optional_header().sizeof_headers() as u64
     }
 
+    /// Aligns a section's virtual address to the specified section and file alignment boundaries.
+    ///
+    /// # Parameters
+    /// - `value`: The virtual address to align.
+    /// - `section_alignment`: The section alignment boundary.
+    /// - `file_alignment`: The file alignment boundary.
+    ///
+    /// # Returns
+    /// The aligned virtual address.
     #[allow(dead_code)]
     pub fn align_section_virtual_address(value: u64, mut section_alignment: u64, file_alignment: u64) -> u64 {
         if section_alignment < 0x1000 {
@@ -129,16 +188,32 @@ impl PE {
         return value;
     }
 
+    /// Returns the section alignment used in the PE file.
+    ///
+    /// # Returns
+    /// The section alignment value as a `u64`.
     #[allow(dead_code)]
     pub fn section_alignment(&self) -> u64 {
         self._pe.optional_header().section_alignment() as u64
     }
 
+    /// Returns the file alignment used in the PE file.
+    ///
+    /// # Returns
+    /// The file alignment value as a `u64`.
     #[allow(dead_code)]
     pub fn file_alignment(&self) -> u64 {
         self._pe.optional_header().file_alignment() as u64
     }
 
+    /// Caches the PE file contents and returns a `CachedFile` object.
+    ///
+    /// # Parameters
+    /// - `path`: The base path to store the cached file.
+    /// - `cache`: Whether to cache the file or not.
+    ///
+    /// # Returns
+    /// A `Result` containing the `CachedFile` object on success or an `Error` on failure.
     pub fn imagecache(&self, path: String, cache: bool) -> Result<CachedFile, Error> {
         let pathbuf = PathBuf::from(path)
             .join(self.file.sha256().unwrap());
@@ -168,6 +243,10 @@ impl PE {
         Ok(tempmap)
     }
 
+    /// Returns the image data of the PE file, including headers and sections.
+    ///
+    /// # Returns
+    /// A `Vec<u8>` containing the raw image data.
     #[allow(dead_code)]
     pub fn image(&self) -> Vec<u8> {
         let mut data = Vec::<u8>::new();
@@ -190,26 +269,46 @@ impl PE {
         return data;
     }
 
+    /// Returns the size of the PE file.
+    ///
+    /// # Returns
+    /// The size of the file as a `u64`.
     #[allow(dead_code)]
     pub fn size(&self) -> u64 {
         self.file.size()
     }
 
+    /// Returns the TLS (Thread Local Storage) hash value if present in the PE file.
+    ///
+    /// # Returns
+    /// An `Option<String>` containing the TLS hash if present, otherwise `None`.
     #[allow(dead_code)]
     pub fn tlsh(&self) -> Option<String> {
         self.file.tlsh()
     }
 
+    /// Returns the SHA-256 hash value of the PE file.
+    ///
+    /// # Returns
+    /// An `Option<String>` containing the SHA-256 hash if available, otherwise `None`.
     #[allow(dead_code)]
     pub fn sha256(&self) -> Option<String> {
         self.file.sha256()
     }
 
+    /// Returns the base address (image base) of the PE file.
+    ///
+    /// # Returns
+    /// The image base address as a `u64`.
     #[allow(dead_code)]
     pub fn imagebase(&self) -> u64 {
         self._pe.optional_header().imagebase()
     }
 
+    /// Returns a set of exported function addresses in the PE file.
+    ///
+    /// # Returns
+    /// A `BTreeSet` of exported function addresses.
     #[allow(dead_code)]
     pub fn exports(&self) -> BTreeSet<u64> {
         let mut addresses = BTreeSet::<u64>::new();

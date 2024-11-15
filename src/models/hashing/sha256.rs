@@ -33,18 +33,6 @@ impl <'sha256> SHA256 <'sha256> {
     /// Returns `Some(String)` containing the hexadecimal representation of the SHA-256 hash.
     /// If the operation fails, it returns `None`. This implementation is currently
     /// designed to always succeed, as `ring::digest` does not fail under normal conditions.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use crate::SHA256;
-    ///
-    /// let data = b"example data";
-    /// let sha256 = SHA256::new(data);
-    /// if let Some(digest) = sha256.hexdigest() {
-    ///     println!("SHA-256 hash: {}", digest);
-    /// }
-    /// ```
     #[allow(dead_code)]
     pub fn hexdigest(&self) -> Option<String> {
         let digest = digest::digest(&digest::SHA256, &self.bytes);
