@@ -1,8 +1,8 @@
-<table style="border-collapse: collapse; border: none;">
+<table>
   <tr>
     <td style="border: none;"><img src="./assets/binlex.png" alt="Binlex logo" width="100"></td>
-    <td style="border: none; vertical-align: middle; font-size: 2em; padding-left: 10px; font-weight: bold;">
-      Binlex - A Binary Trait Lexer Framework
+    <td style="border: none; vertical-align: middle; padding-left: 10px;">
+      <h1 style="font-weight: bold; margin: 0;">Binlex - A Binary Trait Lexer Framework</h1>
     </td>
   </tr>
 </table>
