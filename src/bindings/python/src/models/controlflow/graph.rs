@@ -103,12 +103,12 @@ impl GraphQueue {
 
     #[pyo3(text_signature = "($self, addresses)")]
     pub fn set_processed_extend(&mut self, addresses: BTreeSet<u64>) {
-        self.inner.set_processed_extend(addresses);
+        self.inner.insert_processed_extend(addresses);
     }
 
     #[pyo3(text_signature = "($self, address)")]
     pub fn set_processed(&mut self, address: u64) {
-        self.inner.set_processed(address);
+        self.inner.insert_processed(address);
     }
 
     #[pyo3(text_signature = "($self, address)")]
@@ -141,6 +141,7 @@ impl GraphQueue {
 #[pyclass]
 pub struct Graph {
     pub inner: InnerGraph,
+    pub inner_options: InnerGraphOptions,
 }
 
 #[pymethods]
@@ -148,8 +149,11 @@ impl Graph {
     #[new]
     #[pyo3(text_signature = "()")]
     pub fn new() -> Self {
+        let inner = InnerGraph::new();
+        let inner_options = inner.options.clone();
         Self {
-            inner: InnerGraph::new(),
+            inner: inner,
+            inner_options: inner_options,
         }
     }
 
@@ -164,47 +168,190 @@ impl Graph {
     }
 
     #[getter]
-    fn options(&self) -> GraphOptions{
-        let mut options = GraphOptions::new();
-        options.enable_entropy = self.inner.options.enable_entropy;
-        options.enable_minhash = self.inner.options.enable_minhash;
-        options.minhash_maximum_byte_size = self.inner.options.minhash_maximum_byte_size;
-        options.minhash_number_of_hashes = self.inner.options.minhash_number_of_hashes;
-        options.minhash_shingle_size = self.inner.options.minhash_shingle_size;
-        options.minhash_seed = self.inner.options.minhash_seed;
-        options.enable_entropy = self.inner.options.enable_entropy;
-        options.enable_tlsh = self.inner.options.enable_tlsh;
-        options.enable_sha256 = self.inner.options.enable_sha256;
-        options.enable_feature = self.inner.options.enable_feature;
-        options.tlsh_mininum_byte_size = self.inner.options.tlsh_mininum_byte_size;
-        options.enable_normalized = self.inner.options.enable_normalized;
-        options.file_sha256 = self.inner.options.file_sha256.clone();
-        options.file_tlsh = self.inner.options.file_tlsh.clone();
-        options.file_size = self.inner.options.file_size;
-        options.tags = self.inner.options.tags.clone();
-        return options;
+    pub fn get_blocks(&self, py: Python) -> Py<GraphQueue> {
+        Py::new(py, GraphQueue{
+            inner: self.inner.blocks.clone(),
+        }).expect("failed to create blocks graph queue")
     }
 
     #[setter]
-    fn set_options(&mut self, options: &GraphOptions) {
-        self.inner.options.enable_minhash = options.enable_minhash;
-        self.inner.options.minhash_maximum_byte_size = options.minhash_maximum_byte_size;
-        self.inner.options.minhash_number_of_hashes = options.minhash_number_of_hashes;
-        self.inner.options.minhash_shingle_size = options.minhash_shingle_size;
-        self.inner.options.minhash_seed = options.minhash_seed;
-        self.inner.options.enable_entropy = options.enable_entropy;
-        self.inner.options.enable_tlsh = options.enable_tlsh;
-        self.inner.options.enable_sha256 = options.enable_sha256;
-        self.inner.options.enable_feature = options.enable_feature;
-        self.inner.options.tlsh_mininum_byte_size = options.tlsh_mininum_byte_size;
-        self.inner.options.enable_normalized = options.enable_normalized;
-        self.inner.options.file_sha256 = options.file_sha256.clone();
-        self.inner.options.file_tlsh = options.file_tlsh.clone();
-        self.inner.options.file_size = options.file_size;
-        self.inner.options.tags = options.tags.clone();
+    pub fn set_blocks(&mut self, py: Python, queue: Py<GraphQueue>) -> PyResult<()> {
+        self.inner.blocks = queue.borrow_mut(py).inner.clone();
+        Ok(())
+    }
+
+    #[getter]
+    pub fn get_functions(&self, py: Python) -> Py<GraphQueue> {
+        Py::new(py, GraphQueue{
+            inner: self.inner.functions.clone(),
+        }).expect("failed to create functions graph queue")
+    }
+
+    #[setter]
+    pub fn set_functions(&mut self, py: Python, queue: Py<GraphQueue>) -> PyResult<()> {
+        self.inner.functions = queue.borrow_mut(py).inner.clone();
+        Ok(())
+    }
+
+    #[setter]
+    fn set_option_enable_minhash(&mut self, enable_minhash: bool) {
+        self.inner.options.enable_minhash = enable_minhash;
+    }
+
+    #[getter]
+    fn get_option_enable_minhash(&self) -> bool {
+        self.inner.options.enable_minhash
+    }
+
+    #[setter]
+    fn set_option_minhash_maximum_byte_size(&mut self, minhash_maximum_byte_size: usize) {
+        self.inner.options.minhash_maximum_byte_size = minhash_maximum_byte_size;
+    }
+
+    #[getter]
+    fn get_option_minhash_maximum_byte_size(&self) -> usize {
+        self.inner.options.minhash_maximum_byte_size
+    }
+
+    #[setter]
+    fn set_option_minhash_number_of_hashes(&mut self, minhash_number_of_hashes: usize) {
+        self.inner.options.minhash_number_of_hashes = minhash_number_of_hashes;
+    }
+
+    #[getter]
+    fn get_option_minhash_number_of_hashes(&self) -> usize {
+        self.inner.options.minhash_number_of_hashes
+    }
+
+    #[setter]
+    fn set_option_minhash_shingle_size(&mut self, minhash_shingle_size: usize) {
+        self.inner.options.minhash_shingle_size = minhash_shingle_size;
+    }
+
+    #[getter]
+    fn get_option_minhash_shingle_size(&self) -> usize {
+        self.inner.options.minhash_shingle_size
+    }
+
+    #[setter]
+    fn set_option_minhash_seed(&mut self, minhash_seed: u64) {
+        self.inner.options.minhash_seed = minhash_seed;
+    }
+
+    #[getter]
+    fn get_option_minhash_seed(&self) -> u64 {
+        self.inner.options.minhash_seed
+    }
+
+    #[setter]
+    fn set_option_enable_entropy(&mut self, enable_entropy: bool) {
+        self.inner.options.enable_entropy = enable_entropy;
+    }
+
+    #[getter]
+    fn get_option_enable_entropy(&self) -> bool {
+        self.inner.options.enable_entropy
+    }
+
+    #[setter]
+    fn set_option_enable_tlsh(&mut self, enable_tlsh: bool) {
+        self.inner.options.enable_tlsh = enable_tlsh;
+    }
+
+    #[getter]
+    fn get_option_enable_tlsh(&self) -> bool {
+        self.inner.options.enable_tlsh
+    }
+
+    #[setter]
+    fn set_option_enable_sha256(&mut self, enable_sha256: bool) {
+        self.inner.options.enable_sha256 = enable_sha256;
+    }
+
+    #[getter]
+    fn get_option_enable_sha256(&self) -> bool {
+        self.inner.options.enable_sha256
+    }
+
+    #[setter]
+    fn set_option_enable_feature(&mut self, enable_feature: bool) {
+        self.inner.options.enable_feature = enable_feature;
+    }
+
+    #[getter]
+    fn get_option_enable_feature(&self) -> bool {
+        self.inner.options.enable_feature
+    }
+
+    #[setter]
+    fn set_option_tlsh_mininum_byte_size(&mut self, tlsh_mininum_byte_size: usize) {
+        self.inner.options.tlsh_mininum_byte_size = tlsh_mininum_byte_size;
+    }
+
+    #[getter]
+    fn get_option_tlsh_mininum_byte_size(&self) -> usize {
+        self.inner.options.tlsh_mininum_byte_size
+    }
+
+    #[setter]
+    fn set_option_enable_normalized(&mut self, enable_normalized: bool) {
+        self.inner.options.enable_normalized = enable_normalized;
+    }
+
+    #[getter]
+    fn get_option_enable_normalized(&self) -> bool {
+        self.inner.options.enable_normalized
+    }
+
+    #[setter]
+    fn set_option_file_sha256(&mut self, file_sha256: String) {
+        self.inner.options.file_sha256 = Some(file_sha256);
+    }
+
+    #[getter]
+    fn get_option_file_sha256(&self) -> Option<String> {
+        self.inner.options.file_sha256.clone()
+    }
+
+    #[setter]
+    fn set_option_file_tlsh(&mut self, file_tlsh: String) {
+        self.inner.options.file_tlsh = Some(file_tlsh);
+    }
+
+    #[getter]
+    fn get_option_file_tlsh(&self) -> Option<String> {
+        self.inner.options.file_tlsh.clone()
+    }
+
+    #[setter]
+    fn set_option_file_size(&mut self, file_size: u64) {
+        self.inner.options.file_size = Some(file_size);
+    }
+
+    #[getter]
+    fn get_option_file_size(&self) -> Option<u64> {
+        self.inner.options.file_size
+    }
+
+    #[setter]
+    fn set_option_tags(&mut self, tags: Vec<String>) {
+        self.inner.options.tags = tags;
+    }
+
+    #[getter]
+    fn get_option_tags(&self) -> Vec<String> {
+        self.inner.options.tags.clone()
+    }
+
+    #[pyo3(text_signature = "($self, cfg)")]
+    pub fn absorb(&mut self, py: Python, cfg: Py<Self>) {
+        let mut a = cfg.borrow_mut(py);
+        self.inner.absorb(&mut a.inner);
     }
 
 }
+
+
 
 
 #[pymodule]

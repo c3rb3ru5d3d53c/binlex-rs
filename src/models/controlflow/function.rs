@@ -124,7 +124,7 @@ impl<'function> Function<'function> {
         queue.enqueue(address);
 
         while let Some(block_address) = queue.dequeue() {
-            queue.set_processed(block_address);
+            queue.insert_processed(block_address);
             if cfg.blocks.is_invalid(block_address) {
                 return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x} -> Block -> 0x{:x}: is invalid", address, block_address)));
             }

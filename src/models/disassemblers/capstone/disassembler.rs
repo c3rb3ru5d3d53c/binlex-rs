@@ -118,7 +118,7 @@ impl<'disassembler> Disassembler<'disassembler> {
 
     pub fn disassemble_function<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
 
-        cfg.functions.set_processed(address);
+        cfg.functions.insert_processed(address);
 
         if !self.is_executable_address(address) {
             cfg.functions.insert_invalid(address);
@@ -216,7 +216,7 @@ impl<'disassembler> Disassembler<'disassembler> {
     #[allow(dead_code)]
     pub fn disassemble_block<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
 
-        cfg.blocks.set_processed(address);
+        cfg.blocks.insert_processed(address);
 
         if !self.is_executable_address(address) {
             cfg.functions.insert_invalid(address);

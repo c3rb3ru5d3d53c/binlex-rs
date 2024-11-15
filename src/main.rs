@@ -93,7 +93,7 @@ fn main() {
 
     while !cfg.functions.queue.is_empty() {
         let function_addresses = cfg.functions.dequeue_all();
-        cfg.functions.set_processed_extend(function_addresses.clone());
+        cfg.functions.insert_processed_extend(function_addresses.clone());
         let graphs: Vec<Graph> = function_addresses
             .par_iter()
             .map(|address| {

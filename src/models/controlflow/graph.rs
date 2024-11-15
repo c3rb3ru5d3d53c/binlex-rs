@@ -52,6 +52,38 @@ pub struct GraphQueue {
     pub invalid: SkipSet<u64>,
 }
 
+impl Clone for GraphQueue {
+    fn clone(&self) -> Self {
+        let cloned_queue = SegQueue::new();
+        let mut temp_queue = Vec::new();
+        while let Some(item) = self.queue.pop() {
+            cloned_queue.push(item);
+            temp_queue.push(item);
+        }
+        for item in temp_queue {
+            self.queue.push(item);
+        }
+        let cloned_processed = SkipSet::new();
+        for item in self.processed.iter() {
+            cloned_processed.insert(*item);
+        }
+        let cloned_valid = SkipSet::new();
+        for item in self.valid.iter() {
+            cloned_valid.insert(*item);
+        }
+        let cloned_invalid = SkipSet::new();
+        for item in self.invalid.iter() {
+            cloned_invalid.insert(*item);
+        }
+        GraphQueue {
+            queue: cloned_queue,
+            processed: cloned_processed,
+            valid: cloned_valid,
+            invalid: cloned_invalid,
+        }
+    }
+}
+
 impl GraphQueue {
     pub fn new() -> Self {
         return Self {
@@ -97,13 +129,13 @@ impl GraphQueue {
         }
     }
 
-    pub fn set_processed_extend(&mut self, addresses: BTreeSet<u64>) {
+    pub fn insert_processed_extend(&mut self, addresses: BTreeSet<u64>) {
         for address in addresses {
-            self.set_processed(address);
+            self.insert_processed(address);
         }
     }
 
-    pub fn set_processed(&mut self, address: u64) {
+    pub fn insert_processed(&mut self, address: u64) {
         self.processed.insert(address);
     }
 
@@ -182,13 +214,13 @@ impl Graph {
         }
 
         for entry in graph.blocks.processed() {
-            self.blocks.set_processed(entry.value().clone());
+            self.blocks.insert_processed(entry.value().clone());
         }
 
         self.blocks.enqueue_extend(graph.blocks.dequeue_all());
 
         for entry in graph.functions.processed() {
-            self.functions.set_processed(entry.value().clone());
+            self.functions.insert_processed(entry.value().clone());
         }
 
         self.functions.enqueue_extend(graph.functions.dequeue_all());

@@ -2,3 +2,4 @@ target/
 project/
 Cargo.lock
 samples/
+*.yara
