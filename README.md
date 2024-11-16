@@ -45,7 +45,7 @@ No installation needed—just **download the binaries** from the **release page*
 
 - 🧩 **Function Symbols**
   - Pass function symbols to **binlex** as standard input using ***blpdb**
-  - Pass function symbols to ***binlex*** using JSON from your favorite tools
+  - Pass function symbols to ***binlex** using JSON from your favorite tools
 
 - 🏷️ **Tagging for Easy Organization**
 
@@ -330,7 +330,7 @@ pe = PE('./sample.dll')
 entrypoints = pe.functions()
 
 # Create Disassembler on Mapped PE Image and PE Architecture
-disassembler = Disassembler(pe.machine(), pe.image(), pe.executable_addresses())
+disassembler = Disassembler(pe.architecture(), pe.image(), pe.executable_addresses())
 
 # Perform Linear Disassembly Pass for Additional Entrypoints
 linear_scan_functions = disassembler.disassemble_linear_pass(2, 4)
@@ -339,7 +339,7 @@ linear_scan_functions = disassembler.disassemble_linear_pass(2, 4)
 entrypoints.update(linear_scan_functions)
 
 # Create the Controlflow Graph
-cfg = Graph()
+cfg = Graph(pe.architecture())
 
 # Disassemble the PE Image Entrypoints Recursively
 disassembler.disassemble_controlflow(entrypoints, cfg)

@@ -1,3 +1,4 @@
+use crate::models::binary::BinaryArchitecture;
 use crate::models::controlflow::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -116,6 +117,11 @@ impl<'block> Block<'block> {
             cfg: cfg,
             terminator: terminator.unwrap(),
         });
+    }
+
+    #[allow(dead_code)]
+    pub fn architecture(&self) -> BinaryArchitecture {
+        self.cfg.architecture
     }
 
     /// Prints the JSON representation of the block to standard output.

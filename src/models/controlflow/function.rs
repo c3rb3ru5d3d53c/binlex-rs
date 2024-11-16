@@ -1,4 +1,5 @@
 
+use crate::models::binary::BinaryArchitecture;
 use crate::models::controlflow::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -150,6 +151,11 @@ impl<'function> Function<'function> {
             size: size,
             symbol: symbol,
         });
+    }
+
+    #[allow(dead_code)]
+    pub fn architecture(&self) -> BinaryArchitecture {
+        self.cfg.architecture
     }
 
     /// Processes the function into its JSON-serializable representation.

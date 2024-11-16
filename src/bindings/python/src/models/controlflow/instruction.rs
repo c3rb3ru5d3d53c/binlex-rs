@@ -4,6 +4,8 @@ use std::io::Error;
 use std::collections::BTreeSet;
 use binlex::models::controlflow::instruction::Instruction as InnerInstruction;
 
+use crate::models::binary::BinaryArchitecture;
+
 #[pyclass]
 pub struct Instruction {
     pub inner: InnerInstruction,
@@ -12,10 +14,10 @@ pub struct Instruction {
 #[pymethods]
 impl Instruction {
     #[new]
-    #[pyo3(text_signature = "(address)")]
-    pub fn new(address: u64) -> Self {
+    #[pyo3(text_signature = "(address, architecture)")]
+    pub fn new(py: Python, address: u64, architecture: Py<BinaryArchitecture>) -> Self {
         Self {
-            inner: InnerInstruction::new(address),
+            inner: InnerInstruction::new(address, architecture.borrow(py).inner),
         }
     }
 

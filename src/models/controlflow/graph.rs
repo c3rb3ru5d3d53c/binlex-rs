@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use crate::models::binary::BinaryArchitecture;
 use crate::models::controlflow::instruction::Instruction;
 use crossbeam::queue::SegQueue;
 use crossbeam_skiplist::SkipMap;
@@ -323,6 +324,8 @@ impl GraphQueue {
 
 /// Represents a control flow graph with instructions, blocks, and functions.
 pub struct Graph {
+    /// The Instruction Architecture
+    pub architecture: BinaryArchitecture,
     /// A map of instruction addresses to `Instruction` instances.
     pub instructions: SkipMap<u64, Instruction>,
     /// Queue for managing basic blocks within the graph.
@@ -340,8 +343,9 @@ impl Graph {
     ///
     /// Returns a `Graph` instance with empty instructions, blocks, and functions.
     #[allow(dead_code)]
-    pub fn new() -> Self  {
+    pub fn new(architecture: BinaryArchitecture) -> Self  {
         return Self{
+            architecture: architecture,
             instructions: SkipMap::<u64, Instruction>::new(),
             blocks: GraphQueue::new(),
             functions: GraphQueue::new(),

@@ -154,7 +154,7 @@ fn main() {
 
     entrypoints.extend(function_symbol_addresses);
 
-    let mut cfg = Graph::new();
+    let mut cfg = Graph::new(machine);
     cfg.options.enable_sha256 = !ARGS.disable_sha256;
     cfg.options.enable_minhash = !ARGS.disable_minhash;
     cfg.options.enable_tlsh = !ARGS.disable_tlsh;
@@ -176,7 +176,7 @@ fn main() {
         let graphs: Vec<Graph> = function_addresses
             .par_iter()
             .map(|address| {
-                let mut graph = Graph::new();
+                let mut graph = Graph::new(machine);
                 graph.options = cfg.options.clone();
                 if let Ok(disasm) = Disassembler::new(machine, &image, executable_address_ranges.clone()) {
                     let _ = disasm.disassemble_function(*address, &mut graph);

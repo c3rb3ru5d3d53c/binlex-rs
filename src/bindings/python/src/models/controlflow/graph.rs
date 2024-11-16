@@ -5,6 +5,7 @@ use binlex::models::controlflow::graph::GraphOptions as InnerGraphOptions;
 use binlex::models::controlflow::graph::GraphQueue as InnerGraphQueue;
 use binlex::models::controlflow::graph::Graph as InnerGraph;
 use crate::models::controlflow::instruction::Instruction;
+use crate::models::binary::BinaryArchitecture;
 
 #[pyclass]
 pub struct GraphOptions {
@@ -148,8 +149,8 @@ pub struct Graph {
 impl Graph {
     #[new]
     #[pyo3(text_signature = "()")]
-    pub fn new() -> Self {
-        let inner = InnerGraph::new();
+    pub fn new(py: Python, architecture: Py<BinaryArchitecture>) -> Self {
+        let inner = InnerGraph::new(architecture.borrow(py).inner);
         let inner_options = inner.options.clone();
         Self {
             inner: inner,

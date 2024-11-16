@@ -1,5 +1,5 @@
 use std::{collections::BTreeSet, io::Error};
-use crate::models::binary::Binary;
+use crate::models::binary::{Binary, BinaryArchitecture};
 use serde::{Deserialize, Serialize};
 use serde_json;
 
@@ -9,6 +9,9 @@ use serde_json;
 /// such as its address, type, and relationships with other instructions.
 #[derive(Clone)]
 pub struct Instruction {
+    /// The binary architecture
+    #[allow(dead_code)]
+    pub architecture: BinaryArchitecture,
     /// The address of the instruction in memory.
     pub address: u64,
     /// Indicates whether this instruction is part of a function prologue.
@@ -92,7 +95,7 @@ impl Instruction {
     ///
     /// Returns a new `Instruction` with default values for its properties.
     #[allow(dead_code)]
-    pub fn new(address: u64) -> Self {
+    pub fn new(address: u64, architecture: BinaryArchitecture) -> Self {
         Self {
             address: address,
             is_prologue: false,
@@ -108,6 +111,7 @@ impl Instruction {
             to: BTreeSet::<u64>::new(),
             edges: 0,
             is_trap: false,
+            architecture: architecture,
         }
     }
 

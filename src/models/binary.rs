@@ -1,3 +1,4 @@
+use std::fmt;
 use std::collections::HashMap;
 
 /// A struct representing a binary, used for various binary-related utilities.
@@ -14,6 +15,18 @@ pub enum BinaryArchitecture {
     I386 = 0x01,
     /// Unknown architecture.
     UNKNOWN= 0x03,
+}
+
+/// Implements Display for `BinaryArchitecture` enum
+impl fmt::Display for BinaryArchitecture {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let architecture = match self {
+            BinaryArchitecture::AMD64 => "amd64",
+            BinaryArchitecture::I386 => "i386",
+            BinaryArchitecture::UNKNOWN => "unknown",
+        };
+        write!(f, "{}", architecture)
+    }
 }
 
 impl Binary {
