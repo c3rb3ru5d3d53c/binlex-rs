@@ -21,6 +21,7 @@ lz4 = "1.28.0"
 pdb = "0.8.0"
 memmap2 = "0.9.5"
 dirs = "5.0.1"
+toml = "0.8.19"
 
 [workspace]
 members = [
