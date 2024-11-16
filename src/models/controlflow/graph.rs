@@ -3,6 +3,7 @@ use crate::models::controlflow::instruction::Instruction;
 use crossbeam::queue::SegQueue;
 use crossbeam_skiplist::SkipMap;
 use crossbeam_skiplist::SkipSet;
+use crate::models::controlflow::symbol::Symbol;
 
 /// Configuration options for the `Graph` structure, specifying settings for hashing, entropy, and other metadata.
 #[derive(Clone)]
@@ -76,6 +77,8 @@ pub struct GraphQueue {
     pub valid: SkipSet<u64>,
     /// Set of invalid addresses in the graph.
     pub invalid: SkipSet<u64>,
+    /// Map of symbol addresses in the graph.
+    pub symbols: SkipMap<u64, Symbol>,
 }
 
 impl Clone for GraphQueue {
@@ -102,15 +105,19 @@ impl Clone for GraphQueue {
         for item in self.invalid.iter() {
             cloned_invalid.insert(*item);
         }
+        let cloned_symbols = SkipMap::<u64, Symbol>::new();
+        for entry in self.symbols.iter() {
+            cloned_symbols.insert(*entry.key(), entry.value().clone());
+        }
         GraphQueue {
             queue: cloned_queue,
             processed: cloned_processed,
             valid: cloned_valid,
             invalid: cloned_invalid,
+            symbols: cloned_symbols,
         }
     }
 }
-
 
 impl GraphQueue {
     /// Creates a new, empty `GraphQueue` instance.
@@ -124,7 +131,50 @@ impl GraphQueue {
             processed: SkipSet::<u64>::new(),
             valid: SkipSet::<u64>::new(),
             invalid: SkipSet::<u64>::new(),
+            symbols: SkipMap::<u64, Symbol>::new(),
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_symbol(&self, address: u64) -> Option<Symbol> {
+        let entry = self.symbols.get(&address);
+        if entry.is_none() {
+            return None;
+        }
+        Some(entry.unwrap().value().clone())
+    }
+
+    // #[allow(dead_code)]
+    // pub fn insert_symbol(&self, mut symbol: Symbol) {
+    //     if !self.is_symbol(symbol.address) {
+    //         self.symbols.insert(symbol.address, symbol);
+    //     } else {
+    //         if let Some(entry) = self.symbols.get(&symbol.address) {
+    //             symbol.insert_name_entend(entry.value().names.clone());
+    //             self.symbols.insert(symbol.address, symbol);
+    //         }
+    //     }
+    // }
+
+    #[allow(dead_code)]
+    pub fn insert_symbol(&self, mut symbol: Symbol) {
+        if let Some(existing) = self.symbols.get(&symbol.address) {
+            symbol.insert_name_entend(existing.value().names.clone());
+            return;
+        }
+        self.symbols.insert(symbol.address, symbol);
+    }
+
+    #[allow(dead_code)]
+    pub fn insert_symbols_extend(&self, symbols: Vec<Symbol>) {
+        for symbol in symbols {
+            self.insert_symbol(symbol);
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn is_symbol(&self, address: u64) -> bool {
+        self.symbols.contains_key(&address)
     }
 
     /// Marks an address as invalid if it has not been marked as valid.

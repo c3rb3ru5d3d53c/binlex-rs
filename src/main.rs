@@ -6,6 +6,7 @@ use rayon::ThreadPoolBuilder;
 use formats::pe::PE;
 use models::disassemblers::capstone::disassembler::Disassembler;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use serde_json::json;
 use std::process;
 use std::fs::File;
 use std::io::Write;
@@ -17,6 +18,74 @@ use crate::types::lz4string::LZ4String;
 use crate::models::terminal::args::ARGS;
 use crate::models::terminal::io::Stdout;
 use memmap2::Mmap;
+use crate::models::terminal::io::JSON;
+use crate::models::controlflow::symbol::Symbol;
+
+fn get_pe_function_symbols(pe: &PE) -> Vec<Symbol> {
+    let mut symbols = Vec::<Symbol>::new();
+
+    let json = JSON::from_stdin_with_filter(|value| {
+        let obj = match value.as_object_mut() {
+            Some(obj) => obj,
+            None => return false,
+        };
+
+        let obj_type = obj.get("type").and_then(|v| v.as_str()).map(String::from);
+        let file_offset = obj.get("file_offset").and_then(|v| v.as_u64());
+        let relative_virtual_address = obj.get("relative_virtual_address").and_then(|v| v.as_u64());
+        let mut virtual_address = obj.get("virtual_address").and_then(|v| v.as_u64());
+
+        if obj_type.as_deref() != Some("function") {
+            return false;
+        }
+
+        if file_offset.is_none() && relative_virtual_address.is_none() && virtual_address.is_none() {
+            return false;
+        }
+
+        if virtual_address.is_some() {
+            return true;
+        }
+
+        if virtual_address.is_none() {
+            if let Some(rva) = relative_virtual_address {
+                virtual_address = Some(pe.relative_virtual_address_to_virtual_address(rva));
+            }
+            if let Some(offset) = file_offset {
+                if let Some(va) = pe.file_offset_to_virtual_address(offset) {
+                    virtual_address = Some(va);
+                }
+            }
+
+            if let Some(va) = virtual_address {
+                obj.insert("virtual_address".to_string(), json!(va));
+                return true;
+            }
+        }
+
+        false
+
+    });
+
+    if json.is_ok() {
+        for value in json.unwrap().values() {
+            let address = value.get("virtual_address").and_then(|v| v.as_u64());
+            if address.is_some() {
+                let mut symbol = Symbol::new(address.unwrap());
+                if let Some(names) = value.get("names").and_then(|v| v.as_array()) {
+                    for name in names {
+                        if let Some(name_str) = name.as_str() {
+                            symbol.insert_name(name_str.to_string());
+                        }
+                    }
+                }
+                symbols.push(symbol);
+            }
+        }
+    }
+
+    return symbols;
+}
 
 fn main() {
 
@@ -32,6 +101,8 @@ fn main() {
             process::exit(1);
         }
     };
+
+    let function_symbols = get_pe_function_symbols(&pe);
 
     let machine = pe.machine();
 
@@ -76,6 +147,13 @@ fn main() {
 
     entrypoints.extend(pe.functions());
 
+    let function_symbol_addresses: BTreeSet<u64> = function_symbols
+        .iter()
+        .map(|symbol| symbol.address)
+        .collect();
+
+    entrypoints.extend(function_symbol_addresses);
+
     let mut cfg = Graph::new();
     cfg.options.enable_sha256 = !ARGS.disable_sha256;
     cfg.options.enable_minhash = !ARGS.disable_minhash;
@@ -90,6 +168,7 @@ fn main() {
     cfg.options.file_tlsh = pe.tlsh();
     cfg.options.file_size = Some(pe.size());
     cfg.functions.enqueue_extend(entrypoints);
+    cfg.functions.insert_symbols_extend(function_symbols);
 
     while !cfg.functions.queue.is_empty() {
         let function_addresses = cfg.functions.dequeue_all();

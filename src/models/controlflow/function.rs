@@ -12,27 +12,12 @@ use crate::models::controlflow::graph::GraphQueue;
 use crate::models::controlflow::block::Block;
 use crate::models::controlflow::signature::Signature;
 use crate::models::controlflow::signature::SignatureJson;
+use crate::models::controlflow::symbol::Symbol;
 use crate::models::controlflow::file::FileJson;
 use crate::models::controlflow::file::File;
 use crate::models::hashing::sha256::SHA256;
 use crate::models::hashing::tlsh::TLSH;
 use crate::models::hashing::minhash::MinHash32;
-
-/// Represents a JSON-serializable structure containing metadata about a function symbol.
-#[derive(Serialize, Deserialize)]
-pub struct FunctionSymbolJson {
-    /// The type of this entity, typically `"function_symbol"`.
-    #[serde(rename = "type")]
-    pub type_: String,
-    /// Names associated with the function symbol.
-    pub names: BTreeSet<String>,
-    /// The offset of the function symbol, if available.
-    pub offset: Option<u64>,
-    /// The relative virtual address of the function symbol, if available.
-    pub relative_virtual_address: Option<u64>,
-    /// The virtual address of the function symbol, if available.
-    pub virtual_address: Option<u64>,
-}
 
 /// Represents a JSON-serializable structure containing metadata about a function.
 #[derive(Serialize, Deserialize)]
@@ -48,6 +33,8 @@ pub struct FunctionJson {
     pub prologue: bool,
     /// The signature of the function in JSON format.
     pub signature: Option<SignatureJson>,
+    /// The symbol names representing the function, if available.
+    pub names: BTreeSet<String>,
     /// The size of the function in bytes, if available.
     pub size: Option<usize>,
     /// The raw bytes of the function in hexadecimal format, if available.
@@ -83,6 +70,8 @@ pub struct Function <'function>{
     pub cfg: &'function Graph,
     /// The blocks that make up the function, mapped by their start addresses.
     pub blocks: BTreeMap<u64, Instruction>,
+    /// The function symbol, if available.
+    pub symbol: Option<Symbol>,
     /// A map of functions associated with this function.
     pub functions: BTreeMap<u64, u64>,
     /// The number of instructions in the function.
@@ -119,6 +108,7 @@ impl<'function> Function<'function> {
         let mut edges: usize = 0;
         let mut is_prologue = false;
         let mut size: usize = 0;
+        let symbol = cfg.functions.get_symbol(address);
 
         let mut queue = GraphQueue::new();
 
@@ -158,6 +148,7 @@ impl<'function> Function<'function> {
             edges: edges,
             is_prologue: is_prologue,
             size: size,
+            symbol: symbol,
         });
     }
 
@@ -185,7 +176,19 @@ impl<'function> Function<'function> {
             contiguous: self.is_contiguous(),
             file: self.file(),
             tags: self.cfg.options.tags.clone(),
+            names: self.names(),
         }
+    }
+
+
+    /// Retrieves function names from symbols, if available.
+    ///
+    /// # Returns
+    ///
+    /// Returns an `BTreeString<String>` containing names associated with symbols, if available.
+    pub fn names(&self) -> BTreeSet<String> {
+        if self.symbol.is_none() { return BTreeSet::<String>::new(); }
+        return self.symbol.clone().unwrap().names;
     }
 
     /// Retrieves metadata about the file associated with this function, if available.

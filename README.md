@@ -11,7 +11,7 @@ The purpose of **binlex** is to extract basic blocks and functions as traits fro
 
 Most projects attempting this use pure Python to generate traits, but it’s often **slow** 🐢.
 
-The design philosophy behind **Binlex** is to keep it **simple** and **extendable**, with an ecosystem of helpful tools and library code. ⚙️
+The design philosophy behind **binlex** is to keep it **simple** and **extendable**, with an ecosystem of helpful tools and library code. ⚙️
 
 The simple **command-line interface** allows malware researchers and analysts to hunt for traits across **hundreds** or **thousands** of potentially similar malware samples, saving **time** ⏳ and **money** 💰 in production environments.
 
@@ -20,7 +20,6 @@ The **Rust API** and **Python bindings** let developers create their own detecti
 To help combat malware, we **commit** our work to the **public domain** for the greater good. 🌍
 
 No installation needed—just **download the binaries** from the **release page**! 📥
-
 
 ## 🚀 Features
 
@@ -43,6 +42,10 @@ No installation needed—just **download the binaries** from the **release page*
   - 🔍 Minhash
   - 🔒 TLSH
   - 🔐 SHA256
+
+- 🧩 **Function Symbols**
+  - Pass function symbols to **binlex** as standard input using ***blpdb**
+  - Pass function symbols to ***binlex*** using JSON from your favorite tools
 
 - 🏷️ **Tagging for Easy Organization**
 

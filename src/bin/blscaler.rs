@@ -1,8 +1,6 @@
 use clap::Parser;
 use rayon::prelude::*;
 use serde_json::Value;
-use std::io::IsTerminal;
-use std::io::{self, BufRead};
 use serde_json::Number;
 use std::fs::File;
 use std::io::Write;
@@ -12,7 +10,7 @@ use binlex::types::lz4string::LZ4String;
 use binlex::models::terminal::args::VERSION;
 use binlex::models::terminal::args::AUTHOR;
 use binlex::models::terminal::io::Stdout;
-use serde_json::de::Deserializer;
+use binlex::models::terminal::io::JSON;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -71,37 +69,17 @@ fn main() {
         .build_global()
         .expect("failed to build thread pool");
 
-    let input_reader: Box<dyn BufRead> = if let Some(input) = args.input.clone() {
-        let file = match File::open(input) {
-            Ok(file) => file,
-            Err(error) => {
-                eprintln!("{}", error);
-                process::exit(1);
-            },
-        };
-        Box::new(io::BufReader::new(file))
-    } else {
-        if io::stdin().is_terminal() {
-            eprintln!("failed to read standard input");
+    let j = match JSON::from_file_or_stdin(args.input) {
+        Ok(j) => j,
+        Err(error) => {
+            eprintln!("{}", error);
             process::exit(1);
         }
-        Box::new(io::BufReader::new(io::stdin()))
     };
 
-    let values: Vec<Value> = Deserializer::from_reader(input_reader)
-        .into_iter::<Value>()
-        .map(|value| match value {
-            Ok(value) => value,
-            Err(error) => {
-                eprintln!("Error parsing JSON: {}", error);
-                process::exit(1);
-            }
-        })
-        .collect();
-
-    let results: Vec<LZ4String> = values.into_par_iter()
+    let results: Vec<LZ4String> = j.values().into_par_iter()
         .map(|value| {
-            LZ4String::from(process_value(value))
+            LZ4String::from(process_value(value.clone()))
         })
         .collect();
 

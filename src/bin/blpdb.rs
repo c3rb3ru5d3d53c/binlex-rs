@@ -1,12 +1,12 @@
 use std::collections::BTreeSet;
 use std::process;
-use binlex::models::controlflow::function::FunctionSymbolJson;
+use binlex::models::controlflow::symbol::SymbolIoJson;
 use clap::Parser;
 use pdb::FallibleIterator;
 use std::fs::File;
 use binlex::models::terminal::io::Stdin;
 use binlex::models::terminal::io::Stdout;
-use binlex::models::symbols::Symbols;
+use binlex::models::controlflow::symbol::Symbol;
 use binlex::models::terminal::args::VERSION;
 use binlex::models::terminal::args::AUTHOR;
 
@@ -35,7 +35,7 @@ fn main() -> pdb::Result<()> {
     let symbol_table = pdb.global_symbols()?;
     let address_map = pdb.address_map()?;
 
-    let mut results = Vec::<FunctionSymbolJson>::new();
+    let mut results = Vec::<SymbolIoJson>::new();
     let mut symbols = symbol_table.iter();
     while let Some(symbol) = symbols.next()? {
         match symbol.parse() {
@@ -43,14 +43,14 @@ fn main() -> pdb::Result<()> {
                 let rva = data.offset.to_rva(&address_map).unwrap_or_default();
                 let mut name = data.name.to_string().into_owned();
                 if cli.demangle_msvc_names {
-                    name = Symbols::demangle_msvc_symbol(&name);
+                    name = Symbol::demangle_msvc_name(&name);
                 }
                 let mut names = BTreeSet::<String>::new();
                 names.insert(name);
-                results.push(FunctionSymbolJson{
+                results.push(SymbolIoJson{
                     type_: "function".to_string(),
                     names: names,
-                    offset: None,
+                    file_offset: None,
                     relative_virtual_address: Some(rva.0 as u64),
                     virtual_address: None,
                 });
