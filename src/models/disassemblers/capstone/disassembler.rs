@@ -17,7 +17,6 @@ use capstone::Instructions;
 use std::io::Error;
 use std::io::ErrorKind;
 use std::collections::{BTreeMap, BTreeSet};
-use crossbeam_skiplist::SkipSet;
 use crate::models::binary::Binary;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::controlflow::instruction::Instruction;
@@ -49,12 +48,12 @@ impl<'disassembler> Disassembler<'disassembler> {
     }
 
     #[allow(dead_code)]
-    pub fn disassemble_linear_pass(&self) -> SkipSet<u64> {
+    pub fn disassemble_sweep(&self) -> BTreeSet<u64> {
 
         let valid_jump_threshold: usize = 2;
         let valid_instruction_threshold: usize = 4;
 
-        let functions = SkipSet::<u64>::new();
+        let mut functions = BTreeSet::<u64>::new();
         for (start, end) in self.executable_address_ranges.clone() {
             let mut pc = start;
             let mut valid_instructions = 0;
@@ -106,7 +105,11 @@ impl<'disassembler> Disassembler<'disassembler> {
     }
 
     #[allow(dead_code)]
-    pub fn disassemble_control_flow<'a>(&'a self, addresses: BTreeSet<u64>, cfg: &'a mut Graph) -> Result<(), Error> {
+    pub fn disassemble_controlflow<'a>(&'a self, addresses: BTreeSet<u64>, cfg: &'a mut Graph) -> Result<(), Error> {
+
+        if !cfg.options.disable_linear_pass {
+            cfg.functions.enqueue_extend(self.disassemble_sweep());
+        }
 
         cfg.functions.enqueue_extend(addresses);
 

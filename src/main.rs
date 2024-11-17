@@ -134,11 +134,11 @@ fn main() {
 
     let mut entrypoints = BTreeSet::<u64>::new();
 
-    if CONFIG.disassembler.sweep.enabled {
-        entrypoints.extend(disassembler.disassemble_linear_pass());
-    }
-
     entrypoints.extend(pe.functions());
+
+    if CONFIG.disassembler.sweep.enabled {
+        entrypoints.extend(disassembler.disassemble_sweep());
+    }
 
     let function_symbol_addresses: BTreeSet<u64> = function_symbols
         .iter()
@@ -157,6 +157,7 @@ fn main() {
     cfg.options.minhash_seed = CONFIG.hashing.minhash.seed;
     cfg.options.enable_feature = CONFIG.heuristics.features.enabled;
     cfg.options.enable_normalized = CONFIG.heuristics.normalization.enabled;
+    cfg.options.disable_linear_pass = !CONFIG.disassembler.sweep.enabled;
     cfg.options.tags = CONFIG.general.tags.clone();
     cfg.options.file_sha256 = pe.sha256();
     cfg.options.file_tlsh = pe.tlsh();

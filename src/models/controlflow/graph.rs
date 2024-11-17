@@ -37,6 +37,8 @@ pub struct GraphOptions {
     pub file_tlsh: Option<String>,
     /// Size of the file in bytes, if available.
     pub file_size: Option<u64>,
+    /// Disable linear pass.
+    pub disable_linear_pass: bool,
     /// Tags associated with the graph.
     pub tags: Vec<String>,
 }
@@ -60,6 +62,7 @@ impl GraphOptions {
             enable_feature: true,
             tlsh_mininum_byte_size: 50,
             enable_normalized: false,
+            disable_linear_pass: false,
             file_sha256: None,
             file_tlsh: None,
             file_size: None,
@@ -144,18 +147,6 @@ impl GraphQueue {
         }
         Some(entry.unwrap().value().clone())
     }
-
-    // #[allow(dead_code)]
-    // pub fn insert_symbol(&self, mut symbol: Symbol) {
-    //     if !self.is_symbol(symbol.address) {
-    //         self.symbols.insert(symbol.address, symbol);
-    //     } else {
-    //         if let Some(entry) = self.symbols.get(&symbol.address) {
-    //             symbol.insert_name_entend(entry.value().names.clone());
-    //             self.symbols.insert(symbol.address, symbol);
-    //         }
-    //     }
-    // }
 
     #[allow(dead_code)]
     pub fn insert_symbol(&self, mut symbol: Symbol) {

@@ -90,16 +90,16 @@ impl Disassembler {
         let machine_binding = &self.machine.borrow(py);
         let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
         let cfg_ref=  &mut cfg.borrow_mut(py);
-        disassembler.disassemble_control_flow(addresses, &mut cfg_ref.inner)?;
+        disassembler.disassemble_controlflow(addresses, &mut cfg_ref.inner)?;
         Ok(())
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn disassemble_linear_pass(&self, py: Python) -> Result<BTreeSet<u64>, Error> {
+    pub fn disassemble_sweep(&self, py: Python) -> Result<BTreeSet<u64>, Error> {
         let image = self.get_image_data(py)?;
         let machine_binding = &self.machine.borrow(py);
         let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
-        let results = disassembler.disassemble_linear_pass();
+        let results = disassembler.disassemble_sweep();
         let mut asdf = BTreeSet::<u64>::new();
         for result in results {
             asdf.insert(result);
