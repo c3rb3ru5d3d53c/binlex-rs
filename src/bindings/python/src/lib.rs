@@ -1,5 +1,6 @@
 pub mod models;
 pub mod formats;
+pub mod types;
 
 use crate::models::models_init;
 use crate::formats::formats_init;

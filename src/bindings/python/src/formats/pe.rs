@@ -77,11 +77,11 @@ impl PE {
         self.inner.sizeofheaders()
     }
 
-    #[pyo3(text_signature = "($self)")]
-    pub fn image(&self, py: Python<'_>) -> PyObject  {
-        let data: Vec<u8> = self.inner.image();
-        PyBytes::new_bound(py, &data).into()
-    }
+    // #[pyo3(text_signature = "($self, file_path, cache)")]
+    // pub fn image(&self, py: Python<'_>, file_path: String, cache: bool) -> PyObject  {
+    //     let data: Vec<u8> = self.inner.image(file_path, cache);
+    //     PyBytes::new_bound(py, &data).into()
+    // }
 
     #[pyo3(text_signature = "($self)")]
     pub fn size(&self) -> u64 {

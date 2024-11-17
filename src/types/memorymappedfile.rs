@@ -3,10 +3,10 @@ use std::fs::OpenOptions;
 use std::io::{self, Error, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
-/// A `CachedFile` struct that provides a cached file interface,
-/// enabling file read/write operations with optional in-memory caching,
+/// A `MemoryMappedFile` struct that provides a memory mapped file interface,
+/// enabling file read/write operations with optional disk caching,
 /// and automatic file cleanup on object drop.
-pub struct CachedFile {
+pub struct MemoryMappedFile {
     /// Path to the file as a `String`.
     pub path: String,
     /// Handle to the file as an open file descriptor.
@@ -18,8 +18,8 @@ pub struct CachedFile {
     pub cache: bool,
 }
 
-impl CachedFile {
-    /// Creates a new `CachedFile` instance.
+impl MemoryMappedFile {
+    /// Creates a new `MemoryMappedFile` instance.
     ///
     /// This function opens a file at the specified path, with options to append and/or cache the file.
     /// If the file's parent directories do not exist, they are created.
@@ -28,11 +28,11 @@ impl CachedFile {
     ///
     /// * `path` - The `PathBuf` specifying the file's location.
     /// * `append` - If `true`, opens the file in append mode.
-    /// * `cache` - If `true`, retains the file on disk after the `CachedFile` instance is dropped.
+    /// * `cache` - If `true`, retains the file on disk after the `MemoryMappedFile` instance is dropped.
     ///
     /// # Returns
     ///
-    /// A `Result` containing the `CachedFile` on success, or an `io::Error` if file creation fails.
+    /// A `Result` containing the `MemoryMappedFile` on success, or an `io::Error` if file creation fails.
     pub fn new(path: PathBuf, append: bool, cache: bool) -> Result<Self, Error> {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -160,11 +160,11 @@ impl CachedFile {
     }
 }
 
-/// Automatically handles cleanup for the `CachedFile` when it goes out of scope.
+/// Automatically handles cleanup for the `MemoryMappedFile` when it goes out of scope.
 ///
 /// If caching is disabled, this `Drop` implementation deletes the file from disk
-/// when the `CachedFile` instance is dropped, provided there were no errors in file removal.
-impl Drop for CachedFile {
+/// when the `MemoryMappedFile` instance is dropped, provided there were no errors in file removal.
+impl Drop for MemoryMappedFile {
     fn drop(&mut self) {
         if !self.cache {
             if let Err(error) = std::fs::remove_file(&self.path) {

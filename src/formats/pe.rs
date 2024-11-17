@@ -10,7 +10,7 @@ use crate::models::binary::BinaryArchitecture;
 use crate::formats::file::File;
 use std::collections::BTreeMap;
 use lief::pe::debug::Entries;
-use crate::types::cachedfile::CachedFile;
+use crate::types::memorymappedfile::MemoryMappedFile;
 
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
 pub struct PE {
@@ -241,18 +241,18 @@ impl PE {
         None
     }
 
-    /// Caches the PE file contents and returns a `CachedFile` object.
+    /// Caches the PE file contents and returns a `MemoryMappedFile` object.
     ///
     /// # Parameters
-    /// - `path`: The base path to store the cached file.
+    /// - `path`: The base path to store the memory mapped file.
     /// - `cache`: Whether to cache the file or not.
     ///
     /// # Returns
-    /// A `Result` containing the `CachedFile` object on success or an `Error` on failure.
-    pub fn imagecache(&self, path: String, cache: bool) -> Result<CachedFile, Error> {
+    /// A `Result` containing the `MemoryMappedFile` object on success or an `Error` on failure.
+    pub fn image(&self, path: String, cache: bool) -> Result<MemoryMappedFile, Error> {
         let pathbuf = PathBuf::from(path)
             .join(self.file.sha256().unwrap());
-        let mut tempmap = match CachedFile::new(pathbuf, true, cache) {
+        let mut tempmap = match MemoryMappedFile::new(pathbuf, true, cache) {
             Ok(tempmmap) => tempmmap,
             Err(error) => return Err(error),
         };
@@ -269,7 +269,6 @@ impl PE {
                 self.file_alignment());
             if section_virtual_adddress > tempmap.size().unwrap() as u64 {
                 let padding_length = section_virtual_adddress - tempmap.size().unwrap() as u64;
-                //tempmap.write(&mut Cursor::new(vec![0u8; padding_length as usize]))?;
                 tempmap.write_padding(padding_length as usize)?;
             }
             let pointerto_raw_data = section.pointerto_raw_data() as usize;
@@ -277,32 +276,6 @@ impl PE {
             tempmap.write(&self.file.data[pointerto_raw_data..pointerto_raw_data + sizeof_raw_data])?;
         }
         Ok(tempmap)
-    }
-
-    /// Returns the image data of the PE file, including headers and sections.
-    ///
-    /// # Returns
-    /// A `Vec<u8>` containing the raw image data.
-    #[allow(dead_code)]
-    pub fn image(&self) -> Vec<u8> {
-        let mut data = Vec::<u8>::new();
-        data.extend_from_slice(&self.file.data[0..self.sizeofheaders() as usize]);
-        for section in self.pe.sections() {
-            if section.virtual_size() == 0 { continue; }
-            if section.sizeof_raw_data() == 0 { continue; }
-            let section_virtual_adddress = PE::align_section_virtual_address(
-                self.imagebase() + section.pointerto_raw_data() as u64,
-                self.section_alignment(),
-                self.file_alignment());
-            if section_virtual_adddress > data.len() as u64 {
-                let padding_length = section_virtual_adddress - data.len() as u64;
-                data.extend(vec![0u8; padding_length as usize]);
-            }
-            let pointerto_raw_data = section.pointerto_raw_data() as usize;
-            let sizeof_raw_data = section.sizeof_raw_data() as usize;
-            data.extend_from_slice(&self.file.data[pointerto_raw_data..pointerto_raw_data + sizeof_raw_data]);
-        }
-        return data;
     }
 
     /// Returns the size of the PE file.

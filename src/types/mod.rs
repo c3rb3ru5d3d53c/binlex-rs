@@ -1,2 +1,2 @@
 pub mod lz4string;
-pub mod cachedfile;
+pub mod memorymappedfile;

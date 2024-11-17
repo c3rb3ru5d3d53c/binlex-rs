@@ -72,7 +72,6 @@ pub struct ConfigGeneral {
 
 #[derive(Serialize, Deserialize)]
 pub struct ConfigMmap {
-    pub enabled: bool,
     pub directory: String,
     pub cache: ConfigMmapCache,
 }
@@ -142,7 +141,6 @@ impl Config {
                 },
             },
             mmap: ConfigMmap {
-                enabled: true,
                 directory: Config::default_file_mapping_directory(),
                 cache: ConfigMmapCache {
                     enabled: false,

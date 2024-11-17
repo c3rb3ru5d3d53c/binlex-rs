@@ -106,28 +106,21 @@ fn main() {
 
     let machine = pe.architecture();
 
-    #[allow(unused_assignments)]
-    let mut image_bytes = Vec::<u8>::new();
     let image_mmap: Mmap;
     let image: &[u8];
 
-    if CONFIG.mmap.enabled {
-        match pe.imagecache(
-            CONFIG.mmap.directory.clone(),
-            CONFIG.mmap.cache.enabled) {
-            Ok(mapped) => {
-                image_mmap = mapped.mmap().unwrap();
-                image = &image_mmap;
-            }
-            Err(error) => {
-                eprintln!("{}", error);
-                process::exit(1);
-            }
-        };
-    } else {
-        image_bytes = pe.image();
-        image = &image_bytes;
-    }
+    match pe.image(
+        CONFIG.mmap.directory.clone(),
+        CONFIG.mmap.cache.enabled) {
+        Ok(mapped) => {
+            image_mmap = mapped.mmap().unwrap();
+            image = &image_mmap;
+        }
+        Err(error) => {
+            eprintln!("{}", error);
+            process::exit(1);
+        }
+    };
 
     let executable_address_ranges = pe.executable_virtual_address_ranges();
 

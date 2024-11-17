@@ -56,8 +56,6 @@ pub struct Args {
     #[arg(long, default_value_t = false)]
     pub enable_normalized: bool,
     #[arg(long, default_value_t = false)]
-    pub enable_mmap: bool,
-    #[arg(long, default_value_t = false)]
     pub enable_mmap_cache: bool,
     #[arg(long)]
     pub mmap_directory: Option<String>,
@@ -162,10 +160,6 @@ fn parse() -> Config {
 
     if args.mmap_directory.is_some() {
         config.mmap.directory = args.mmap_directory.unwrap();
-    }
-
-    if args.enable_mmap != false {
-        config.mmap.enabled = args.enable_mmap;
     }
 
     if args.enable_mmap_cache != false {
