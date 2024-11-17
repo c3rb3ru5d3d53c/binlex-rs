@@ -111,10 +111,10 @@ fn main() {
     let image_mmap: Mmap;
     let image: &[u8];
 
-    if CONFIG.file_mapping.enable {
+    if CONFIG.mmap.enabled {
         match pe.imagecache(
-            CONFIG.file_mapping.directory.clone(),
-            CONFIG.file_mapping.caching) {
+            CONFIG.mmap.directory.clone(),
+            CONFIG.mmap.cache.enabled) {
             Ok(mapped) => {
                 image_mmap = mapped.mmap().unwrap();
                 image = &image_mmap;
@@ -141,7 +141,7 @@ fn main() {
 
     let mut entrypoints = BTreeSet::<u64>::new();
 
-    if CONFIG.disassembler.sweep {
+    if CONFIG.disassembler.sweep.enabled {
         entrypoints.extend(disassembler.disassemble_linear_pass());
     }
 
@@ -155,15 +155,15 @@ fn main() {
     entrypoints.extend(function_symbol_addresses);
 
     let mut cfg = Graph::new(machine);
-    cfg.options.enable_sha256 = CONFIG.hashing.sha256.enable;
-    cfg.options.enable_minhash = CONFIG.hashing.minhash.enable;
-    cfg.options.enable_tlsh = CONFIG.hashing.tlsh.enable;
+    cfg.options.enable_sha256 = CONFIG.hashing.sha256.enabled;
+    cfg.options.enable_minhash = CONFIG.hashing.minhash.enabled;
+    cfg.options.enable_tlsh = CONFIG.hashing.tlsh.enabled;
     cfg.options.minhash_maximum_byte_size = CONFIG.hashing.minhash.maximum_byte_size;
     cfg.options.minhash_number_of_hashes = CONFIG.hashing.minhash.number_of_hashes;
-    cfg.options.enable_entropy = CONFIG.heuristics.entropy;
+    cfg.options.enable_entropy = CONFIG.heuristics.entropy.enabled;
     cfg.options.minhash_seed = CONFIG.hashing.minhash.seed;
-    cfg.options.enable_feature = CONFIG.heuristics.features;
-    cfg.options.enable_normalized = CONFIG.heuristics.normalization;
+    cfg.options.enable_feature = CONFIG.heuristics.features.enabled;
+    cfg.options.enable_normalized = CONFIG.heuristics.normalization.enabled;
     cfg.options.tags = CONFIG.general.tags.clone();
     cfg.options.file_sha256 = pe.sha256();
     cfg.options.file_tlsh = pe.tlsh();

@@ -217,36 +217,42 @@ The default configuration **binlex** provides is provided below.
 
 ```toml
 [general]
-threads = 1
+threads = 16
 minimal = false
 debug = false
 
-[heuristics]
-features = true
-normalization = false
-entropy = true
+[heuristics.features]
+enabled = true
+
+[heuristics.normalization]
+enabled = false
+
+[heuristics.entropy]
+enabled = true
 
 [hashing.sha256]
-enable = true
+enabled = true
 
 [hashing.tlsh]
-enable = true
+enabled = true
 minimum_byte_size = 50
 
 [hashing.minhash]
-enable = true
+enabled = true
 number_of_hashes = 64
 shingle_size = 4
 maximum_byte_size = 50
 seed = 0
 
-[file_mapping]
-enable = false
+[mmap]
+enabled = false
 directory = "/tmp/binlex"
-caching = false
 
-[disassembler]
-sweep = true
+[mmap.cache]
+enabled = false
+
+[disassembler.sweep]
+enabled = true
 ```
 
 If you wish to override the default configuration file and specify another configuration file use the command-line parameter.

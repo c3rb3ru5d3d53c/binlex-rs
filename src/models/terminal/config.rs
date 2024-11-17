@@ -14,21 +14,40 @@ pub struct Config {
     pub general: ConfigGeneral,
     pub heuristics: ConfigHeuristics,
     pub hashing: ConfigHashing,
-    pub file_mapping: ConfigFileMapping,
+    pub mmap: ConfigMmap,
     pub disassembler: ConfigDisassembler,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ConfigDisassembler {
-    pub sweep: bool,
+    pub sweep: ConfigDisassemblerSweep,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ConfigDisassemblerSweep {
+    pub enabled: bool,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ConfigHeuristics {
-    pub features: bool,
-    pub normalization: bool,
-    pub entropy: bool,
+    pub features: ConfigHeuristicFeatures,
+    pub normalization: ConfigHeuristicNormalization,
+    pub entropy: ConfigHeuristicEntropy,
+}
 
+#[derive(Serialize, Deserialize)]
+pub struct ConfigHeuristicFeatures {
+    pub enabled: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ConfigHeuristicNormalization {
+    pub enabled: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ConfigHeuristicEntropy {
+    pub enabled: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -52,15 +71,20 @@ pub struct ConfigGeneral {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ConfigFileMapping {
-    pub enable: bool,
+pub struct ConfigMmap {
+    pub enabled: bool,
     pub directory: String,
-    pub caching: bool,
+    pub cache: ConfigMmapCache,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ConfigMmapCache {
+    pub enabled: bool,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ConfigMinhash {
-    pub enable: bool,
+    pub enabled: bool,
     pub number_of_hashes: usize,
     pub shingle_size: usize,
     pub maximum_byte_size: usize,
@@ -69,13 +93,13 @@ pub struct ConfigMinhash {
 
 #[derive(Serialize, Deserialize)]
 pub struct ConfigTLSH {
-    pub enable: bool,
+    pub enabled: bool,
     pub minimum_byte_size: usize,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ConfigSHA256 {
-    pub enable: bool,
+    pub enabled: bool,
 }
 
 impl Config {
@@ -91,33 +115,43 @@ impl Config {
                 tags: Vec::<String>::new(),
             },
             heuristics: ConfigHeuristics {
-                features: true,
-                normalization: false,
-                entropy: true,
+                features: ConfigHeuristicFeatures {
+                    enabled: true,
+                },
+                normalization: ConfigHeuristicNormalization {
+                    enabled: false,
+                },
+                entropy: ConfigHeuristicEntropy {
+                    enabled: true,
+                },
             },
             hashing: ConfigHashing {
                 sha256: ConfigSHA256 {
-                    enable: true,
+                    enabled: true,
                 },
                 tlsh: ConfigTLSH {
-                    enable: true,
+                    enabled: true,
                     minimum_byte_size: 50,
                 },
                 minhash: ConfigMinhash {
-                    enable: true,
+                    enabled: true,
                     number_of_hashes: 64,
                     shingle_size: 4,
                     maximum_byte_size: 50,
                     seed: 0,
                 },
             },
-            file_mapping: ConfigFileMapping {
-                enable: false,
+            mmap: ConfigMmap {
+                enabled: false,
                 directory: Config::default_file_mapping_directory(),
-                caching: false,
+                cache: ConfigMmapCache {
+                    enabled: false,
+                },
             },
             disassembler: ConfigDisassembler {
-                sweep: true,
+                sweep: ConfigDisassemblerSweep {
+                    enabled: true,
+                },
             }
         }
     }
@@ -144,11 +178,14 @@ impl Config {
         toml::to_string_pretty(self)
     }
 
+    /// Reads the Configuration TOML from a File Path
     pub fn from_file(file_path: &str) -> Result<Config, Error> {
         let toml_string = fs::read_to_string(file_path)?;
-        let config: Config = toml::from_str(&toml_string).expect("failed to deserialize binlex configuration file");
+        let config: Config = toml::from_str(&toml_string)
+            .map_err(|error| Error::new(ErrorKind::InvalidData, format!("failed to read configuration file {}\n\n{}", file_path, error)))?;
         Ok(config)
     }
+
 
     /// Write the configuration TOML to a file
     #[allow(dead_code)]

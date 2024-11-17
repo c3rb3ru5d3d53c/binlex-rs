@@ -56,11 +56,11 @@ pub struct Args {
     #[arg(long, default_value_t = false)]
     pub enable_normalized: bool,
     #[arg(long, default_value_t = false)]
-    pub enable_file_mapping: bool,
+    pub enable_mmap: bool,
     #[arg(long, default_value_t = false)]
-    pub enable_file_mapping_cache: bool,
+    pub enable_mmap_cache: bool,
     #[arg(long)]
-    pub file_mapping_directory: Option<String>,
+    pub mmap_directory: Option<String>,
 }
 
 fn validate(args: &Args) {
@@ -111,7 +111,10 @@ fn parse() -> Config {
             }
         }
     } else {
-        let _ = config.from_default();
+        if let Err(error) = config.from_default() {
+            eprintln!("{}", error);
+            process::exit(1);
+        }
     }
 
     config.general.input = Some(args.input);
@@ -126,19 +129,19 @@ fn parse() -> Config {
     }
 
     if args.disable_features != false {
-        config.heuristics.features = !args.disable_features;
+        config.heuristics.features.enabled = !args.disable_features;
     }
 
     if args.disable_sha256 != false {
-        config.hashing.sha256.enable = !args.disable_sha256;
+        config.hashing.sha256.enabled = !args.disable_sha256;
     }
 
     if args.disable_entropy != false {
-        config.heuristics.entropy = !args.disable_entropy;
+        config.heuristics.entropy.enabled = !args.disable_entropy;
     }
 
     if args.disable_minhash != false {
-        config.hashing.minhash.enable = !args.disable_minhash;
+        config.hashing.minhash.enabled = !args.disable_minhash;
     }
 
     if args.minhash_maximum_byte_size.is_some() {
@@ -157,20 +160,20 @@ fn parse() -> Config {
         config.hashing.minhash.seed = args.minhash_seed.unwrap();
     }
 
-    if args.file_mapping_directory.is_some() {
-        config.file_mapping.directory = args.file_mapping_directory.unwrap();
+    if args.mmap_directory.is_some() {
+        config.mmap.directory = args.mmap_directory.unwrap();
     }
 
-    if args.enable_file_mapping != false {
-        config.file_mapping.enable = args.enable_file_mapping;
+    if args.enable_mmap != false {
+        config.mmap.enabled = args.enable_mmap;
     }
 
-    if args.enable_file_mapping_cache != false {
-        config.file_mapping.caching = args.enable_file_mapping_cache;
+    if args.enable_mmap_cache != false {
+        config.mmap.cache.enabled = args.enable_mmap_cache;
     }
 
     if args.disable_tlsh != false {
-        config.hashing.tlsh.enable = !args.disable_tlsh;
+        config.hashing.tlsh.enabled = !args.disable_tlsh;
     }
 
     if args.tlsh_minimum_byte_size.is_some() {
@@ -178,11 +181,11 @@ fn parse() -> Config {
     }
 
     if args.enable_normalized != false {
-        config.heuristics.normalization = args.enable_normalized;
+        config.heuristics.normalization.enabled = args.enable_normalized;
     }
 
     if args.disable_linear_pass != false {
-        config.disassembler.sweep = !args.disable_linear_pass;
+        config.disassembler.sweep.enabled = !args.disable_linear_pass;
     }
 
     if args.tags.is_some() {
@@ -190,18 +193,18 @@ fn parse() -> Config {
     }
 
     if args.disable_hashing == true {
-        config.hashing.minhash.enable = false;
-        config.hashing.sha256.enable = false;
-        config.hashing.tlsh.enable = false;
+        config.hashing.minhash.enabled = false;
+        config.hashing.sha256.enabled = false;
+        config.hashing.tlsh.enabled = false;
     }
 
     if args.minimal == true || config.general.minimal == true {
-        config.hashing.minhash.enable = false;
-        config.hashing.sha256.enable = false;
-        config.hashing.tlsh.enable = false;
-        config.heuristics.entropy = false;
-        config.heuristics.features = false;
-        config.heuristics.normalization = false;
+        config.hashing.minhash.enabled = false;
+        config.hashing.sha256.enabled = false;
+        config.hashing.tlsh.enabled = false;
+        config.heuristics.entropy.enabled = false;
+        config.heuristics.features.enabled = false;
+        config.heuristics.normalization.enabled = false;
     }
 
     config
