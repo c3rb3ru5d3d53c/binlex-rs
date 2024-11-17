@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 use binlex::formats::pe::PE as InnerPe;
 use crate::models::binary::BinaryArchitecture;
-use pyo3::types::PyBytes;
+use crate::types::memorymappedfile::MemoryMappedFile;
 use pyo3::types::PyType;
 
 #[pyclass(unsendable)]
@@ -77,11 +77,14 @@ impl PE {
         self.inner.sizeofheaders()
     }
 
-    // #[pyo3(text_signature = "($self, file_path, cache)")]
-    // pub fn image(&self, py: Python<'_>, file_path: String, cache: bool) -> PyObject  {
-    //     let data: Vec<u8> = self.inner.image(file_path, cache);
-    //     PyBytes::new_bound(py, &data).into()
-    // }
+    #[pyo3(text_signature = "($self, file_path, cache)")]
+    pub fn image(&self, py: Python<'_>, file_path: String, cache: bool) -> PyResult<Py<MemoryMappedFile>> {
+        let result = self.inner.image(file_path, cache).map_err(|e| {
+            pyo3::exceptions::PyIOError::new_err(e.to_string())
+        })?;
+        let py_memory_mapped_file = Py::new(py, MemoryMappedFile { inner: result })?;
+        Ok(py_memory_mapped_file)
+    }
 
     #[pyo3(text_signature = "($self)")]
     pub fn size(&self) -> u64 {

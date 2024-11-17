@@ -3,10 +3,12 @@ use pyo3::exceptions;
 use pyo3::types::{PyBytes, PyMemoryView};
 use memmap2::Mmap;
 use binlex::types::memorymappedfile::MemoryMappedFile as InnerMemoryMappedFile;
+use pyo3::ffi;
+use std::os::raw::c_char;
 
 #[pyclass]
 pub struct MemoryMappedFile {
-    inner: InnerMemoryMappedFile,
+    pub inner: InnerMemoryMappedFile,
 }
 
 #[pymethods]
@@ -66,17 +68,30 @@ pub struct MappedFile {
 
 #[pymethods]
 impl MappedFile {
-    /// Returns a memoryview of the mapped file.
+    /// Returns a memoryview of the mapped file without copying data into RAM.
     pub fn as_memoryview<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyMemoryView>> {
         let data = &self.mmap[..];
-        let py_bytes = PyBytes::new_bound(py, data);
-        PyMemoryView::from_bound(&py_bytes)
+        let ptr = data.as_ptr() as *mut c_char;
+        let len = data.len() as ffi::Py_ssize_t;
+        unsafe {
+            // Create a raw memoryview pointer without copying data
+            let memview_ptr = ffi::PyMemoryView_FromMemory(ptr, len, ffi::PyBUF_READ);
+            if memview_ptr.is_null() {
+                Err(PyErr::fetch(py))
+            } else {
+                // Convert the raw pointer into a PyObject
+                let obj = PyObject::from_owned_ptr(py, memview_ptr);
+                // Use downcast_bound to convert PyObject to Bound<'py, PyMemoryView>
+                let memview = obj.downcast_bound::<PyMemoryView>(py)?;
+                Ok(memview.clone())
+            }
+        }
     }
 }
 
 #[pymodule]
 #[pyo3(name = "memorymappedfile")]
-pub fn cachedfile_init(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn memorymappedfile_init(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<MemoryMappedFile>()?;
     m.add_class::<MappedFile>()?;
     py.import_bound("sys")?

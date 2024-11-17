@@ -1,17 +1,23 @@
 use pyo3::prelude::*;
 
 use pyo3::Py;
+use std::borrow::Borrow;
 use std::io::Error;
 use std::collections::BTreeSet;
 use std::collections::BTreeMap;
+use std::ops::Deref;
 use binlex::models::disassemblers::capstone::disassembler::Disassembler as InnerDisassembler;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::controlflow::graph::Graph;
 use pyo3::types::PyBytes;
+use pyo3::types::PyAny;
+use pyo3::types::PyMemoryView;
+use pyo3::exceptions::PyTypeError;
+use pyo3::buffer::PyBuffer;
 
 #[pyclass(unsendable)]
 pub struct Disassembler{
-    image: Py<PyBytes>,
+    image: Py<PyAny>,
     machine: Py<BinaryArchitecture>,
     executable_address_ranges: BTreeMap<u64, u64>,
 }
@@ -20,7 +26,7 @@ pub struct Disassembler{
 impl Disassembler {
     #[new]
     #[pyo3(text_signature = "(machine, image, executable_address_ranges)")]
-    pub fn new(machine: Py<BinaryArchitecture>, image: Py<PyBytes>, executable_address_ranges: BTreeMap<u64, u64>) -> Self {
+    pub fn new(machine: Py<BinaryArchitecture>, image: Py<PyAny>, executable_address_ranges: BTreeMap<u64, u64>) -> Self {
         Self {
             machine: machine,
             image: image,
@@ -28,10 +34,41 @@ impl Disassembler {
         }
     }
 
+    fn get_image_data<'py>(&'py self, py: Python<'py>) -> PyResult<&'py [u8]> {
+        let image_ref = self.image.borrow();
+
+        if let Ok(bytes) = image_ref.downcast_bound::<PyBytes>(py) {
+            return Ok(bytes.as_bytes());
+        }
+
+        if let Ok(memory_view) = image_ref.downcast_bound::<PyMemoryView>(py) {
+
+            let buffer = PyBuffer::<u8>::get_bound(memory_view)?;
+
+            if !buffer.is_c_contiguous() {
+                return Err(PyTypeError::new_err(
+                    "the memoryview is not c-contiguous",
+                ));
+            }
+
+            let slice = buffer.as_slice(py).unwrap();
+
+            let result: &[u8] = unsafe {
+                std::slice::from_raw_parts(slice.as_ptr() as *const u8, slice.len())
+            };
+
+            return Ok(result);
+
+        }
+
+        Err(PyTypeError::new_err("expected a bytes or memoryview object for the 'image' argument"))
+    }
+
     #[pyo3(text_signature = "($self, address, cfg)")]
     pub fn disassemble_function(&self, py: Python, address: u64, cfg: Py<Graph>) -> Result<u64, Error> {
+        let image = self.get_image_data(py)?;
         let machine_binding = &self.machine.borrow(py);
-        let disassembler = InnerDisassembler::new(machine_binding.inner, self.image.as_bytes(py), self.executable_address_ranges.clone())?;
+        let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
         let cfg_ref=  &mut cfg.borrow_mut(py);
         let result = disassembler.disassemble_function(address, &mut cfg_ref.inner)?;
         return Ok(result);
@@ -39,8 +76,9 @@ impl Disassembler {
 
     #[pyo3(text_signature = "($self, address, cfg)")]
     pub fn disassemble_block(&self, py: Python, address: u64, cfg: Py<Graph>) -> Result<u64, Error> {
+        let image = self.get_image_data(py)?;
         let machine_binding = &self.machine.borrow(py);
-        let disassembler = InnerDisassembler::new(machine_binding.inner, self.image.as_bytes(py), self.executable_address_ranges.clone())?;
+        let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
         let cfg_ref=  &mut cfg.borrow_mut(py);
         let result = disassembler.disassemble_block(address, &mut cfg_ref.inner)?;
         return Ok(result);
@@ -48,8 +86,9 @@ impl Disassembler {
 
     #[pyo3(text_signature = "($self, addresses, cfg)")]
     pub fn disassemble_controlflow(&self, py: Python, addresses: BTreeSet<u64>, cfg: Py<Graph>) -> Result<(), Error> {
+        let image = self.get_image_data(py)?;
         let machine_binding = &self.machine.borrow(py);
-        let disassembler = InnerDisassembler::new(machine_binding.inner, self.image.as_bytes(py), self.executable_address_ranges.clone())?;
+        let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
         let cfg_ref=  &mut cfg.borrow_mut(py);
         disassembler.disassemble_control_flow(addresses, &mut cfg_ref.inner)?;
         Ok(())
@@ -57,8 +96,9 @@ impl Disassembler {
 
     #[pyo3(text_signature = "($self)")]
     pub fn disassemble_linear_pass(&self, py: Python) -> Result<BTreeSet<u64>, Error> {
+        let image = self.get_image_data(py)?;
         let machine_binding = &self.machine.borrow(py);
-        let disassembler = InnerDisassembler::new(machine_binding.inner, self.image.as_bytes(py), self.executable_address_ranges.clone())?;
+        let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
         let results = disassembler.disassemble_linear_pass();
         let mut asdf = BTreeSet::<u64>::new();
         for result in results {

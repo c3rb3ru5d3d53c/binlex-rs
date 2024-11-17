@@ -408,11 +408,20 @@ from binlex.models.controlflow.graph import Graph
 # Open the PE File
 pe = PE('./sample.dll')
 
+# Get the Memory Mapped File
+memory_mapped_file = pe.image('/tmp/binlex', cache=False)
+
+# Get the Memory Map
+mmap = memory_mapped_file.mmap()
+
+# Get the Image Memory View
+image = mmap.as_memoryview()
+
 # Collect All Function Entrypoints
 entrypoints = pe.functions()
 
 # Create Disassembler on Mapped PE Image and PE Architecture
-disassembler = Disassembler(pe.architecture(), pe.image(), pe.executable_virtual_address_ranges())
+disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges())
 
 # Perform Linear Disassembly Pass for Additional Entrypoints
 linear_scan_functions = disassembler.disassemble_linear_pass()
