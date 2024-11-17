@@ -267,9 +267,10 @@ impl PE {
                 self.imagebase() + section.pointerto_raw_data() as u64,
                 self.section_alignment(),
                 self.file_alignment());
-            if section_virtual_adddress > tempmap.size() as u64 {
-                let padding_length = section_virtual_adddress - tempmap.size() as u64;
-                tempmap.write(&mut Cursor::new(vec![0u8; padding_length as usize]))?;
+            if section_virtual_adddress > tempmap.size().unwrap() as u64 {
+                let padding_length = section_virtual_adddress - tempmap.size().unwrap() as u64;
+                //tempmap.write(&mut Cursor::new(vec![0u8; padding_length as usize]))?;
+                tempmap.write_padding(padding_length as usize)?;
             }
             let pointerto_raw_data = section.pointerto_raw_data() as usize;
             let sizeof_raw_data = section.sizeof_raw_data() as usize;

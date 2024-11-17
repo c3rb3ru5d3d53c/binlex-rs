@@ -142,7 +142,7 @@ impl Config {
                 },
             },
             mmap: ConfigMmap {
-                enabled: false,
+                enabled: true,
                 directory: Config::default_file_mapping_directory(),
                 cache: ConfigMmapCache {
                     enabled: false,

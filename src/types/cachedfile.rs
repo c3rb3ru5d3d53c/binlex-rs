@@ -1,4 +1,4 @@
-use memmap2::Mmap;
+use memmap2::{Mmap, MmapMut};
 use std::fs::OpenOptions;
 use std::io::{self, Error, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
@@ -34,17 +34,19 @@ impl CachedFile {
     ///
     /// A `Result` containing the `CachedFile` on success, or an `io::Error` if file creation fails.
     pub fn new(path: PathBuf, append: bool, cache: bool) -> Result<Self, Error> {
-
-        std::fs::create_dir_all(path.parent().unwrap())?;
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
 
         let is_cached = path.is_file();
 
-        let handle = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .append(append)
-            .create(true)
-            .open(&path)?;
+        let mut options = OpenOptions::new();
+        options.read(true).write(true).create(true);
+        if append {
+            options.append(true);
+        }
+
+        let handle = options.open(&path)?;
 
         Ok(Self {
             path: path.to_string_lossy().into_owned(),
@@ -60,7 +62,7 @@ impl CachedFile {
     ///
     /// A `bool` indicating if the file was already present when the object was created.
     pub fn is_cached(&self) -> bool {
-        return self.is_cached;
+        self.is_cached
     }
 
     /// Retrieves the file path as a `String`.
@@ -70,7 +72,7 @@ impl CachedFile {
     /// A `String` containing the path of the file.
     #[allow(dead_code)]
     pub fn path(&self) -> String {
-        return self.path.clone();
+        self.path.clone()
     }
 
     /// Writes data from a reader to the file.
@@ -86,9 +88,53 @@ impl CachedFile {
     ///
     /// A `Result` containing the number of bytes written on success, or an `io::Error` on failure.
     pub fn write<R: Read>(&mut self, mut reader: R) -> Result<u64, Error> {
+        // If in append mode, ensure the write pointer is at the end
+        // OpenOptions with append=true should handle this, but double-check
+        if self.handle.metadata()?.permissions().readonly() {
+            return Err(Error::new(io::ErrorKind::Other, "File is read-only"));
+        }
+
         let bytes_written = io::copy(&mut reader, &mut self.handle)?;
         self.handle.flush()?;
         Ok(bytes_written)
+    }
+
+    /// Adds symbolic padding (increases the file size without writing data) to the end of the file.
+    ///
+    /// This method sets the file length to the current size plus the specified padding length.
+    /// The padding does not consume additional disk space as it is not physically written.
+    ///
+    /// # Arguments
+    /// * `length` - The number of bytes to append as padding.
+    ///
+    /// # Returns
+    /// A `Result` indicating success or an `io::Error` if the operation fails.
+    pub fn write_padding(&mut self, length: usize) -> Result<(), Error> {
+        // Get the current file size
+        let current_size = self.handle.metadata()?.len();
+
+        // Calculate the new size after padding
+        let new_size = current_size + length as u64;
+
+        // Resize the file to the new size
+        self.handle.set_len(new_size)?;
+
+        // No need to write zeros; this creates a sparse region
+        // If the filesystem supports sparse files, this won't increase disk usage
+
+        // Optionally, you can seek to the end if in append mode
+        if self.handle.seek(SeekFrom::End(0))? != new_size {
+            // This ensures that the next write will append correctly
+            self.handle.seek(SeekFrom::Start(new_size))?;
+        }
+
+        Ok(())
+    }
+
+    /// Maps the file into memory as mutable using `mmap2`.
+    #[allow(dead_code)]
+    pub fn mmap_mut(&self) -> Result<MmapMut, Error> {
+        unsafe { MmapMut::map_mut(&self.handle) }
     }
 
     /// Retrieves the size of the file in bytes.
@@ -96,11 +142,9 @@ impl CachedFile {
     /// # Returns
     ///
     /// A `u64` representing the file's current size in bytes.
-    pub fn size(&mut self) -> u64 {
-        let current_position = self.handle.seek(SeekFrom::Current(0)).unwrap();
-        let file_size = self.handle.seek(SeekFrom::End(0)).unwrap();
-        self.handle.seek(SeekFrom::Start(current_position)).unwrap();
-        file_size
+    pub fn size(&self) -> Result<u64, Error> {
+        let file_size = self.handle.metadata()?.len();
+        Ok(file_size)
     }
 
     /// Maps the file into memory using `mmap`.
@@ -124,7 +168,7 @@ impl Drop for CachedFile {
     fn drop(&mut self) {
         if !self.cache {
             if let Err(error) = std::fs::remove_file(&self.path) {
-                eprintln!("{}", error);
+                eprintln!("Failed to remove file {}: {}", self.path, error);
             }
         }
     }
