@@ -1,5 +1,5 @@
 use std::io::{stdin, ErrorKind};
-use std::io::{self, BufRead, BufReader, IsTerminal, Write};
+use std::io::{self, Read, BufRead, BufReader, IsTerminal, Write};
 use std::fmt::Display;
 use std::process;
 use std::fs::File;
@@ -238,6 +238,49 @@ impl JSON {
             Some(file_path) => Self::from_file_with_filter(&file_path, filter),
             None => Self::from_stdin_with_filter(filter),
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn from_file_or_stdin_as_array<F>(path: Option<String>, filter: F) -> Result<Self, JSONError>
+    where
+        F: Fn(&Value) -> bool,
+    {
+        // Read the JSON input from file or stdin
+        let input = match path {
+            Some(ref file_path) => { // Use `ref` to avoid moving `file_path`
+                let mut file = File::open(file_path).map_err(|_| JSONError::FileOpenError(file_path.clone()))?;
+                let mut buffer = String::new();
+                file.read_to_string(&mut buffer).map_err(|_| JSONError::FileOpenError(file_path.clone()))?;
+                buffer
+            }
+            None => {
+                if io::stdin().is_terminal() {
+                    return Err(JSONError::StdinReadError);
+                }
+                let mut buffer = String::new();
+                io::stdin()
+                    .read_to_string(&mut buffer)
+                    .map_err(|_| JSONError::StdinReadError)?;
+                buffer
+            }
+        };
+
+        // Parse the input as JSON
+        let parsed_json: Value = serde_json::from_str(&input).map_err(|e| JSONError::JSONParseError(e.to_string()))?;
+
+        // Ensure the input is an array
+        let array = parsed_json
+            .as_array()
+            .ok_or_else(|| JSONError::JSONParseError("Input JSON is not an array".to_string()))?;
+
+        // Filter and collect the array elements
+        let values = array
+            .iter()
+            .filter(|value| filter(value))
+            .cloned()
+            .collect();
+
+        Ok(JSON { values })
     }
 
     /// Returns a reference to the parsed JSON values.

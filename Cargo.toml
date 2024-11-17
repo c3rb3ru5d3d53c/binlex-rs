@@ -48,3 +48,7 @@ path = "src/bin/blpdb.rs"
 [[bin]]
 name = "blscaler"
 path = "src/bin/blscaler.rs"
+
+[[bin]]
+name = "blrizin"
+path = "src/bin/blrizin.rs"
