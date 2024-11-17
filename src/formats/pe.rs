@@ -68,7 +68,7 @@ impl PE {
     /// # Returns
     /// The `BinaryArchitecture` enum value corresponding to the PE machine type (e.g., AMD64, I386, or UNKNOWN).
     #[allow(dead_code)]
-    pub fn machine(&self) -> BinaryArchitecture {
+    pub fn architecture(&self) -> BinaryArchitecture {
         let machine = match self.pe.header().machine() {
             MachineType::AMD64 => BinaryArchitecture::AMD64,
             MachineType::I386 => BinaryArchitecture::I386,
@@ -84,7 +84,7 @@ impl PE {
     /// # Returns
     /// A `BTreeMap` where the key is the start address of the executable range and the value is the end address.
     #[allow(dead_code)]
-    pub fn executable_address_ranges(&self) -> BTreeMap<u64, u64> {
+    pub fn executable_virtual_address_ranges(&self) -> BTreeMap<u64, u64> {
         let mut result = BTreeMap::<u64, u64>::new();
         for section in self.pe.sections() {
             if (section.characteristics().bits() & u64::from(Characteristics::MEM_EXECUTE)) == 0 { continue; }

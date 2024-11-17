@@ -43,13 +43,13 @@ impl PE {
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn machine(&self) -> BinaryArchitecture {
-        return BinaryArchitecture::new(self.inner.machine() as u16);
+    pub fn architecture(&self) -> BinaryArchitecture {
+        return BinaryArchitecture::new(self.inner.architecture() as u16);
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn executable_address_ranges(&self) -> BTreeMap<u64, u64> {
-        self.inner.executable_address_ranges()
+    pub fn executable_virtual_address_ranges(&self) -> BTreeMap<u64, u64> {
+        self.inner.executable_virtual_address_ranges()
     }
 
     #[pyo3(text_signature = "($self)")]

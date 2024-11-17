@@ -181,8 +181,8 @@ mod tests {
         assert_eq!(pe.entrypoint(), 0x140001cd0, "incorrect pe entrypoint");
         let mut executable_address_ranges = BTreeMap::<u64, u64>::new();
         executable_address_ranges.insert(0x140001000, 0x140002839);
-        assert_eq!(pe.executable_address_ranges(), executable_address_ranges, "pe execuable address ranges are incorrect");
-        assert_eq!(pe.machine(), BinaryArchitecture::AMD64, "incorrect pe architecture");
+        assert_eq!(pe.executable_virtual_address_ranges(), executable_address_ranges, "pe execuable address ranges are incorrect");
+        assert_eq!(pe.architecture(), BinaryArchitecture::AMD64, "incorrect pe architecture");
         let sha256_result = pe.sha256();
         assert!(sha256_result.is_some(), "sha256 of pe should not be none");
         assert_eq!(sha256_result.unwrap(), "227f75802f50956a31c7623932fdc640706ae1b9f65b1f628ea3e6d8e759c7ec", "the pe sha256 does not match");

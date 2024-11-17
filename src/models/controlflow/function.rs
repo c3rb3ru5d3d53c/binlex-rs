@@ -26,6 +26,8 @@ pub struct FunctionJson {
     /// The type of this entity, typically `"function"`.
     #[serde(rename = "type")]
     pub type_: String,
+    /// The architecture of the function.
+    pub architecture: String,
     /// The starting address of the function.
     pub address: u64,
     /// The number of edges (connections) in the function.
@@ -183,9 +185,9 @@ impl<'function> Function<'function> {
             file: self.file(),
             tags: self.cfg.options.tags.clone(),
             names: self.names(),
+            architecture: self.architecture().to_string(),
         }
     }
-
 
     /// Retrieves function names from symbols, if available.
     ///

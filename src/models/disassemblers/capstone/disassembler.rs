@@ -49,7 +49,10 @@ impl<'disassembler> Disassembler<'disassembler> {
     }
 
     #[allow(dead_code)]
-    pub fn disassemble_linear_pass(&self, valid_jump_threshold: usize, valid_instruction_threshold: usize) -> SkipSet<u64> {
+    pub fn disassemble_linear_pass(&self) -> SkipSet<u64> {
+
+        let valid_jump_threshold: usize = 2;
+        let valid_instruction_threshold: usize = 4;
 
         let functions = SkipSet::<u64>::new();
         for (start, end) in self.executable_address_ranges.clone() {

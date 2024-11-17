@@ -15,7 +15,7 @@ use crate::models::controlflow::graph::Graph;
 use crate::models::controlflow::block::Block;
 use crate::models::controlflow::function::Function;
 use crate::types::lz4string::LZ4String;
-use crate::models::terminal::args::ARGS;
+use crate::models::terminal::args::CONFIG;
 use crate::models::terminal::io::Stdout;
 use memmap2::Mmap;
 use crate::models::terminal::io::JSON;
@@ -90,11 +90,11 @@ fn get_pe_function_symbols(pe: &PE) -> Vec<Symbol> {
 fn main() {
 
     ThreadPoolBuilder::new()
-        .num_threads(ARGS.threads)
+        .num_threads(CONFIG.general.threads)
         .build_global()
         .expect("failed to build thread pool");
 
-    let pe = match PE::new(ARGS.input.clone()) {
+    let pe = match PE::new(CONFIG.general.input.clone().unwrap()) {
         Ok(pe) => pe,
         Err(error) => {
             eprintln!("{}", error);
@@ -104,17 +104,17 @@ fn main() {
 
     let function_symbols = get_pe_function_symbols(&pe);
 
-    let machine = pe.machine();
+    let machine = pe.architecture();
 
     #[allow(unused_assignments)]
     let mut image_bytes = Vec::<u8>::new();
     let image_mmap: Mmap;
     let image: &[u8];
 
-    if ARGS.enable_file_mapping {
+    if CONFIG.file_mapping.enable {
         match pe.imagecache(
-            ARGS.file_mapping_directory.clone().unwrap(),
-            ARGS.enable_file_mapping_cache) {
+            CONFIG.file_mapping.directory.clone(),
+            CONFIG.file_mapping.caching) {
             Ok(mapped) => {
                 image_mmap = mapped.mmap().unwrap();
                 image = &image_mmap;
@@ -129,7 +129,7 @@ fn main() {
         image = &image_bytes;
     }
 
-    let executable_address_ranges = pe.executable_address_ranges();
+    let executable_address_ranges = pe.executable_virtual_address_ranges();
 
     let disassembler = match Disassembler::new(machine, &image, executable_address_ranges.clone()) {
         Ok(disassembler) => disassembler,
@@ -141,8 +141,8 @@ fn main() {
 
     let mut entrypoints = BTreeSet::<u64>::new();
 
-    if !ARGS.disable_linear_pass {
-        entrypoints.extend(disassembler.disassemble_linear_pass(ARGS.linear_pass_jump_threshold, ARGS.linear_pass_instruction_threshold));
+    if CONFIG.disassembler.sweep {
+        entrypoints.extend(disassembler.disassemble_linear_pass());
     }
 
     entrypoints.extend(pe.functions());
@@ -155,15 +155,16 @@ fn main() {
     entrypoints.extend(function_symbol_addresses);
 
     let mut cfg = Graph::new(machine);
-    cfg.options.enable_sha256 = !ARGS.disable_sha256;
-    cfg.options.enable_minhash = !ARGS.disable_minhash;
-    cfg.options.enable_tlsh = !ARGS.disable_tlsh;
-    cfg.options.minhash_maximum_byte_size = ARGS.minhash_maximum_byte_size;
-    cfg.options.minhash_number_of_hashes = ARGS.minhash_number_of_hashes;
-    cfg.options.minhash_seed = ARGS.minhash_seed;
-    cfg.options.enable_feature = !ARGS.disable_feature;
-    cfg.options.enable_normalized = ARGS.enable_normalized;
-    cfg.options.tags = ARGS.tags.clone().unwrap_or_default();
+    cfg.options.enable_sha256 = CONFIG.hashing.sha256.enable;
+    cfg.options.enable_minhash = CONFIG.hashing.minhash.enable;
+    cfg.options.enable_tlsh = CONFIG.hashing.tlsh.enable;
+    cfg.options.minhash_maximum_byte_size = CONFIG.hashing.minhash.maximum_byte_size;
+    cfg.options.minhash_number_of_hashes = CONFIG.hashing.minhash.number_of_hashes;
+    cfg.options.enable_entropy = CONFIG.heuristics.entropy;
+    cfg.options.minhash_seed = CONFIG.hashing.minhash.seed;
+    cfg.options.enable_feature = CONFIG.heuristics.features;
+    cfg.options.enable_normalized = CONFIG.heuristics.normalization;
+    cfg.options.tags = CONFIG.general.tags.clone();
     cfg.options.file_sha256 = pe.sha256();
     cfg.options.file_tlsh = pe.tlsh();
     cfg.options.file_size = Some(pe.size());
@@ -211,7 +212,7 @@ fn main() {
         .map(|js| LZ4String::new(&js))
         .collect();
 
-    if ARGS.output.is_none() {
+    if CONFIG.general.output.is_none() {
         functions.iter().for_each(|result| {
             Stdout.print(result);
         });
@@ -221,7 +222,7 @@ fn main() {
         });
     }
 
-     if let Some(output_file) = &ARGS.output {
+     if let Some(output_file) = &CONFIG.general.output {
         let mut file = match File::create(output_file) {
             Ok(file) => file,
             Err(error) => {

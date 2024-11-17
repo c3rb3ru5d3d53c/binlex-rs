@@ -22,6 +22,8 @@ pub struct BlockJson {
     /// The type of this entity, always `"block"`.
     #[serde(rename = "type")]
     pub type_: String,
+    /// The architecture of the block.
+    pub architecture: String,
     /// The starting address of the block.
     pub address: u64,
     /// The address of the next sequential block, if any.
@@ -150,8 +152,9 @@ impl<'block> Block<'block> {
     /// Returns a `BlockJson` instance containing the block's metadata and related information.
     pub fn process(&self) -> BlockJson {
         BlockJson {
-            address: self.address,
             type_: "block".to_string(),
+            address: self.address,
+            architecture: self.architecture().to_string(),
             next: self.terminator.next(),
             to: self.terminator.to(),
             edges: self.edges(),

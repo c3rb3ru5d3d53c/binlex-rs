@@ -55,11 +55,11 @@ impl Disassembler {
         Ok(())
     }
 
-    #[pyo3(text_signature = "($self, addresses, cfg)")]
-    pub fn disassemble_linear_pass(&self, py: Python, valid_jump_threshold: usize, valid_instruction_threshold: usize) -> Result<BTreeSet<u64>, Error> {
+    #[pyo3(text_signature = "($self)")]
+    pub fn disassemble_linear_pass(&self, py: Python) -> Result<BTreeSet<u64>, Error> {
         let machine_binding = &self.machine.borrow(py);
         let disassembler = InnerDisassembler::new(machine_binding.inner, self.image.as_bytes(py), self.executable_address_ranges.clone())?;
-        let results = disassembler.disassemble_linear_pass(valid_jump_threshold, valid_instruction_threshold);
+        let results = disassembler.disassemble_linear_pass();
         let mut asdf = BTreeSet::<u64>::new();
         for result in results {
             asdf.insert(result);

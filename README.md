@@ -39,6 +39,7 @@ No installation needed—just **download the binaries** from the **release page*
   - Save memory with efficient JSON compression
 
 - 🧩 **Similarity Hashing**
+
   - 🔍 Minhash
   - 🔒 TLSH
   - 🔐 SHA256
@@ -202,6 +203,60 @@ The following command disassembles `sample.dll` with `16` threads, the relevant 
 binlex -i sample.dll --threads 16 | jq
 ```
 
+### Configuration
+
+Upon your first execution of **binlex** it will store the configuration file in your configuration directory in `binlex/binlex.toml`.
+
+| OS       | Environment Variable                  | Example Binlex Configuration Path                              |
+|----------|---------------------------------------|----------------------------------------------------------------|
+| Linux    | `$XDG_CONFIG_HOME` or `$HOME/.config` | `/home/alice/.config/binlex/binlex.toml`                       |
+| macOS    | `$HOME/Library/Application Support`   | `/Users/Alice/Library/Application Support/binlex/binlex.toml`  |
+| Windows  | `{FOLDERID_RoamingAppData}`           | `C:\Users\Alice\AppData\Roaming\binlex\binlex.toml`            |
+
+The default configuration **binlex** provides is provided below.
+
+```toml
+[general]
+threads = 1
+minimal = false
+debug = false
+
+[heuristics]
+features = true
+normalization = false
+entropy = true
+
+[hashing.sha256]
+enable = true
+
+[hashing.tlsh]
+enable = true
+minimum_byte_size = 50
+
+[hashing.minhash]
+enable = true
+number_of_hashes = 64
+shingle_size = 4
+maximum_byte_size = 50
+seed = 0
+
+[file_mapping]
+enable = false
+directory = "/tmp/binlex"
+caching = false
+
+[disassembler]
+sweep = true
+```
+
+If you wish to override the default configuration file and specify another configuration file use the command-line parameter.
+
+```bash
+binlex -c config.toml -i sample.dll
+```
+
+When you run **binlex**, it uses the configuration file and overrides any settings when the respective command-line parameter is used.
+
 ### Making a YARA Rule
 
 Here is a general workflow getting started with making YARA rules, where we get 10 unique wildcarded YARA hex strings from a given sample.
@@ -300,6 +355,8 @@ When mapped to RAM, we are taking advantage of virtual image disassembling but w
 
 Since `btrfs` abstracts the access to the mapped file in kernel we are able to access it as we would any mapped file but with the benefit of compression.
 
+To save yourself time if you choose this option, make the mounting of the `btrfs` pool happen on boot and have your **binlex** configuration file set to prefer virtual image caching in the mounted pool directory. This approach ensures that you need not rely on the command-line parameters each time.
+
 ## Binlex API
 
 The philophsy of the binlex project is focused on security, simplicity, speed and extendability.
@@ -330,10 +387,10 @@ pe = PE('./sample.dll')
 entrypoints = pe.functions()
 
 # Create Disassembler on Mapped PE Image and PE Architecture
-disassembler = Disassembler(pe.architecture(), pe.image(), pe.executable_addresses())
+disassembler = Disassembler(pe.architecture(), pe.image(), pe.executable_virtual_address_ranges())
 
 # Perform Linear Disassembly Pass for Additional Entrypoints
-linear_scan_functions = disassembler.disassemble_linear_pass(2, 4)
+linear_scan_functions = disassembler.disassemble_linear_pass()
 
 # Add Linear Pass Functions found to Entrypoints
 entrypoints.update(linear_scan_functions)
