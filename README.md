@@ -295,6 +295,24 @@ rule example {
         1 of them
 ```
 
+### Using Rizin with Binlex
+
+To leverage the power of Rizin function detection and function naming in **binlex**, run `rizin` on your project using `aflj` to list the functions in JSON format.
+
+Then pipe this output to `blrizin`, which parses `rizin` JSON to a format **binlex** undestands.
+
+Additionally, you can combine this with other tools like `blpdb` to parse PDB symbols to get function addresses and names.
+
+You can then do any parsing as you generally would using `jq`, in this example we count the functions processed by **binlex** to see if we are detecting more of them.
+
+```bash
+rizin -c 'aaa;aflj;' -q sample.dll | \
+  blrizin | \
+  blpdb -i sample.pdb | \
+  binlex -i sample.dll | \
+  jq 'select(.type == "function") | .address' | wc -l
+```
+
 ### Collecting Machine Learning Features
 
 If you are would like to do some machine learning, you can get features representing the nibbles without memory addressing from binlex like this.
