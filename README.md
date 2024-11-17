@@ -62,10 +62,11 @@ No installation needed—just **download the binaries** from the **release page*
   - 📚 Onnx Sample Training
   - 🧠 Sample Classification
 
-- 📂 **Virtual Image File Mapping Cache**
+- 📂 **Virtual Image Memory Mapped File Cache**
   - Efficient mapping cache for virtual images
   - 🗄️ Compatible with ZFS / BTRFS
   - Speeds up repetitive tasks and filtering
+  - Lightening speed ⚡
 
 ## Important Changes
 
