@@ -391,7 +391,35 @@ At this time, binlex provides both Rust and Python bindings.
 
 ### Rust API
 
-Placeholder
+The Rust, API makes is easy to get started
+
+```rs
+use binlex::Config;
+use binlex::formats::PE;
+use binlex::disassemblers::capstone::Disassembler;
+use binlex::controlflow::Graph;
+use binlex::controlflow::Block;
+
+let config = Config();
+
+let pe = PE.new("./sample.dll");
+
+let image = pe.image("/tmp/binlex/", false).mmap().expect("failed to get memory mapped image");
+
+let entrypoints = HashSet::<u64>::new();
+
+entrypoints.extend(pe.functions());
+
+let disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges())
+
+cfg = Graph(pe.architecture(), config)
+
+disassembler.disassemble_controlflow(entrypoints, cfg)
+
+block = Block(pe.entrypoint(), cfg)
+
+block.print();
+```
 
 ### Python API
 

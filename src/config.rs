@@ -6,6 +6,8 @@ use std::env;
 use serde::{Deserialize, Serialize};
 use serde;
 
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const AUTHOR: &str = "@c3rb3ru5d3d53c";
 pub const DIRECTORY: &str = "binlex";
 pub const FILE_NAME: &str = "binlex.toml";
 

@@ -3,8 +3,8 @@ use serde_json::{Map, Value};
 use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::process;
-use binlex::terminal::args::VERSION;
-use binlex::terminal::args::AUTHOR;
+use binlex::config::AUTHOR;
+use binlex::config::VERSION;
 use binlex::terminal::io::Stdout;
 
 #[derive(Parser, Debug)]

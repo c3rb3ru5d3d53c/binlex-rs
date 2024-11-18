@@ -7,8 +7,8 @@ use std::io::Write;
 use std::process;
 use rayon::ThreadPoolBuilder;
 use binlex::types::LZ4String;
-use binlex::terminal::args::VERSION;
-use binlex::terminal::args::AUTHOR;
+use binlex::config::AUTHOR;
+use binlex::config::VERSION;
 use binlex::terminal::io::Stdout;
 use binlex::terminal::io::JSON;
 
