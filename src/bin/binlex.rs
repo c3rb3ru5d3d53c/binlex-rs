@@ -13,7 +13,6 @@ use binlex::controlflow::Block;
 use binlex::controlflow::Function;
 use binlex::types::LZ4String;
 use binlex::terminal::io::Stdout;
-use memmap2::Mmap;
 use binlex::terminal::io::JSON;
 use binlex::controlflow::Symbol;
 use clap::Parser;
@@ -308,21 +307,10 @@ fn main() {
 
     let machine = pe.architecture();
 
-    let image_mmap: Mmap;
-    let image: &[u8];
-
-    match pe.image(
-        config.mmap.directory.clone(),
-        config.mmap.cache.enabled) {
-        Ok(mapped) => {
-            image_mmap = mapped.mmap().unwrap();
-            image = &image_mmap;
-        }
-        Err(error) => {
-            eprintln!("{}", error);
-            process::exit(1);
-        }
-    };
+    let image = pe.image(config.mmap.directory.clone(), config.mmap.cache.enabled)
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)})
+        .mmap()
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
 
     let executable_address_ranges = pe.executable_virtual_address_ranges();
 

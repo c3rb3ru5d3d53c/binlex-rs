@@ -394,6 +394,7 @@ At this time, binlex provides both Rust and Python bindings.
 The Rust, API makes is easy to get started
 
 ```rs
+use std::process;
 use binlex::Config;
 use binlex::formats::PE;
 use binlex::disassemblers::capstone::Disassembler;
@@ -404,7 +405,10 @@ let config = Config();
 
 let pe = PE.new("./sample.dll");
 
-let image = pe.image("/tmp/binlex/", false).mmap().expect("failed to get memory mapped image");
+let image = pe.image(config.mmap.directory.clone(), config.mmap.cache.enabled)
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)})
+        .mmap()
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
 
 let entrypoints = HashSet::<u64>::new();
 
