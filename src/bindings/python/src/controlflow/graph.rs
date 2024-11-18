@@ -89,8 +89,12 @@ impl Graph {
     #[new]
     #[pyo3(text_signature = "(architecture, config)")]
     pub fn new(py: Python, architecture: Py<BinaryArchitecture>, config: &Bound<'_, Config>) -> Self {
-        let unbound_config = Box::new(config.clone().unbind().borrow(py).inner.clone());
-        let inner = InnerGraph::new(architecture.borrow(py).inner, Box::leak(unbound_config));
+        let config_arc_mutex = config.clone().unbind().borrow(py).inner.clone();
+        let config_lock = config_arc_mutex.lock().unwrap();
+        let config_clone = (*config_lock).clone();
+        let boxed_config = Box::new(config_clone);
+        let leaked_config = Box::leak(boxed_config);
+        let inner = InnerGraph::new(architecture.borrow(py).inner, leaked_config);
         Self {
             inner: Arc::new(Mutex::new(inner)),
         }
