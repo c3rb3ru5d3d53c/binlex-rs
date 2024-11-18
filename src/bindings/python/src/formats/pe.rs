@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use binlex::formats::pe::PE as InnerPe;
-use crate::models::binary::BinaryArchitecture;
+use crate::BinaryArchitecture;
 use crate::types::memorymappedfile::MemoryMappedFile;
 use pyo3::types::PyType;
 

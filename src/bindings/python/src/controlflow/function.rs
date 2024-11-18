@@ -4,8 +4,8 @@ use pyo3::Py;
 use std::io::Error;
 use std::collections::BTreeSet;
 use std::collections::BTreeMap;
-use binlex::controlflow::function::Function as InnerFunction;
-use crate::models::controlflow::graph::Graph;
+use binlex::controlflow::Function as InnerFunction;
+use crate::controlflow::Graph;
 
 #[pyclass]
 pub struct Function {

@@ -1,7 +1,8 @@
 pub mod memorymappedfile;
 
 use crate::types::memorymappedfile::memorymappedfile_init;
-use crate::types::memorymappedfile::MemoryMappedFile;
+
+pub use crate::types::memorymappedfile::MemoryMappedFile;
 
 use pyo3::{prelude::*, wrap_pymodule};
 

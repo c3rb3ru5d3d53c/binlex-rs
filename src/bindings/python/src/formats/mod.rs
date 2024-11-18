@@ -3,8 +3,9 @@ pub mod pe;
 
 use crate::formats::file::file_init;
 use crate::formats::pe::pe_init;
-use crate::formats::pe::PE;
-use crate::formats::file::File;
+
+pub use crate::formats::pe::PE;
+pub use crate::formats::file::File;
 
 use pyo3::{prelude::*, wrap_pymodule};
 

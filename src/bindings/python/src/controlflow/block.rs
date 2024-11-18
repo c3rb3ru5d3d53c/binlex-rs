@@ -1,12 +1,12 @@
 use pyo3::prelude::*;
 
-use crate::models::controlflow::graph::Graph;
+use crate::controlflow::graph::Graph;
 
 use pyo3::Py;
 use std::io::Error;
 use std::collections::BTreeSet;
 use std::collections::BTreeMap;
-use binlex::controlflow::block::Block as InnerBlock;
+use binlex::controlflow::Block as InnerBlock;
 
 #[pyclass]
 pub struct Block {

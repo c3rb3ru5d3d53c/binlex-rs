@@ -2,9 +2,9 @@ use pyo3::prelude::*;
 
 use std::io::Error;
 use std::collections::BTreeSet;
-use binlex::controlflow::instruction::Instruction as InnerInstruction;
+use binlex::controlflow::Instruction as InnerInstruction;
 
-use crate::models::binary::BinaryArchitecture;
+use crate::binary::BinaryArchitecture;
 
 #[pyclass]
 pub struct Instruction {
