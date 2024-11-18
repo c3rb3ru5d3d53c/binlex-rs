@@ -141,6 +141,10 @@ fn get_config() -> Config {
         config.general.threads = args.threads.unwrap();
     }
 
+    if args.disable_file_hashing != false {
+        config.hashing.file.enabled = !args.disable_entropy;
+    }
+
     if args.disable_features != false {
         config.heuristics.features.enabled = !args.disable_features;
     }
@@ -288,14 +292,17 @@ fn get_pe_function_symbols(pe: &PE) -> Vec<Symbol> {
 
 fn main() {
 
-    let config = get_config();
+    let mut config = get_config();
+
+    let directory = config.mmap.directory.clone();
+    let cache = config.mmap.cache.enabled;
 
     ThreadPoolBuilder::new()
         .num_threads(config.general.threads)
         .build_global()
         .expect("failed to build thread pool");
 
-    let pe = match PE::new(config.general.input.clone().unwrap()) {
+    let pe = match PE::new(config.general.input.clone().unwrap(), &mut config) {
         Ok(pe) => pe,
         Err(error) => {
             eprintln!("{}", error);
@@ -307,7 +314,7 @@ fn main() {
 
     let machine = pe.architecture();
 
-    let image = pe.image(config.mmap.directory.clone(), config.mmap.cache.enabled)
+    let image = pe.image(directory, cache)
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)})
         .mmap()
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });

@@ -405,7 +405,7 @@ use binlex::controlflow::Block;
 let config = Config();
 
 // Read PE File
-let pe = PE.new("./sample.dll");
+let pe = PE.new("./sample.dll", config);
 
 // Get Memory Mapped Image
 let image = pe.image(config.mmap.directory.clone(), config.mmap.cache.enabled)
@@ -446,7 +446,7 @@ from binlex.controlflow import Block
 config = Config()
 
 # Open the PE File
-pe = PE('./sample.dll')
+pe = PE('./sample.dll', config)
 
 # Get the Memory Mapped File
 memory_mapped_file = pe.image('/tmp/binlex', cache=False)
@@ -457,9 +457,6 @@ mmap = memory_mapped_file.mmap()
 # Get the Image Memory View
 image = mmap.as_memoryview()
 
-# Collect All Function Entrypoints
-entrypoints = pe.functions()
-
 # Create Disassembler on Mapped PE Image and PE Architecture
 disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges())
 
@@ -467,7 +464,7 @@ disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_addr
 cfg = Graph(pe.architecture(), config)
 
 # Disassemble the PE Image Entrypoints Recursively
-disassembler.disassemble_controlflow(entrypoints, cfg)
+disassembler.disassemble_controlflow(pe.functions(), cfg)
 
 # Read Block from Control Flow
 block = Block(pe.entrypoint(), cfg)

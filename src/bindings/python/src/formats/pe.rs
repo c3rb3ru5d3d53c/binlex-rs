@@ -8,78 +8,91 @@ use binlex::formats::pe::PE as InnerPe;
 use crate::BinaryArchitecture;
 use crate::types::memorymappedfile::MemoryMappedFile;
 use pyo3::types::PyType;
+use crate::Config;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 #[pyclass(unsendable)]
 pub struct PE {
-    pub inner: InnerPe,
+    pub inner: Arc<Mutex<InnerPe<'static>>>,
 }
 
 #[pymethods]
 impl PE {
     #[new]
-    #[pyo3(text_signature = "(path)")]
-    pub fn new(path: String) -> Result<Self, Error> {
-        let inner = InnerPe::new(path)?;
+    #[pyo3(text_signature = "(path, config)")]
+    pub fn new(py: Python, path: String, config: &Bound<'_, Config>) -> Result<Self, Error> {
+        let config_arc_mutex = config.clone().unbind().borrow(py).inner.clone();
+        let config_lock = config_arc_mutex.lock().unwrap();
+        let config_clone = (*config_lock).clone();
+        let boxed_config = Box::new(config_clone);
+        let leaked_config = Box::leak(boxed_config);
+        let inner = InnerPe::new(path, leaked_config)?;
         Ok(Self{
-            inner: inner,
+            inner: Arc::new(Mutex::new(inner)),
         })
     }
 
     #[classmethod]
-    #[pyo3(text_signature = "(bytes)")]
-    pub fn from_bytes(_: &Bound<'_, PyType>, bytes: Vec<u8>) -> PyResult<Self> {
-        let inner = InnerPe::from_bytes(bytes)?;
-        Ok(Self { inner })
+    #[pyo3(text_signature = "(bytes, config)")]
+    pub fn from_bytes(_: &Bound<'_, PyType>, py: Python, bytes: Vec<u8>, config: &Bound<'_, Config>) -> PyResult<Self> {
+        let config_arc_mutex = config.clone().unbind().borrow(py).inner.clone();
+        let config_lock = config_arc_mutex.lock().unwrap();
+        let config_clone = (*config_lock).clone();
+        let boxed_config = Box::new(config_clone);
+        let leaked_config = Box::leak(boxed_config);
+        let inner = InnerPe::from_bytes(bytes, leaked_config)?;
+        Ok(Self { inner: Arc::new(Mutex::new(inner)) })
     }
 
     #[pyo3(text_signature = "($self, relative_virtual_address)")]
     pub fn relative_virtual_address_to_virtual_address(&self, relative_virtual_address: u64) -> u64 {
-        self.inner.relative_virtual_address_to_virtual_address(relative_virtual_address)
+        self.inner.lock().unwrap().relative_virtual_address_to_virtual_address(relative_virtual_address)
     }
 
     #[pyo3(text_signature = "($self, offset)")]
     pub fn file_offset_to_virtual_address(&self, file_offset: u64) -> Option<u64> {
-        self.inner.file_offset_to_virtual_address(file_offset)
+        self.inner.lock().unwrap().file_offset_to_virtual_address(file_offset)
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn architecture(&self) -> BinaryArchitecture {
-        return BinaryArchitecture::new(self.inner.architecture() as u16);
+        return BinaryArchitecture::new(self.inner.lock().unwrap().architecture() as u16);
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn executable_virtual_address_ranges(&self) -> BTreeMap<u64, u64> {
-        self.inner.executable_virtual_address_ranges()
+        self.inner.lock().unwrap().executable_virtual_address_ranges()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn pogos(&self) -> HashMap<u64, String> {
-        self.inner.pogos()
+        self.inner.lock().unwrap().pogos()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn tlscallbacks(&self) -> BTreeSet<u64> {
-        self.inner.tlscallbacks()
+        self.inner.lock().unwrap().tlscallbacks()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn functions(&self) -> BTreeSet<u64> {
-        self.inner.functions()
+        self.inner.lock().unwrap().functions()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn entrypoint(&self) -> u64  {
-        self.inner.entrypoint()
+        self.inner.lock().unwrap().entrypoint()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn sizeofheaders(&self) -> u64 {
-        self.inner.sizeofheaders()
+        self.inner.lock().unwrap().sizeofheaders()
     }
 
     #[pyo3(text_signature = "($self, file_path, cache)")]
     pub fn image(&self, py: Python<'_>, file_path: String, cache: bool) -> PyResult<Py<MemoryMappedFile>> {
-        let result = self.inner.image(file_path, cache).map_err(|e| {
+        let result = self.inner.lock().unwrap().image(file_path, cache).map_err(|e| {
             pyo3::exceptions::PyIOError::new_err(e.to_string())
         })?;
         let py_memory_mapped_file = Py::new(py, MemoryMappedFile { inner: result })?;
@@ -88,7 +101,7 @@ impl PE {
 
     #[pyo3(text_signature = "($self)")]
     pub fn size(&self) -> u64 {
-        self.inner.size()
+        self.inner.lock().unwrap().size()
     }
 
     #[staticmethod]
@@ -98,32 +111,32 @@ impl PE {
 
     #[pyo3(text_signature = "($self)")]
     pub fn exports(&self) -> BTreeSet<u64> {
-        self.inner.exports()
+        self.inner.lock().unwrap().exports()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn tlsh(&self) -> Option<String> {
-        self.inner.tlsh()
+        self.inner.lock().unwrap().tlsh()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn sha256(&self) -> Option<String> {
-        self.inner.sha256()
+        self.inner.lock().unwrap().sha256()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn imagebase(&self) -> u64 {
-        self.inner.imagebase()
+        self.inner.lock().unwrap().imagebase()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn section_alignment(&self) -> u64 {
-        self.inner.section_alignment()
+        self.inner.lock().unwrap().section_alignment()
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn file_alignment(&self) -> u64 {
-        self.inner.file_alignment()
+        self.inner.lock().unwrap().file_alignment()
     }
 
 }

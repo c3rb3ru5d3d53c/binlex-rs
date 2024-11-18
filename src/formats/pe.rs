@@ -10,15 +10,17 @@ use crate::binary::BinaryArchitecture;
 use crate::formats::File;
 use std::collections::BTreeMap;
 use lief::pe::debug::Entries;
-use crate::types::memorymappedfile::MemoryMappedFile;
+use crate::types::MemoryMappedFile;
+use crate::Config;
 
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
-pub struct PE {
+pub struct PE <'pe>{
     pub pe: lief::pe::Binary,
     pub file: File,
+    pub config: &'pe Config,
 }
 
-impl PE {
+impl <'pe> PE <'pe>{
     /// Creates a new `PE` instance by reading a PE file from the provided path.
     ///
     /// # Parameters
@@ -26,7 +28,7 @@ impl PE {
     ///
     /// # Returns
     /// A `Result` containing the `PE` object on success or an `Error` on failure.
-    pub fn new(path: String) -> Result<Self, Error> {
+    pub fn new(path: String, config: &'pe mut Config) -> Result<Self, Error> {
         let mut file = File::new(path.clone());
         match file.read() {
             Ok(_) => (),
@@ -35,9 +37,14 @@ impl PE {
             }
         };
         if let Some(Binary::PE(pe)) = Binary::parse(&path) {
+            if config.hashing.file.enabled {
+                config.hashing.file.sha256 = file.sha256();
+                config.hashing.file.tlsh = file.tlsh();
+            }
             return Ok(Self {
                 pe: pe,
                 file: file,
+                config: config,
             });
         }
         return Err(Error::new(ErrorKind::InvalidInput, "invalid pe file"));
@@ -51,13 +58,18 @@ impl PE {
     /// # Returns
     /// A `Result` containing the `PE` object on success or an `Error` on failure.
     #[allow(dead_code)]
-    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self, Error> {
+    pub fn from_bytes(bytes: Vec<u8>, config: &'pe mut Config) -> Result<Self, Error> {
         let file = File::from_bytes(bytes);
         let mut cursor = Cursor::new(&file.data);
         if let Some(Binary::PE(pe)) = Binary::from(&mut cursor) {
+            if config.hashing.file.enabled {
+                config.hashing.file.sha256 = file.sha256();
+                config.hashing.file.tlsh = file.tlsh();
+            }
             return Ok(Self{
                 pe: pe,
-                file: file
+                file: file,
+                config: config,
             })
         }
         return Err(Error::new(ErrorKind::InvalidInput, "invalid pe file"));
