@@ -401,10 +401,10 @@ To disassemble a PE memory mapped image use the following example.
 
 ```python
 from binlex.formats import PE
-from binlex.models.disassemblers.capstone import Disassembler
-from binlex.models.controlflow import Graph
+from binlex.disassemblers.capstone import Disassembler
+from binlex.controlflow import Graph
 from binlex import Config
-from binlex.models.controlflow import Block
+from binlex.controlflow import Block
 
 config = Config()
 
