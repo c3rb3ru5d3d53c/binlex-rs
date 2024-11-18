@@ -410,13 +410,13 @@ let entrypoints = HashSet::<u64>::new();
 
 entrypoints.extend(pe.functions());
 
-let disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges())
+let disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges());
 
-cfg = Graph(pe.architecture(), config)
+cfg = Graph(pe.architecture(), config);
 
-disassembler.disassemble_controlflow(entrypoints, cfg)
+disassembler.disassemble_controlflow(entrypoints, cfg);
 
-block = Block(pe.entrypoint(), cfg)
+block = Block(pe.entrypoint(), cfg);
 
 block.print();
 ```
