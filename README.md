@@ -400,11 +400,11 @@ The binlex Python API is now designed to abstract the disassembler and the contr
 To disassemble a PE memory mapped image use the following example.
 
 ```python
-from binlex.formats.pe import PE
-from binlex.models.disassemblers.capstone.disassembler import Disassembler
-from binlex.models.controlflow.graph import Graph
-from binlex.config import Config
-from binlex.models.controlflow.block import Block
+from binlex.formats import PE
+from binlex.models.disassemblers.capstone import Disassembler
+from binlex.models.controlflow import Graph
+from binlex import Config
+from binlex.models.controlflow import Block
 
 config = Config()
 
