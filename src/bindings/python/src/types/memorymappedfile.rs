@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 use pyo3::exceptions;
-use pyo3::types::{PyBytes, PyMemoryView};
+use pyo3::types::PyMemoryView;
 use memmap2::Mmap;
 use binlex::types::memorymappedfile::MemoryMappedFile as InnerMemoryMappedFile;
 use pyo3::ffi;

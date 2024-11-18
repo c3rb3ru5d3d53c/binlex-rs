@@ -9,7 +9,7 @@ use serde;
 pub const DIRECTORY: &str = "binlex";
 pub const FILE_NAME: &str = "binlex.toml";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
     pub general: ConfigGeneral,
     pub heuristics: ConfigHeuristics,
@@ -18,46 +18,56 @@ pub struct Config {
     pub disassembler: ConfigDisassembler,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigDisassembler {
     pub sweep: ConfigDisassemblerSweep,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigDisassemblerSweep {
     pub enabled: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigHeuristics {
     pub features: ConfigHeuristicFeatures,
     pub normalization: ConfigHeuristicNormalization,
     pub entropy: ConfigHeuristicEntropy,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigHeuristicFeatures {
     pub enabled: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigHeuristicNormalization {
     pub enabled: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigHeuristicEntropy {
     pub enabled: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigHashing {
     pub sha256: ConfigSHA256,
     pub tlsh: ConfigTLSH,
     pub minhash: ConfigMinhash,
+    pub file: ConfigFileHashes,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ConfigFileHashes {
+    pub enabled: bool,
+    #[serde(skip)]
+    pub sha256: Option<String>,
+    #[serde(skip)]
+    pub tlsh: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigGeneral {
     #[serde(skip)]
     pub input: Option<String>,
@@ -70,18 +80,18 @@ pub struct ConfigGeneral {
     pub tags: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigMmap {
     pub directory: String,
     pub cache: ConfigMmapCache,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigMmapCache {
     pub enabled: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigMinhash {
     pub enabled: bool,
     pub number_of_hashes: usize,
@@ -90,13 +100,13 @@ pub struct ConfigMinhash {
     pub seed: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigTLSH {
     pub enabled: bool,
     pub minimum_byte_size: usize,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigSHA256 {
     pub enabled: bool,
 }
@@ -105,7 +115,7 @@ impl Config {
     #[allow(dead_code)]
     pub fn new() -> Self {
         Config {
-            general: ConfigGeneral{
+            general: ConfigGeneral {
                 input: None,
                 output: None,
                 threads: 1,
@@ -139,6 +149,11 @@ impl Config {
                     maximum_byte_size: 50,
                     seed: 0,
                 },
+                file: ConfigFileHashes {
+                    enabled: true,
+                    sha256: None,
+                    tlsh: None,
+                }
             },
             mmap: ConfigMmap {
                 directory: Config::default_file_mapping_directory(),
@@ -150,7 +165,7 @@ impl Config {
                 sweep: ConfigDisassemblerSweep {
                     enabled: true,
                 },
-            }
+            },
         }
     }
 
@@ -172,8 +187,8 @@ impl Config {
 
     /// Convert Config to a TOML String
     #[allow(dead_code)]
-    pub fn to_string(&self) -> Result<String, toml::ser::Error> {
-        toml::to_string_pretty(self)
+    pub fn to_string(&self) -> Result<String, Error> {
+        toml::to_string_pretty(self).map_err(|e| Error::new(ErrorKind::Other, e))
     }
 
     /// Reads the Configuration TOML from a File Path
@@ -183,7 +198,6 @@ impl Config {
             .map_err(|error| Error::new(ErrorKind::InvalidData, format!("failed to read configuration file {}\n\n{}", file_path, error)))?;
         Ok(config)
     }
-
 
     /// Write the configuration TOML to a file
     #[allow(dead_code)]

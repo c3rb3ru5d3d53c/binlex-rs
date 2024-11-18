@@ -107,7 +107,7 @@ impl<'disassembler> Disassembler<'disassembler> {
     #[allow(dead_code)]
     pub fn disassemble_controlflow<'a>(&'a self, addresses: BTreeSet<u64>, cfg: &'a mut Graph) -> Result<(), Error> {
 
-        if !cfg.options.disable_linear_pass {
+        if cfg.config.disassembler.sweep.enabled {
             cfg.functions.enqueue_extend(self.disassemble_sweep());
         }
 

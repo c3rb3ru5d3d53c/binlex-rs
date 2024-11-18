@@ -70,7 +70,7 @@ pub struct Function <'function>{
     /// The starting address of the function.
     pub address: u64,
     /// The control flow graph this function belongs to.
-    pub cfg: &'function Graph,
+    pub cfg: &'function Graph <'function>,
     /// The blocks that make up the function, mapped by their start addresses.
     pub blocks: BTreeMap<u64, Instruction>,
     /// The function symbol, if available.
@@ -183,7 +183,7 @@ impl<'function> Function<'function> {
             tlsh: self.tlsh(),
             contiguous: self.is_contiguous(),
             file: self.file(),
-            tags: self.cfg.options.tags.clone(),
+            tags: self.cfg.config.general.tags.clone(),
             names: self.names(),
             architecture: self.architecture().to_string(),
         }
@@ -205,7 +205,8 @@ impl<'function> Function<'function> {
     ///
     /// Returns an `Option<FileJson>` containing file metadata if available, or `None` otherwise.
     pub fn file(&self) -> Option<FileJson> {
-        Some(File::new(self.cfg.options.clone()).process())
+        if !self.cfg.config.hashing.file.enabled { return None; }
+        Some(File::new(self.cfg).process())
     }
 
     /// Prints the JSON representation of the function to standard output.
@@ -234,7 +235,7 @@ impl<'function> Function<'function> {
     /// Returns `Some(SignatureJson)` if the function is contiguous; otherwise, `None`.
     pub fn signature(&self) -> Option<SignatureJson> {
         if !self.is_contiguous() { return None; }
-        return Some(Signature::new(self.address, self.end().unwrap(), &self.cfg, self.cfg.options.clone()).process());
+        return Some(Signature::new(self.address, self.end().unwrap(), &self.cfg).process());
     }
 
     /// Retrieves the total number of instructions in the function.
@@ -326,7 +327,7 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(String)` containing the hash, or `None` if SHA-256 is disabled or the function is not contiguous.
     pub fn sha256(&self) -> Option<String> {
-        if !self.cfg.options.enable_sha256 { return None; }
+        if !self.cfg.config.hashing.sha256.enabled { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
             return SHA256::new(&bytes).hexdigest();
@@ -340,7 +341,7 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(f64)` containing the entropy, or `None` if entropy calculation is disabled or the function is not contiguous.
     pub fn entropy(&self) -> Option<f64> {
-        if !self.cfg.options.enable_entropy { return None; }
+        if !self.cfg.config.heuristics.entropy.enabled { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
             return Binary::entropy(&bytes);
@@ -354,10 +355,10 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(String)` containing the TLSH, or `None` if TLSH is disabled or the function is not contiguous.
     pub fn tlsh(&self) -> Option<String> {
-        if !self.cfg.options.enable_tlsh { return None; }
+        if !self.cfg.config.hashing.tlsh.enabled { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
-            return TLSH::new(&bytes, self.cfg.options.tlsh_mininum_byte_size).hexdigest();
+            return TLSH::new(&bytes, self.cfg.config.hashing.tlsh.minimum_byte_size).hexdigest();
         }
         return None;
     }
@@ -368,15 +369,15 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(String)` containing the MinHash, or `None` if MinHash is disabled or the function is not contiguous.
     pub fn minhash(&self) -> Option<String> {
-        if !self.cfg.options.enable_minhash { return None; }
+        if !self.cfg.config.hashing.minhash.enabled { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
-            if bytes.len() > self.cfg.options.minhash_maximum_byte_size { return None; }
+            if bytes.len() > self.cfg.config.hashing.minhash.maximum_byte_size { return None; }
             return MinHash32::new(
                 &bytes,
-                self.cfg.options.minhash_number_of_hashes,
-                self.cfg.options.minhash_shingle_size,
-                self.cfg.options.minhash_seed).hexdigest();
+                self.cfg.config.hashing.minhash.number_of_hashes,
+                self.cfg.config.hashing.minhash.shingle_size,
+                self.cfg.config.hashing.minhash.seed).hexdigest();
         }
         return None;
     }

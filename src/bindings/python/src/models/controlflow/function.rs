@@ -13,15 +13,6 @@ pub struct Function {
     pub cfg: Py<Graph>,
 }
 
-
-macro_rules! with_inner_function {
-    ($self:ident, $py:ident, $method:ident) => {{
-        let binding = &$self.cfg.borrow($py).inner;
-        let b = InnerFunction::new($self.address, binding)?;
-        b.$method()
-    }};
-}
-
 #[pymethods]
 impl Function {
     #[new]
@@ -29,90 +20,136 @@ impl Function {
     fn new(address: u64, cfg: Py<Graph>) -> PyResult<Self>  {
         Ok(Self{
             address: address,
-            cfg:  cfg
+            cfg: cfg,
         })
     }
     #[pyo3(text_signature = "($self)")]
     fn bytes(&self, py: Python) -> PyResult<Option<Vec<u8>>> {
-        Ok(with_inner_function!(self, py, bytes))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.bytes())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn edges(&self, py: Python) -> PyResult<usize> {
-        Ok(with_inner_function!(self, py, edges))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.edges())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn bytes_to_hex(&self, py: Python) -> PyResult<Option<String>> {
-        Ok(with_inner_function!(self, py, bytes_to_hex))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.bytes_to_hex())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn size(&self, py: Python) -> PyResult<Option<usize>> {
-        Ok(with_inner_function!(self, py, size))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.size())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn is_prologue(&self, py: Python) -> PyResult<bool> {
-        Ok(with_inner_function!(self, py, is_prologue))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.is_prologue())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn instruction_count(&self, py: Python) -> PyResult<usize> {
-        Ok(with_inner_function!(self, py, instruction_count))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.instruction_count())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn block_addresses(&self, py: Python) -> PyResult<BTreeSet<u64>> {
-        Ok(with_inner_function!(self, py, block_addresses))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.block_addresses())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn end(&self, py: Python) -> PyResult<Option<u64>> {
-        Ok(with_inner_function!(self, py, end))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.end())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn entropy(&self, py: Python) -> PyResult<Option<f64>> {
-        Ok(with_inner_function!(self, py, entropy))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.entropy())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn sha256(&self, py: Python) -> PyResult<Option<String>> {
-        Ok(with_inner_function!(self, py, sha256))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.sha256())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn tlsh(&self, py: Python) -> PyResult<Option<String>> {
-        Ok(with_inner_function!(self, py, tlsh))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.tlsh())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn minhash(&self, py: Python) -> PyResult<Option<String>> {
-        Ok(with_inner_function!(self, py, minhash))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.minhash())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn functions(&self, py: Python) -> PyResult<BTreeMap<u64, u64>> {
-        Ok(with_inner_function!(self, py, functions))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.functions())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn is_contiguous(&self, py: Python) -> PyResult<bool> {
-        Ok(with_inner_function!(self, py, is_contiguous))
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        Ok(function.is_contiguous())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn print(&self, py: Python)  -> PyResult<()> {
-        let binding = &self.cfg.borrow(py).inner;
-        let function = InnerFunction::new(self.address, binding)?;
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
         function.print();
         Ok(())
     }
 
     #[pyo3(text_signature = "($self)")]
     pub fn json(&self, py: Python) -> Result<String, Error> {
-        with_inner_function!(self, py, json)
+        let binding = self.cfg.borrow(py);
+        let inner = binding.inner.lock().unwrap();
+        let function = InnerFunction::new(self.address, &inner)?;
+        function.json()
     }
 
 }

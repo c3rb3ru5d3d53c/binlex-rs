@@ -68,7 +68,7 @@ pub struct Block <'block>{
     /// The starting address of the block.
     pub address: u64,
     /// The control flow graph this block belongs to.
-    pub cfg: &'block Graph,
+    pub cfg: &'block Graph <'block>,
     /// The terminating instruction of the block.
     pub terminator: Instruction,
 }
@@ -171,7 +171,7 @@ impl<'block> Block<'block> {
             tlsh: self.tlsh(),
             contiguous: true,
             file: self.file(),
-            tags: self.cfg.options.tags.clone(),
+            tags: self.cfg.config.general.tags.clone(),
         }
     }
 
@@ -182,7 +182,8 @@ impl<'block> Block<'block> {
     ///
     /// Returns an `Option<FileJson>` containing file metadata if available, or `None` otherwise.
     pub fn file(&self) -> Option<FileJson> {
-        Some(File::new(self.cfg.options.clone()).process())
+        if !self.cfg.config.hashing.file.enabled { return None; }
+        Some(File::new(self.cfg).process())
     }
 
     /// Determines whether the block starts with a function prologue.
@@ -242,7 +243,7 @@ impl<'block> Block<'block> {
     ///
     /// Returns a `SignatureJson` representing the block's signature.
     pub fn signature(&self) -> SignatureJson {
-        Signature::new(self.address, self.end(), &self.cfg, self.cfg.options.clone()).process()
+        Signature::new(self.address, self.end(), &self.cfg).process()
     }
 
     /// Retrieves the function addresses associated with this block.
@@ -268,7 +269,7 @@ impl<'block> Block<'block> {
     ///
     /// Returns `Some(f64)` containing the entropy, or `None` if entropy calculation is disabled.
     pub fn entropy(&self) -> Option<f64> {
-        if !self.cfg.options.enable_entropy { return None; }
+        if !self.cfg.config.heuristics.entropy.enabled { return None; }
         return Binary::entropy(&self.bytes());
     }
 
@@ -278,8 +279,8 @@ impl<'block> Block<'block> {
     ///
     /// Returns `Some(String)` containing the TLSH, or `None` if TLSH is disabled or the block size is too small.
     pub fn tlsh(&self) -> Option<String> {
-        if !self.cfg.options.enable_tlsh { return None; }
-        return TLSH::new(&self.bytes(), self.cfg.options.tlsh_mininum_byte_size).hexdigest();
+        if !self.cfg.config.hashing.tlsh.enabled { return None; }
+        return TLSH::new(&self.bytes(), self.cfg.config.hashing.tlsh.minimum_byte_size).hexdigest();
     }
 
     /// Computes the MinHash of the block's bytes, if enabled.
@@ -288,13 +289,13 @@ impl<'block> Block<'block> {
     ///
     /// Returns `Some(String)` containing the MinHash, or `None` if MinHash is disabled or the block's size exceeds the configured maximum.
     pub fn minhash(&self) -> Option<String> {
-        if !self.cfg.options.enable_minhash { return None; }
-        if self.bytes().len() > self.cfg.options.minhash_maximum_byte_size { return None; }
+        if !self.cfg.config.hashing.minhash.enabled { return None; }
+        if self.bytes().len() > self.cfg.config.hashing.minhash.maximum_byte_size { return None; }
         return MinHash32::new(
             &self.bytes(),
-            self.cfg.options.minhash_number_of_hashes,
-            self.cfg.options.minhash_shingle_size,
-            self.cfg.options.minhash_seed
+            self.cfg.config.hashing.minhash.number_of_hashes,
+            self.cfg.config.hashing.minhash.shingle_size,
+            self.cfg.config.hashing.minhash.seed
         ).hexdigest();
     }
 
@@ -304,7 +305,7 @@ impl<'block> Block<'block> {
     ///
     /// Returns `Some(String)` containing the hash, or `None` if SHA-256 is disabled.
     pub fn sha256(&self) -> Option<String> {
-        if !self.cfg.options.enable_sha256 { return None; }
+        if !self.cfg.config.hashing.sha256.enabled { return None; }
         return SHA256::new(&self.bytes()).hexdigest();
     }
 

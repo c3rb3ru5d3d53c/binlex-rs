@@ -35,7 +35,7 @@ codegen-units = 1
 
 [[bin]]
 name = "binlex"
-path = "src/main.rs"
+path = "src/bin/binlex.rs"
 
 [[bin]]
 name = "blyara"

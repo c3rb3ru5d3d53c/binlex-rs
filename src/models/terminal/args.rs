@@ -2,7 +2,7 @@ use std::process;
 use std::collections::HashSet;
 use clap::Parser;
 use once_cell::sync::Lazy;
-use crate::models::terminal::config::Config;
+use crate::config::Config;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const AUTHOR: &str = "@c3rb3ru5d3d53c";
@@ -39,6 +39,8 @@ pub struct Args {
     pub minhash_maximum_byte_size: Option<usize>,
     #[arg(long)]
     pub tlsh_minimum_byte_size: Option<usize>,
+    #[arg(long, default_value_t = false)]
+    pub disable_file_hashing: bool,
     #[arg(long, default_value_t = false)]
     pub disable_linear_pass: bool,
     #[arg(long, default_value_t = false)]

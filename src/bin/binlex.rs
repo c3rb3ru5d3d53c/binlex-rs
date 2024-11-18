@@ -1,25 +1,21 @@
-mod models;
-mod formats;
-mod types;
-
 use rayon::ThreadPoolBuilder;
-use formats::pe::PE;
-use models::disassemblers::capstone::disassembler::Disassembler;
+use binlex::formats::pe::PE;
+use binlex::models::disassemblers::capstone::disassembler::Disassembler;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde_json::json;
 use std::process;
 use std::fs::File;
 use std::io::Write;
 use std::collections::BTreeSet;
-use crate::models::controlflow::graph::Graph;
-use crate::models::controlflow::block::Block;
-use crate::models::controlflow::function::Function;
-use crate::types::lz4string::LZ4String;
-use crate::models::terminal::args::CONFIG;
-use crate::models::terminal::io::Stdout;
+use binlex::models::controlflow::graph::Graph;
+use binlex::models::controlflow::block::Block;
+use binlex::models::controlflow::function::Function;
+use binlex::types::lz4string::LZ4String;
+use binlex::models::terminal::args::CONFIG;
+use binlex::models::terminal::io::Stdout;
 use memmap2::Mmap;
-use crate::models::terminal::io::JSON;
-use crate::models::controlflow::symbol::Symbol;
+use binlex::models::terminal::io::JSON;
+use binlex::models::controlflow::symbol::Symbol;
 
 fn get_pe_function_symbols(pe: &PE) -> Vec<Symbol> {
     let mut symbols = Vec::<Symbol>::new();
@@ -147,21 +143,8 @@ fn main() {
 
     entrypoints.extend(function_symbol_addresses);
 
-    let mut cfg = Graph::new(machine);
-    cfg.options.enable_sha256 = CONFIG.hashing.sha256.enabled;
-    cfg.options.enable_minhash = CONFIG.hashing.minhash.enabled;
-    cfg.options.enable_tlsh = CONFIG.hashing.tlsh.enabled;
-    cfg.options.minhash_maximum_byte_size = CONFIG.hashing.minhash.maximum_byte_size;
-    cfg.options.minhash_number_of_hashes = CONFIG.hashing.minhash.number_of_hashes;
-    cfg.options.enable_entropy = CONFIG.heuristics.entropy.enabled;
-    cfg.options.minhash_seed = CONFIG.hashing.minhash.seed;
-    cfg.options.enable_feature = CONFIG.heuristics.features.enabled;
-    cfg.options.enable_normalized = CONFIG.heuristics.normalization.enabled;
-    cfg.options.disable_linear_pass = !CONFIG.disassembler.sweep.enabled;
-    cfg.options.tags = CONFIG.general.tags.clone();
-    cfg.options.file_sha256 = pe.sha256();
-    cfg.options.file_tlsh = pe.tlsh();
-    cfg.options.file_size = Some(pe.size());
+    let mut cfg = Graph::new(machine, &CONFIG);
+
     cfg.functions.enqueue_extend(entrypoints);
     cfg.functions.insert_symbols_extend(function_symbols);
 
@@ -171,8 +154,8 @@ fn main() {
         let graphs: Vec<Graph> = function_addresses
             .par_iter()
             .map(|address| {
-                let mut graph = Graph::new(machine);
-                graph.options = cfg.options.clone();
+                let mut graph = Graph::new(machine, &CONFIG);
+                //graph.options = cfg.options.clone();
                 if let Ok(disasm) = Disassembler::new(machine, &image, executable_address_ranges.clone()) {
                     let _ = disasm.disassemble_function(*address, &mut graph);
                 }

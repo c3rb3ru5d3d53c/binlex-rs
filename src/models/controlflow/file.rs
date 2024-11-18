@@ -1,7 +1,7 @@
 use std::io::Error;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use crate::models::controlflow::graph::GraphOptions;
+use crate::models::controlflow::graph::Graph;
 
 /// Represents a JSON-serializable structure containing file metadata.
 #[derive(Serialize, Deserialize)]
@@ -10,17 +10,15 @@ pub struct FileJson {
     pub sha256: Option<String>,
     /// The TLSH (Trend Micro Locality Sensitive Hash) of the file, if available.
     pub tlsh: Option<String>,
-    /// The size of the file in bytes, if available.
-    pub size: Option<u64>,
 }
 
 /// Represents file metadata derived from `GraphOptions`.
-pub struct File {
+pub struct File <'file> {
     /// Options containing file-specific metadata, such as hashes and size.
-    pub options: GraphOptions,
+    pub cfg: &'file Graph <'file>,
 }
 
-impl File {
+impl <'file> File <'file> {
     /// Creates a new `File` instance with the provided `GraphOptions`.
     ///
     /// # Arguments
@@ -30,9 +28,9 @@ impl File {
     /// # Returns
     ///
     /// Returns a new `File` instance.
-    pub fn new(options: GraphOptions) -> Self {
+    pub fn new(cfg: &'file Graph) -> Self {
         Self {
-            options: options,
+            cfg: cfg,
         }
     }
 
@@ -43,7 +41,7 @@ impl File {
     /// Returns `Some(String)` containing the TLSH hash, or `None` if unavailable.
     #[allow(dead_code)]
     pub fn tlsh(&self) -> Option<String> {
-        self.options.file_tlsh.clone()
+        self.cfg.config.hashing.file.tlsh.clone()
     }
 
     /// Retrieves the SHA-256 hash of the file, if available.
@@ -53,17 +51,7 @@ impl File {
     /// Returns `Some(String)` containing the SHA-256 hash, or `None` if unavailable.
     #[allow(dead_code)]
     pub fn sha256(&self) -> Option<String> {
-        self.options.file_sha256.clone()
-    }
-
-    /// Retrieves the size of the file in bytes, if available.
-    ///
-    /// # Returns
-    ///
-    /// Returns `Some(u64)` containing the file size, or `None` if unavailable.
-    #[allow(dead_code)]
-    pub fn size(&self) -> Option<u64> {
-        self.options.file_size.clone()
+        self.cfg.config.hashing.file.sha256.clone()
     }
 
     /// Processes the file metadata into a JSON-serializable `FileJson` structure.
@@ -75,7 +63,6 @@ impl File {
         FileJson {
             sha256: self.sha256(),
             tlsh: self.tlsh(),
-            size: self.size(),
         }
     }
 

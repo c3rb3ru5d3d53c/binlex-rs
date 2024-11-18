@@ -5,7 +5,6 @@ use std::borrow::Borrow;
 use std::io::Error;
 use std::collections::BTreeSet;
 use std::collections::BTreeMap;
-use std::ops::Deref;
 use binlex::models::disassemblers::capstone::disassembler::Disassembler as InnerDisassembler;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::controlflow::graph::Graph;
@@ -70,7 +69,7 @@ impl Disassembler {
         let machine_binding = &self.machine.borrow(py);
         let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
         let cfg_ref=  &mut cfg.borrow_mut(py);
-        let result = disassembler.disassemble_function(address, &mut cfg_ref.inner)?;
+        let result = disassembler.disassemble_function(address, &mut cfg_ref.inner.lock().unwrap())?;
         return Ok(result);
     }
 
@@ -80,7 +79,7 @@ impl Disassembler {
         let machine_binding = &self.machine.borrow(py);
         let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
         let cfg_ref=  &mut cfg.borrow_mut(py);
-        let result = disassembler.disassemble_block(address, &mut cfg_ref.inner)?;
+        let result = disassembler.disassemble_block(address, &mut cfg_ref.inner.lock().unwrap())?;
         return Ok(result);
     }
 
@@ -90,7 +89,7 @@ impl Disassembler {
         let machine_binding = &self.machine.borrow(py);
         let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
         let cfg_ref=  &mut cfg.borrow_mut(py);
-        disassembler.disassemble_controlflow(addresses, &mut cfg_ref.inner)?;
+        disassembler.disassemble_controlflow(addresses, &mut cfg_ref.inner.lock().unwrap())?;
         Ok(())
     }
 

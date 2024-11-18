@@ -246,7 +246,6 @@ maximum_byte_size = 50
 seed = 0
 
 [mmap]
-enabled = false
 directory = "/tmp/binlex"
 
 [mmap.cache]
@@ -404,6 +403,10 @@ To disassemble a PE memory mapped image use the following example.
 from binlex.formats.pe import PE
 from binlex.models.disassemblers.capstone.disassembler import Disassembler
 from binlex.models.controlflow.graph import Graph
+from binlex.config import Config
+from binlex.models.controlflow.block import Block
+
+config = Config()
 
 # Open the PE File
 pe = PE('./sample.dll')
@@ -423,17 +426,15 @@ entrypoints = pe.functions()
 # Create Disassembler on Mapped PE Image and PE Architecture
 disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges())
 
-# Perform Linear Disassembly Pass for Additional Entrypoints
-linear_scan_functions = disassembler.disassemble_linear_pass()
-
-# Add Linear Pass Functions found to Entrypoints
-entrypoints.update(linear_scan_functions)
-
 # Create the Controlflow Graph
-cfg = Graph(pe.architecture())
+cfg = Graph(pe.architecture(), config)
 
 # Disassemble the PE Image Entrypoints Recursively
 disassembler.disassemble_controlflow(entrypoints, cfg)
+
+block = Block(pe.entrypoint(), cfg)
+
+print(block.json())
 ```
 
 Please note that there are limitations in Python that will affect speed and memory performance.
