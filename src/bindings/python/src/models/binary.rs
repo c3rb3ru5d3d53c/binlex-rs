@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
-use binlex::models::binary::Binary as InnerBinary;
-use binlex::models::binary::BinaryArchitecture as InnerBinaryArchitecture;
+use binlex::binary::Binary as InnerBinary;
+use binlex::binary::BinaryArchitecture as InnerBinaryArchitecture;
 
 #[pyclass(eq)]
 #[derive(PartialEq)]

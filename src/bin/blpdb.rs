@@ -1,14 +1,14 @@
 use std::collections::BTreeSet;
 use std::process;
-use binlex::models::controlflow::symbol::SymbolIoJson;
+use binlex::controlflow::SymbolIoJson;
 use clap::Parser;
 use pdb::FallibleIterator;
 use std::fs::File;
-use binlex::models::terminal::io::Stdin;
-use binlex::models::terminal::io::Stdout;
-use binlex::models::controlflow::symbol::Symbol;
-use binlex::models::terminal::args::VERSION;
-use binlex::models::terminal::args::AUTHOR;
+use binlex::terminal::io::Stdin;
+use binlex::terminal::io::Stdout;
+use binlex::controlflow::Symbol;
+use binlex::terminal::args::VERSION;
+use binlex::terminal::args::AUTHOR;
 
 #[derive(Parser, Debug)]
 #[command(

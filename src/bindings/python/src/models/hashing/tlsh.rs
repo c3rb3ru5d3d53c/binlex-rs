@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use binlex::models::hashing::tlsh::TLSH as InnerTLSH;
+use binlex::hashing::tlsh::TLSH as InnerTLSH;
 
 #[pyclass]
 pub struct TLSH {

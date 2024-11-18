@@ -6,11 +6,11 @@ use std::fs::File;
 use std::io::Write;
 use std::process;
 use rayon::ThreadPoolBuilder;
-use binlex::types::lz4string::LZ4String;
-use binlex::models::terminal::args::VERSION;
-use binlex::models::terminal::args::AUTHOR;
-use binlex::models::terminal::io::Stdout;
-use binlex::models::terminal::io::JSON;
+use binlex::types::LZ4String;
+use binlex::terminal::args::VERSION;
+use binlex::terminal::args::AUTHOR;
+use binlex::terminal::io::Stdout;
+use binlex::terminal::io::JSON;
 
 #[derive(Parser, Debug)]
 #[command(

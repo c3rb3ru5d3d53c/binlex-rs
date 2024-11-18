@@ -3,3 +3,6 @@ project/
 Cargo.lock
 samples/
 *.yara
+*.exe
+*.dll
+*.so

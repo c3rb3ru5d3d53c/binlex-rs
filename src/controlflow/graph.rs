@@ -1,76 +1,11 @@
 use std::collections::BTreeSet;
-use crate::models::binary::BinaryArchitecture;
-use crate::models::controlflow::instruction::Instruction;
+use crate::binary::BinaryArchitecture;
+use crate::controlflow::Instruction;
 use crossbeam::queue::SegQueue;
 use crossbeam_skiplist::SkipMap;
 use crossbeam_skiplist::SkipSet;
-use crate::models::controlflow::symbol::Symbol;
+use crate::controlflow::Symbol;
 use crate::config::Config;
-
-// /// Configuration options for the `Graph` structure, specifying settings for hashing, entropy, and other metadata.
-// #[derive(Clone)]
-// pub struct GraphOptions {
-//     /// Enables or disables MinHash computation.
-//     pub enable_minhash: bool,
-//     /// Maximum byte size for MinHash computation.
-//     pub minhash_maximum_byte_size: usize,
-//     /// Number of hashes to use for MinHash.
-//     pub minhash_number_of_hashes: usize,
-//     /// Shingle size for MinHash computation.
-//     pub minhash_shingle_size: usize,
-//     /// Seed value for MinHash.
-//     pub minhash_seed: u64,
-//     /// Enables or disables TLSH (Trend Micro Locality Sensitive Hash).
-//     pub enable_tlsh: bool,
-//     /// Enables or disables SHA-256 hash computation.
-//     pub enable_sha256: bool,
-//     /// Enables or disables entropy calculation.
-//     pub enable_entropy: bool,
-//     /// Enables or disables feature vector extraction.
-//     pub enable_feature: bool,
-//     /// Minimum byte size for TLSH computation.
-//     pub tlsh_mininum_byte_size: usize,
-//     /// Enables or disables normalization of signatures.
-//     pub enable_normalized: bool,
-//     /// SHA-256 hash of the file, if available.
-//     pub file_sha256: Option<String>,
-//     /// TLSH of the file, if available.
-//     pub file_tlsh: Option<String>,
-//     /// Size of the file in bytes, if available.
-//     pub file_size: Option<u64>,
-//     /// Disable linear pass.
-//     pub disable_linear_pass: bool,
-//     /// Tags associated with the graph.
-//     pub tags: Vec<String>,
-// }
-
-// impl GraphOptions {
-//     /// Creates a new `GraphOptions` instance with default values.
-//     ///
-//     /// # Returns
-//     ///
-//     /// Returns a `GraphOptions` instance with default settings.
-//     pub fn new() -> Self {
-//         return Self {
-//             enable_minhash: true,
-//             minhash_maximum_byte_size: 50,
-//             minhash_number_of_hashes: 64,
-//             minhash_shingle_size: 4,
-//             minhash_seed: 0,
-//             enable_entropy: true,
-//             enable_tlsh: true,
-//             enable_sha256: true,
-//             enable_feature: true,
-//             tlsh_mininum_byte_size: 50,
-//             enable_normalized: false,
-//             disable_linear_pass: false,
-//             file_sha256: None,
-//             file_tlsh: None,
-//             file_size: None,
-//             tags: vec![],
-//         };
-//     }
-// }
 
 /// Queue structure used within `Graph` for managing addresses in processing stages.
 pub struct GraphQueue {

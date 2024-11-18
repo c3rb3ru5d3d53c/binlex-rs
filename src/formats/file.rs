@@ -1,7 +1,7 @@
 use std::fs::File as StdFile;
 use std::io::{Read, Error};
-use crate::models::hashing::sha256::SHA256;
-use crate::models::hashing::tlsh::TLSH;
+use crate::hashing::sha256::SHA256;
+use crate::hashing::tlsh::TLSH;
 use std::io::ErrorKind;
 
 /// Represents a file with its contents and an optional file path.

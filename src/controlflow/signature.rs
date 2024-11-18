@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::io::Error;
-use crate::models::binary::Binary;
-use crate::models::controlflow::graph::Graph;
-use crate::models::hashing::sha256::SHA256;
-use crate::models::hashing::tlsh::TLSH;
-use crate::models::hashing::minhash::MinHash32;
+use crate::binary::Binary;
+use crate::controlflow::Graph;
+use crate::hashing::SHA256;
+use crate::hashing::TLSH;
+use crate::hashing::MinHash32;
 
 /// Represents a JSON-serializable structure containing metadata about a signature.
 #[derive(Serialize, Deserialize)]

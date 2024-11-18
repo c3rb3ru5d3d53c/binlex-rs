@@ -5,7 +5,7 @@ use std::borrow::Borrow;
 use std::io::Error;
 use std::collections::BTreeSet;
 use std::collections::BTreeMap;
-use binlex::models::disassemblers::capstone::disassembler::Disassembler as InnerDisassembler;
+use binlex::disassemblers::capstone::disassembler::Disassembler as InnerDisassembler;
 use crate::models::binary::BinaryArchitecture;
 use crate::models::controlflow::graph::Graph;
 use pyo3::types::PyBytes;

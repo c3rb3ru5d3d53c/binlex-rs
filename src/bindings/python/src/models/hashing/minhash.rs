@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use binlex::models::hashing::minhash::MinHash32 as InnerMinHash32;
+use binlex::hashing::minhash::MinHash32 as InnerMinHash32;
 
 #[pyclass]
 pub struct MinHash32 {

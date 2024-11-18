@@ -167,7 +167,7 @@ mod tests {
     use lz4;
     use super::DATA;
     use binlex::formats::pe::PE;
-    use binlex::models::binary::BinaryArchitecture;
+    use binlex::binary::BinaryArchitecture;
 
     #[test]
     fn test_formats_pe() {

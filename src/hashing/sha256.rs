@@ -1,5 +1,5 @@
 use ring::digest;
-use crate::models::binary::Binary;
+use crate::binary::Binary;
 
 /// Represents a wrapper for computing SHA-256 hashes.
 ///

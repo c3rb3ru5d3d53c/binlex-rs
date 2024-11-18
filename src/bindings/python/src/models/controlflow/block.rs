@@ -6,7 +6,7 @@ use pyo3::Py;
 use std::io::Error;
 use std::collections::BTreeSet;
 use std::collections::BTreeMap;
-use binlex::models::controlflow::block::Block as InnerBlock;
+use binlex::controlflow::block::Block as InnerBlock;
 
 #[pyclass]
 pub struct Block {

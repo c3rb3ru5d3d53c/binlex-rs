@@ -1,5 +1,5 @@
 use std::{collections::BTreeSet, io::Error};
-use crate::models::binary::{Binary, BinaryArchitecture};
+use crate::binary::{Binary, BinaryArchitecture};
 use serde::{Deserialize, Serialize};
 use serde_json;
 

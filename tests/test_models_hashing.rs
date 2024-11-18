@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
 
-    use binlex::models::hashing::sha256::SHA256;
-    use binlex::models::hashing::tlsh::TLSH;
-    use binlex::models::hashing::minhash::MinHash32;
+    use binlex::hashing::SHA256;
+    use binlex::hashing::TLSH;
+    use binlex::hashing::MinHash32;
 
     #[test]
     fn test_models_hashing_sha256() {

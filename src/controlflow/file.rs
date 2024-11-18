@@ -1,7 +1,7 @@
 use std::io::Error;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use crate::models::controlflow::graph::Graph;
+use crate::controlflow::Graph;
 
 /// Represents a JSON-serializable structure containing file metadata.
 #[derive(Serialize, Deserialize)]

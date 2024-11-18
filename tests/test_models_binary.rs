@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use binlex::models::binary::Binary;
+    use binlex::binary::Binary;
 
     #[test]
     fn test_models_binary_to_hex(){

@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 
 use std::io::Error;
 use std::collections::BTreeSet;
-use binlex::models::controlflow::instruction::Instruction as InnerInstruction;
+use binlex::controlflow::instruction::Instruction as InnerInstruction;
 
 use crate::models::binary::BinaryArchitecture;
 

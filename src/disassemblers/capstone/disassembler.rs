@@ -17,10 +17,10 @@ use capstone::Instructions;
 use std::io::Error;
 use std::io::ErrorKind;
 use std::collections::{BTreeMap, BTreeSet};
-use crate::models::binary::Binary;
-use crate::models::binary::BinaryArchitecture;
-use crate::models::controlflow::instruction::Instruction;
-use crate::models::controlflow::graph::Graph;
+use crate::binary::Binary;
+use crate::binary::BinaryArchitecture;
+use crate::controlflow::instruction::Instruction;
+use crate::controlflow::graph::Graph;
 
 pub struct Disassembler<'disassembler> {
     cs: Capstone,

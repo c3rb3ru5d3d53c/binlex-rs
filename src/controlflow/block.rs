@@ -1,20 +1,20 @@
-use crate::models::binary::BinaryArchitecture;
-use crate::models::controlflow::instruction::Instruction;
+use crate::binary::BinaryArchitecture;
+use crate::controlflow::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::io::Error;
 use std::io::ErrorKind;
-use crate::models::binary::Binary;
-use crate::models::controlflow::graph::Graph;
-use crate::models::controlflow::signature::Signature;
-use crate::models::controlflow::signature::SignatureJson;
-use crate::models::controlflow::file::File;
-use crate::models::controlflow::file::FileJson;
-use crate::models::hashing::sha256::SHA256;
-use crate::models::hashing::tlsh::TLSH;
-use crate::models::hashing::minhash::MinHash32;
+use crate::binary::Binary;
+use crate::controlflow::graph::Graph;
+use crate::controlflow::signature::Signature;
+use crate::controlflow::signature::SignatureJson;
+use crate::controlflow::file::File;
+use crate::controlflow::file::FileJson;
+use crate::hashing::SHA256;
+use crate::hashing::TLSH;
+use crate::hashing::MinHash32;
 
 /// Represents the JSON-serializable structure of a control flow block.
 #[derive(Serialize, Deserialize)]

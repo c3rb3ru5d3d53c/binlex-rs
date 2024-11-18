@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use std::collections::BTreeSet;
-use binlex::models::controlflow::graph::GraphQueue as InnerGraphQueue;
-use binlex::models::controlflow::graph::Graph as InnerGraph;
+use binlex::controlflow::graph::GraphQueue as InnerGraphQueue;
+use binlex::controlflow::graph::Graph as InnerGraph;
 use crate::models::controlflow::instruction::Instruction;
 use crate::models::binary::BinaryArchitecture;
 use crate::config::Config;

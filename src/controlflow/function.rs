@@ -1,24 +1,24 @@
 
-use crate::models::binary::BinaryArchitecture;
-use crate::models::controlflow::instruction::Instruction;
+use crate::binary::BinaryArchitecture;
+use crate::controlflow::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::io::Error;
 use std::io::ErrorKind;
-use crate::models::binary::Binary;
-use crate::models::controlflow::graph::Graph;
-use crate::models::controlflow::graph::GraphQueue;
-use crate::models::controlflow::block::Block;
-use crate::models::controlflow::signature::Signature;
-use crate::models::controlflow::signature::SignatureJson;
-use crate::models::controlflow::symbol::Symbol;
-use crate::models::controlflow::file::FileJson;
-use crate::models::controlflow::file::File;
-use crate::models::hashing::sha256::SHA256;
-use crate::models::hashing::tlsh::TLSH;
-use crate::models::hashing::minhash::MinHash32;
+use crate::binary::Binary;
+use crate::controlflow::Graph;
+use crate::controlflow::GraphQueue;
+use crate::controlflow::Block;
+use crate::controlflow::Signature;
+use crate::controlflow::SignatureJson;
+use crate::controlflow::Symbol;
+use crate::controlflow::FileJson;
+use crate::controlflow::File;
+use crate::hashing::SHA256;
+use crate::hashing::TLSH;
+use crate::hashing::MinHash32;
 
 /// Represents a JSON-serializable structure containing metadata about a function.
 #[derive(Serialize, Deserialize)]

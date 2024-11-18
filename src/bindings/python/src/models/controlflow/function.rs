@@ -4,7 +4,7 @@ use pyo3::Py;
 use std::io::Error;
 use std::collections::BTreeSet;
 use std::collections::BTreeMap;
-use binlex::models::controlflow::function::Function as InnerFunction;
+use binlex::controlflow::function::Function as InnerFunction;
 use crate::models::controlflow::graph::Graph;
 
 #[pyclass]

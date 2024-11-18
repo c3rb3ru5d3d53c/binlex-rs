@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use binlex::models::hashing::sha256::SHA256 as InnerSHA256;
+use binlex::hashing::sha256::SHA256 as InnerSHA256;
 
 #[pyclass]
 pub struct SHA256 {

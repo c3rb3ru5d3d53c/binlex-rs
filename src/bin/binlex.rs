@@ -1,21 +1,21 @@
 use rayon::ThreadPoolBuilder;
 use binlex::formats::pe::PE;
-use binlex::models::disassemblers::capstone::disassembler::Disassembler;
+use binlex::disassemblers::capstone::Disassembler;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde_json::json;
 use std::process;
 use std::fs::File;
 use std::io::Write;
 use std::collections::BTreeSet;
-use binlex::models::controlflow::graph::Graph;
-use binlex::models::controlflow::block::Block;
-use binlex::models::controlflow::function::Function;
-use binlex::types::lz4string::LZ4String;
-use binlex::models::terminal::args::CONFIG;
-use binlex::models::terminal::io::Stdout;
+use binlex::controlflow::Graph;
+use binlex::controlflow::Block;
+use binlex::controlflow::Function;
+use binlex::types::LZ4String;
+use binlex::terminal::args::CONFIG;
+use binlex::terminal::io::Stdout;
 use memmap2::Mmap;
-use binlex::models::terminal::io::JSON;
-use binlex::models::controlflow::symbol::Symbol;
+use binlex::terminal::io::JSON;
+use binlex::controlflow::Symbol;
 
 fn get_pe_function_symbols(pe: &PE) -> Vec<Symbol> {
     let mut symbols = Vec::<Symbol>::new();
