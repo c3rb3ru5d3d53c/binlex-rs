@@ -401,27 +401,31 @@ use binlex::disassemblers::capstone::Disassembler;
 use binlex::controlflow::Graph;
 use binlex::controlflow::Block;
 
+// Get Default Configuration
 let config = Config();
 
+// Read PE File
 let pe = PE.new("./sample.dll");
 
+// Get Memory Mapped Image
 let image = pe.image(config.mmap.directory.clone(), config.mmap.cache.enabled)
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)})
         .mmap()
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
 
-let entrypoints = HashSet::<u64>::new();
+// Create Disassembler
+let disassembler = Disassembler(pe.architecture(), &image, pe.executable_virtual_address_ranges());
 
-entrypoints.extend(pe.functions());
-
-let disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges());
-
+// Create Control Flow Graph
 cfg = Graph(pe.architecture(), config);
 
-disassembler.disassemble_controlflow(entrypoints, cfg);
+// Disassemble Control Flow
+disassembler.disassemble_controlflow(pe.functions(), cfg);
 
+// Read Block from Control Flow
 block = Block(pe.entrypoint(), cfg);
 
+// Print Block from Control Flow
 block.print();
 ```
 
@@ -438,6 +442,7 @@ from binlex.controlflow import Graph
 from binlex import Config
 from binlex.controlflow import Block
 
+# Get Default Configuration
 config = Config()
 
 # Open the PE File
@@ -464,9 +469,11 @@ cfg = Graph(pe.architecture(), config)
 # Disassemble the PE Image Entrypoints Recursively
 disassembler.disassemble_controlflow(entrypoints, cfg)
 
+# Read Block from Control Flow
 block = Block(pe.entrypoint(), cfg)
 
-print(block.json())
+# Print Block from Control Flow
+block.print()
 ```
 
 Please note that there are limitations in Python that will affect speed and memory performance.
