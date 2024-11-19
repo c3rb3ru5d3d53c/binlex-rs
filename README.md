@@ -408,10 +408,10 @@ let config = Config();
 let pe = PE.new("./sample.dll", config);
 
 // Get Memory Mapped Image
-let image = pe.image(config.mmap.directory.clone(), config.mmap.cache.enabled)
-        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)})
-        .mmap()
-        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
+let image = pe.image()
+  .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)})
+  .mmap()
+  .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
 
 // Create Disassembler
 let disassembler = Disassembler(pe.architecture(), &image, pe.executable_virtual_address_ranges());
