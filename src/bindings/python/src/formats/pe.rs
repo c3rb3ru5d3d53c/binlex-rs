@@ -91,8 +91,8 @@ impl PE {
     }
 
     #[pyo3(text_signature = "($self, file_path, cache)")]
-    pub fn image(&self, py: Python<'_>, file_path: String, cache: bool) -> PyResult<Py<MemoryMappedFile>> {
-        let result = self.inner.lock().unwrap().image(file_path, cache).map_err(|e| {
+    pub fn image(&self, py: Python<'_>) -> PyResult<Py<MemoryMappedFile>> {
+        let result = self.inner.lock().unwrap().image().map_err(|e| {
             pyo3::exceptions::PyIOError::new_err(e.to_string())
         })?;
         let py_memory_mapped_file = Py::new(py, MemoryMappedFile { inner: result })?;

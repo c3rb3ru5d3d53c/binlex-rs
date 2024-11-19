@@ -294,9 +294,6 @@ fn main() {
 
     let mut config = get_config();
 
-    let directory = config.mmap.directory.clone();
-    let cache = config.mmap.cache.enabled;
-
     ThreadPoolBuilder::new()
         .num_threads(config.general.threads)
         .build_global()
@@ -314,7 +311,7 @@ fn main() {
 
     let machine = pe.architecture();
 
-    let image = pe.image(directory, cache)
+    let image = pe.image()
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)})
         .mmap()
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });

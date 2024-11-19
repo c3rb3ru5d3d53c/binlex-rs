@@ -449,7 +449,7 @@ config = Config()
 pe = PE('./sample.dll', config)
 
 # Get the Memory Mapped File
-memory_mapped_file = pe.image('/tmp/binlex', cache=False)
+memory_mapped_file = pe.image()
 
 # Get the Memory Map
 mmap = memory_mapped_file.mmap()

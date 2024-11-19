@@ -261,10 +261,10 @@ impl <'pe> PE <'pe>{
     ///
     /// # Returns
     /// A `Result` containing the `MemoryMappedFile` object on success or an `Error` on failure.
-    pub fn image(&self, path: String, cache: bool) -> Result<MemoryMappedFile, Error> {
-        let pathbuf = PathBuf::from(path)
+    pub fn image(&self) -> Result<MemoryMappedFile, Error> {
+        let pathbuf = PathBuf::from(self.config.mmap.directory.clone())
             .join(self.file.sha256().unwrap());
-        let mut tempmap = match MemoryMappedFile::new(pathbuf, true, cache) {
+        let mut tempmap = match MemoryMappedFile::new(pathbuf, true, self.config.mmap.cache.enabled) {
             Ok(tempmmap) => tempmmap,
             Err(error) => return Err(error),
         };
