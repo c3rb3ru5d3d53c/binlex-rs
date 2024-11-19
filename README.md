@@ -449,10 +449,10 @@ config = Config()
 pe = PE('./sample.dll', config)
 
 # Get the Memory Mapped File
-memory_mapped_file = pe.image()
+mapped_file = pe.image()
 
 # Get the Memory Map
-mmap = memory_mapped_file.mmap()
+mmap = mapped_file.mmap()
 
 # Get the Image Memory View
 image = mmap.as_memoryview()
