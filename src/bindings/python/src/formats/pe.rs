@@ -22,7 +22,7 @@ impl PE {
     #[new]
     #[pyo3(text_signature = "(path, config)")]
     pub fn new(py: Python, path: String, config: &Bound<'_, Config>) -> Result<Self, Error> {
-        let config_arc_mutex = config.clone().unbind().borrow(py).inner.clone();
+        let config_arc_mutex = config.clone().unbind().borrow_mut(py).inner.clone();
         let config_lock = config_arc_mutex.lock().unwrap();
         let config_clone = (*config_lock).clone();
         let boxed_config = Box::new(config_clone);

@@ -182,7 +182,7 @@ impl<'block> Block<'block> {
     ///
     /// Returns an `Option<FileJson>` containing file metadata if available, or `None` otherwise.
     pub fn file(&self) -> Option<FileJson> {
-        if !self.cfg.config.hashing.file.enabled { return None; }
+        if !self.cfg.config.hashing.file.sha256.enabled && !self.cfg.config.hashing.tlsh.enabled { return None; }
         Some(File::new(self.cfg).process())
     }
 

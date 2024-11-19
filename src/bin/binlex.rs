@@ -142,7 +142,8 @@ fn get_config() -> Config {
     }
 
     if args.disable_file_hashing != false {
-        config.hashing.file.enabled = !args.disable_entropy;
+        config.hashing.file.sha256.enabled = false;
+        config.hashing.file.tlsh.enabled = false;
     }
 
     if args.disable_features != false {
@@ -311,8 +312,10 @@ fn main() {
 
     let machine = pe.architecture();
 
-    let image = pe.image()
-        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)})
+    let mapped_file = pe.image()
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
+
+    let image = mapped_file
         .mmap()
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
 

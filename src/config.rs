@@ -62,11 +62,8 @@ pub struct ConfigHashing {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigFileHashes {
-    pub enabled: bool,
-    #[serde(skip)]
-    pub sha256: Option<String>,
-    #[serde(skip)]
-    pub tlsh: Option<String>,
+    pub sha256: ConfigSHA256,
+    pub tlsh: ConfigTLSH,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -106,11 +103,15 @@ pub struct ConfigMinhash {
 pub struct ConfigTLSH {
     pub enabled: bool,
     pub minimum_byte_size: usize,
+    #[serde(skip)]
+    pub hexdigest: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigSHA256 {
     pub enabled: bool,
+    #[serde(skip)]
+    pub hexdigest: Option<String>,
 }
 
 impl Config {
@@ -139,10 +140,12 @@ impl Config {
             hashing: ConfigHashing {
                 sha256: ConfigSHA256 {
                     enabled: true,
+                    hexdigest: None,
                 },
                 tlsh: ConfigTLSH {
                     enabled: true,
                     minimum_byte_size: 50,
+                    hexdigest: None,
                 },
                 minhash: ConfigMinhash {
                     enabled: true,
@@ -152,9 +155,15 @@ impl Config {
                     seed: 0,
                 },
                 file: ConfigFileHashes {
-                    enabled: true,
-                    sha256: None,
-                    tlsh: None,
+                    sha256: ConfigSHA256 {
+                        enabled: true,
+                        hexdigest: None,
+                    },
+                    tlsh: ConfigTLSH {
+                        enabled: true,
+                        minimum_byte_size: 50,
+                        hexdigest: None,
+                    },
                 }
             },
             mmap: ConfigMmap {

@@ -41,7 +41,7 @@ impl <'file> File <'file> {
     /// Returns `Some(String)` containing the TLSH hash, or `None` if unavailable.
     #[allow(dead_code)]
     pub fn tlsh(&self) -> Option<String> {
-        self.cfg.config.hashing.file.tlsh.clone()
+        self.cfg.config.hashing.file.tlsh.hexdigest.clone()
     }
 
     /// Retrieves the SHA-256 hash of the file, if available.
@@ -51,7 +51,7 @@ impl <'file> File <'file> {
     /// Returns `Some(String)` containing the SHA-256 hash, or `None` if unavailable.
     #[allow(dead_code)]
     pub fn sha256(&self) -> Option<String> {
-        self.cfg.config.hashing.file.sha256.clone()
+        self.cfg.config.hashing.file.sha256.hexdigest.clone()
     }
 
     /// Processes the file metadata into a JSON-serializable `FileJson` structure.

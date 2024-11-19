@@ -37,9 +37,11 @@ impl <'pe> PE <'pe>{
             }
         };
         if let Some(Binary::PE(pe)) = Binary::parse(&path) {
-            if config.hashing.file.enabled {
-                config.hashing.file.sha256 = file.sha256();
-                config.hashing.file.tlsh = file.tlsh();
+            if config.hashing.file.sha256.enabled {
+                config.hashing.file.sha256.hexdigest = file.sha256();
+            }
+            if config.hashing.file.tlsh.enabled {
+                config.hashing.file.tlsh.hexdigest = file.tlsh();
             }
             return Ok(Self {
                 pe: pe,
@@ -62,9 +64,11 @@ impl <'pe> PE <'pe>{
         let file = File::from_bytes(bytes);
         let mut cursor = Cursor::new(&file.data);
         if let Some(Binary::PE(pe)) = Binary::from(&mut cursor) {
-            if config.hashing.file.enabled {
-                config.hashing.file.sha256 = file.sha256();
-                config.hashing.file.tlsh = file.tlsh();
+            if config.hashing.file.sha256.enabled {
+                config.hashing.file.sha256.hexdigest = file.sha256();
+            }
+            if config.hashing.file.tlsh.enabled {
+                config.hashing.file.tlsh.hexdigest = file.tlsh();
             }
             return Ok(Self{
                 pe: pe,

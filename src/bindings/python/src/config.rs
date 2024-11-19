@@ -158,16 +158,19 @@ pub struct ConfigFileHashes {
 
 #[pymethods]
 impl ConfigFileHashes {
+
     #[getter]
-    pub fn get_enabled(&self) -> bool {
-        let inner = self.inner.lock().unwrap();
-        inner.hashing.file.enabled
+    pub fn get_sha256(&self) -> ConfigSHA256 {
+        ConfigSHA256 {
+            inner: Arc::clone(&self.inner)
+        }
     }
 
-    #[setter]
-    pub fn set_enabled(&self, value: bool) {
-        let mut inner = self.inner.lock().unwrap();
-        inner.hashing.file.enabled = value;
+    #[getter]
+    pub fn get_tlsh(&self) -> ConfigTLSH {
+        ConfigTLSH {
+            inner: Arc::clone(&self.inner)
+        }
     }
 }
 
@@ -201,6 +204,18 @@ impl ConfigTLSH {
         let mut inner = self.inner.lock().unwrap();
         inner.hashing.tlsh.minimum_byte_size = value;
     }
+
+    #[getter]
+    pub fn get_hexdigest(&self) -> Option<String> {
+        let inner = self.inner.lock().unwrap();
+        inner.hashing.tlsh.hexdigest.clone()
+    }
+
+    #[setter]
+    pub fn set_hexdigest(&mut self, value: String) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.hashing.tlsh.hexdigest = Some(value);
+    }
 }
 
 #[pyclass]
@@ -218,35 +233,35 @@ impl Config {
     }
 
     #[getter]
-    fn get_hashing(&self) -> PyResult<ConfigHashing> {
+    pub fn get_hashing(&self) -> PyResult<ConfigHashing> {
         Ok(ConfigHashing {
             inner: Arc::clone(&self.inner),
         })
     }
 
     #[getter]
-    fn get_general(&self) -> PyResult<ConfigGeneral> {
+    pub fn get_general(&self) -> PyResult<ConfigGeneral> {
         Ok(ConfigGeneral {
             inner: Arc::clone(&self.inner),
         })
     }
 
     #[getter]
-    fn get_heuristics(&self) -> PyResult<ConfigHeuristics> {
+    pub fn get_heuristics(&self) -> PyResult<ConfigHeuristics> {
         Ok(ConfigHeuristics {
             inner: Arc::clone(&self.inner),
         })
     }
 
     #[getter]
-    fn get_mmap(&self) -> PyResult<ConfigMmap> {
+    pub fn get_mmap(&self) -> PyResult<ConfigMmap> {
         Ok(ConfigMmap {
             inner: Arc::clone(&self.inner),
         })
     }
 
     #[getter]
-    fn get_disassembler(&self) -> PyResult<ConfigDisassembler> {
+    pub fn get_disassembler(&self) -> PyResult<ConfigDisassembler> {
         Ok(ConfigDisassembler {
             inner: Arc::clone(&self.inner),
         })
@@ -392,6 +407,18 @@ impl ConfigSHA256 {
         let mut inner = self.inner.lock().unwrap();
         inner.hashing.sha256.enabled = value;
         Ok(())
+    }
+
+    #[getter]
+    pub fn get_hexdigest(&self) -> Option<String> {
+        let inner = self.inner.lock().unwrap();
+        inner.hashing.sha256.hexdigest.clone()
+    }
+
+    #[setter]
+    pub fn set_hexdigest(&mut self, value: String) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.hashing.sha256.hexdigest = Some(value);
     }
 }
 
