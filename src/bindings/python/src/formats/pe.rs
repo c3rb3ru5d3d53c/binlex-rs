@@ -90,12 +90,12 @@ impl PE {
         self.inner.lock().unwrap().sizeofheaders()
     }
 
-    #[pyo3(text_signature = "($self, file_path, cache)")]
+    #[pyo3(text_signature = "($self)")]
     pub fn image(&self, py: Python<'_>) -> PyResult<Py<MemoryMappedFile>> {
         let result = self.inner.lock().unwrap().image().map_err(|e| {
             pyo3::exceptions::PyIOError::new_err(e.to_string())
         })?;
-        let py_memory_mapped_file = Py::new(py, MemoryMappedFile { inner: result })?;
+        let py_memory_mapped_file = Py::new(py, MemoryMappedFile { inner: result, mmap: None})?;
         Ok(py_memory_mapped_file)
     }
 

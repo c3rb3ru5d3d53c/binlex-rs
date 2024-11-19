@@ -452,10 +452,7 @@ pe = PE('./sample.dll', config)
 mapped_file = pe.image()
 
 # Get the Memory Map
-mmap = mapped_file.mmap()
-
-# Get the Image Memory View
-image = mmap.as_memoryview()
+image = mapped_file.as_memoryview()
 
 # Create Disassembler on Mapped PE Image and PE Architecture
 disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges())
