@@ -10,7 +10,7 @@ use binlex::config::AUTHOR;
 use binlex::config::VERSION;
 use binlex::terminal::io::Stdout;
 use binlex::terminal::io::JSON;
-use binlex::attributes::SymbolIoJson;
+use binlex::formats::SymbolIoJson;
 
 #[derive(Parser, Debug)]
 #[command(

@@ -20,7 +20,7 @@ pub struct SymbolIoJson {
 }
 
 /// Represents a JSON-serializable structure containing metadata about a function symbol.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SymbolJson {
     /// Names associated with the function symbol.
     pub names: BTreeSet<String>,

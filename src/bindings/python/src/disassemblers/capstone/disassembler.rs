@@ -1,5 +1,4 @@
 use pyo3::prelude::*;
-
 use pyo3::Py;
 use std::borrow::Borrow;
 use std::io::Error;
@@ -7,7 +6,7 @@ use std::collections::BTreeSet;
 use std::collections::BTreeMap;
 use binlex::disassemblers::capstone::Disassembler as InnerDisassembler;
 use crate::binary::BinaryArchitecture;
-use crate::controlflow::graph::Graph;
+use crate::controlflow::Graph;
 use pyo3::types::PyBytes;
 use pyo3::types::PyAny;
 use pyo3::types::PyMemoryView;

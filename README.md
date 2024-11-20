@@ -400,23 +400,48 @@ use binlex::formats::PE;
 use binlex::disassemblers::capstone::Disassembler;
 use binlex::controlflow::Graph;
 use binlex::controlflow::Block;
+use binlex::controlflow::Attribute;
 
 // Get Default Configuration
 let config = Config();
 
 // Read PE File
-let pe = PE.new("./sample.dll", config);
+let pe = PE.new("./sample.dll", config)
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
+
+
+// Read File Attribute from PE
+let file_attribute = Attribute::File(pe.file.process());
+
+// Create Attributes
+let mut attributes = Attributes::new();
+
+// Add PE File Attribute to Attributes
+attributes.push(file_attribute);
 
 // Get Memory Mapped Image
 let mapped_file = pe.image()
-  .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1)
+  });
 
 let image = mapped_file
   .mmap()
-  .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
 
 // Create Disassembler
-let disassembler = Disassembler(pe.architecture(), &image, pe.executable_virtual_address_ranges());
+let disassembler = Disassembler(pe.architecture(), &image, pe.executable_virtual_address_ranges())
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
 
 // Create Control Flow Graph
 cfg = Graph(pe.architecture(), config);

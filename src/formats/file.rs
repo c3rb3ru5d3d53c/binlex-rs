@@ -2,7 +2,26 @@ use std::fs::File as StdFile;
 use std::io::{Read, Error};
 use crate::hashing::sha256::SHA256;
 use crate::hashing::tlsh::TLSH;
+use crate::Binary;
 use std::io::ErrorKind;
+use serde::{Deserialize, Serialize};
+use serde_json;
+use crate::controlflow::Attribute;
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct FileJson {
+    #[serde(rename = "type")]
+    /// The type always `file`
+    pub type_: String,
+    /// The SHA-256 hash of the file, if available.
+    pub sha256: Option<String>,
+    /// The TLSH (Trend Micro Locality Sensitive Hash) of the file, if available.
+    pub tlsh: Option<String>,
+    /// The File Size,
+    pub size: Option<u64>,
+    // The File Entropy
+    pub entropy: Option<f64>,
+}
 
 /// Represents a file with its contents and an optional file path.
 pub struct File {
@@ -96,6 +115,54 @@ impl File {
         let mut file = StdFile::open(&self.path.clone().unwrap())?;
         file.read_to_end(&mut self.data)?;
         Ok(())
+    }
+
+    /// Prints the JSON representation of the file metadata to standard output.
+    #[allow(dead_code)]
+    pub fn print(&self) {
+        if let Ok(json) = self.json() {
+            println!("{}", json);
+        }
+    }
+
+    /// Processes the file metadata into a JSON-serializable `FileJson` structure.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `FileJson` struct containing the file's SHA-256 hash, TLSH hash, and size.
+    pub fn process(&self) -> FileJson {
+        FileJson {
+            type_: "file".to_string(),
+            sha256: self.sha256(),
+            tlsh: self.tlsh(),
+            size: Some(self.size()),
+            entropy: self.entropy(),
+        }
+    }
+
+    pub fn entropy(&self) -> Option<f64> {
+        Binary::entropy(&self.data)
+    }
+
+    /// Gets attribute information about a file
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Attribute` struct containing the file's SHA-256 hash, TLSH hash, and size.
+    pub fn attribute(&self) -> Attribute {
+        Attribute::File(self.process())
+    }
+
+    /// Converts the file metadata into a JSON string representation.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(String)` containing the JSON representation of the file metadata,
+    /// or an `Err` if serialization fails.
+    pub fn json(&self) -> Result<String, Error> {
+        let raw = self.process();
+        let result = serde_json::to_string(&raw)?;
+        Ok(result)
     }
 
 }

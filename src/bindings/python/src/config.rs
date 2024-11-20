@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 use std::sync::{Arc, Mutex};
-use binlex::config::Config as InnerConfig;
+use binlex::Config as InnerConfig;
 
 #[pyclass]
 pub struct ConfigDisassembler {

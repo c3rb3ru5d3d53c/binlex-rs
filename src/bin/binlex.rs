@@ -14,11 +14,13 @@ use binlex::controlflow::Function;
 use binlex::types::LZ4String;
 use binlex::terminal::io::Stdout;
 use binlex::terminal::io::JSON;
-use binlex::attributes::Symbol;
+use binlex::formats::Symbol;
 use clap::Parser;
 use binlex::config::Config;
 use binlex::config::VERSION;
 use binlex::config::AUTHOR;
+use binlex::controlflow::Attributes;
+use binlex::controlflow::Tag;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -280,9 +282,6 @@ fn main() {
         config.heuristics.normalization.enabled = false;
     }
 
-
-    //let config = get_config();
-
     ThreadPoolBuilder::new()
         .num_threads(config.general.threads)
         .build_global()
@@ -295,6 +294,18 @@ fn main() {
             process::exit(1);
         }
     };
+
+    let file_attribute = pe.file.attribute();
+
+    let mut attributes = Attributes::new();
+
+    if args.tags.is_some() {
+        for tag in args.tags.unwrap() {
+            attributes.push(Tag::new(tag).attribute());
+        }
+    }
+
+    attributes.push(file_attribute);
 
     let function_symbols = get_pe_function_symbols(&pe);
 
@@ -364,7 +375,7 @@ fn main() {
         .collect::<Vec<u64>>()
         .par_iter()
         .filter_map(|address| Block::new(*address, &cfg).ok())
-        .filter_map(|block|block.json().ok())
+        .filter_map(|block|block.json_with_attributes(attributes.clone()).ok())
         .map(|js| LZ4String::new(&js))
         .collect();
 
@@ -374,7 +385,7 @@ fn main() {
         .collect::<Vec<u64>>()
         .par_iter()
         .filter_map(|address| Function::new(*address, &cfg).ok())
-        .filter_map(|function| function.json().ok())
+        .filter_map(|function| function.json_with_attributes(attributes.clone()).ok())
         .map(|js| LZ4String::new(&js))
         .collect();
 

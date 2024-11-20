@@ -13,9 +13,11 @@ use crate::controlflow::GraphQueue;
 use crate::controlflow::Block;
 use crate::controlflow::Signature;
 use crate::controlflow::SignatureJson;
+use crate::controlflow::Attributes;
 use crate::hashing::SHA256;
 use crate::hashing::TLSH;
 use crate::hashing::MinHash32;
+use serde_json::Value;
 
 /// Represents a JSON-serializable structure containing metadata about a function.
 #[derive(Serialize, Deserialize)]
@@ -53,6 +55,8 @@ pub struct FunctionJson {
     pub tlsh: Option<String>,
     /// Indicates whether the function is contiguous.
     pub contiguous: bool,
+    /// Attributes
+    pub attributes: Option<Value>,
 }
 
 /// Represents a control flow function within a graph.
@@ -170,7 +174,19 @@ impl<'function> Function<'function> {
             tlsh: self.tlsh(),
             contiguous: self.is_contiguous(),
             architecture: self.architecture().to_string(),
+            attributes: None,
         }
+    }
+
+    /// Processes the function into its JSON-serializable representation including `Attributes`
+    ///
+    /// # Returns
+    ///
+    /// Returns a `FunctionJson` instance containing the function's metadata and `Attributes`.
+    pub fn process_with_attributes(&self, attributes: Attributes) -> FunctionJson {
+        let mut result = self.process();
+        result.attributes = Some(attributes.process());
+        return result;
     }
 
     /// Prints the JSON representation of the function to standard output.
@@ -188,6 +204,17 @@ impl<'function> Function<'function> {
     /// Returns `Ok(String)` containing the JSON representation, or an `Err` if serialization fails.
     pub fn json(&self) -> Result<String, Error> {
         let raw = self.process();
+        let result = serde_json::to_string(&raw)?;
+        Ok(result)
+    }
+
+    /// Converts the function metadata into a JSON string representation including `Attributes`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(String)` containing the JSON representation, or an `Err` if serialization fails.
+    pub fn json_with_attributes(&self, attributes: Attributes) -> Result<String, Error> {
+        let raw = self.process_with_attributes(attributes);
         let result = serde_json::to_string(&raw)?;
         Ok(result)
     }

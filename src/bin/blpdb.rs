@@ -1,12 +1,12 @@
 use std::collections::BTreeSet;
 use std::process;
-use binlex::attributes::SymbolIoJson;
+use binlex::formats::SymbolIoJson;
 use clap::Parser;
 use pdb::FallibleIterator;
 use std::fs::File;
 use binlex::terminal::io::Stdin;
 use binlex::terminal::io::Stdout;
-use binlex::attributes::Symbol;
+use binlex::formats::Symbol;
 use binlex::config::AUTHOR;
 use binlex::config::VERSION;
 

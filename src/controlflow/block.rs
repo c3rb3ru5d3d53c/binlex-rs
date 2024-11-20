@@ -2,6 +2,7 @@ use crate::binary::BinaryArchitecture;
 use crate::controlflow::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use serde_json::Value;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::io::Error;
@@ -13,6 +14,7 @@ use crate::controlflow::signature::SignatureJson;
 use crate::hashing::SHA256;
 use crate::hashing::TLSH;
 use crate::hashing::MinHash32;
+use crate::controlflow::Attributes;
 
 /// Represents the JSON-serializable structure of a control flow block.
 #[derive(Serialize, Deserialize)]
@@ -54,6 +56,8 @@ pub struct BlockJson {
     pub tlsh: Option<String>,
     /// Indicates whether the block is contiguous.
     pub contiguous: bool,
+    /// Attributes
+    pub attributes: Option<Value>,
 }
 
 /// Represents a control flow block within a graph.
@@ -139,6 +143,17 @@ impl<'block> Block<'block> {
         Ok(result)
     }
 
+    /// Converts the block into a JSON string representation including `Attributes`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(String)` containing the JSON representation, or an `Err` if serialization fails.
+    pub fn json_with_attributes(&self, attributes: Attributes) -> Result<String, Error> {
+        let raw = self.process_with_attributes(attributes);
+        let result = serde_json::to_string(&raw)?;
+        Ok(result)
+    }
+
     /// Processes the block into its JSON-serializable representation.
     ///
     /// # Returns
@@ -164,7 +179,19 @@ impl<'block> Block<'block> {
             minhash: self.minhash(),
             tlsh: self.tlsh(),
             contiguous: true,
+            attributes: None,
         }
+    }
+
+    /// Processes the block into its JSON-serializable representation including `Attributes`.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BlockJson` instance containing the block's metadata and `Attributes`.
+    pub fn process_with_attributes(&self, attributes: Attributes) -> BlockJson {
+        let mut result = self.process();
+        result.attributes = Some(attributes.process());
+        return result;
     }
 
     /// Determines whether the block starts with a function prologue.

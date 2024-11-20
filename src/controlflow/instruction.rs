@@ -2,6 +2,7 @@ use std::{collections::BTreeSet, io::Error};
 use crate::binary::{Binary, BinaryArchitecture};
 use serde::{Deserialize, Serialize};
 use serde_json;
+use serde_json::Value;
 
 /// Represents a single instruction in disassembled binary code.
 ///
@@ -82,6 +83,8 @@ pub struct InstructionJson {
     pub to: BTreeSet<u64>,
     /// The address of the next sequential instruction, if any.
     pub next: Option<u64>,
+    /// Attributes
+    pub attributes: Option<Value>,
 }
 
 impl Instruction {
@@ -176,6 +179,7 @@ impl Instruction {
             blocks: self.blocks(),
             to: self.to(),
             next: self.next(),
+            attributes: None,
         }
     }
 
