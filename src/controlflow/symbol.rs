@@ -1,16 +1,16 @@
 use std::io::Error;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::collections::BTreeSet;
+use crate::controlflow::Attribute;
 
 /// Represents a JSON-serializable structure containing metadata about a function symbol.
 #[derive(Serialize, Deserialize)]
 pub struct SymbolIoJson {
-    /// The type of this entity, always `"function"`.
+    /// The type of this entity.
     #[serde(rename = "type")]
     pub type_: String,
     /// Names associated with the function symbol.
-    pub names: BTreeSet<String>,
+    pub name: String,
     /// The offset of the function symbol, if available.
     pub file_offset: Option<u64>,
     /// The relative virtual address of the function symbol, if available.
@@ -22,9 +22,13 @@ pub struct SymbolIoJson {
 /// Represents a JSON-serializable structure containing metadata about a function symbol.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SymbolJson {
+    #[serde(rename = "type")]
+    /// The type of the symbol
+    pub type_: String,
     /// Names associated with the function symbol.
-    pub names: BTreeSet<String>,
+    pub name: String,
     /// The virtual address of the function symbol.
+    #[serde(skip)]
     pub address: u64,
 }
 
@@ -32,37 +36,21 @@ pub struct SymbolJson {
 #[derive(Clone)]
 pub struct Symbol {
     /// Names associated with the function symbol.
-    pub names: BTreeSet<String>,
+    pub name: String,
      /// The virtual address of the function symbol.
     pub address: u64,
+    /// The type of symbol
+    pub symbol_type: String,
 }
 
 impl Symbol {
     #[allow(dead_code)]
-    pub fn new(address: u64) -> Self{
+    pub fn new(address: u64, symbol_type: String, name: String) -> Self{
         Self {
-            names: BTreeSet::<String>::new(),
+            name: name,
             address: address,
+            symbol_type: symbol_type,
         }
-    }
-
-    /// Inserts many names for a symbol given a set of names.
-    #[allow(dead_code)]
-    pub fn insert_name_entend(&mut self, names: BTreeSet<String>) {
-        for name in names {
-            self.names.insert(name);
-        }
-    }
-
-
-    /// Inserts a function name associated with the address.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `bool` indicating if the name was inserted or not
-    #[allow(dead_code)]
-    pub fn insert_name(&mut self, name: String) -> bool{
-        self.names.insert(name)
     }
 
     /// Processes the function signature into its JSON-serializable representation.
@@ -72,9 +60,19 @@ impl Symbol {
     /// Returns a `FunctionSymbolJson` struct containing metadata about the function symbol.
     pub fn process(&self) -> SymbolJson {
         SymbolJson {
-            names: self.names.clone(),
+            type_: self.symbol_type.clone(),
+            name: self.name.clone(),
             address: self.address,
         }
+    }
+
+    /// Processes the tag into an `Attribute`.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Attribute` struct containing the tag.
+    pub fn attribute(&self) -> Attribute {
+        Attribute::Symbol(self.process())
     }
 
      /// Prints the JSON representation of the function symbol to standard output.

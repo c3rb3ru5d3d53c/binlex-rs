@@ -1,8 +1,8 @@
 use clap::Parser;
 use serde_json::Value;
-use std::collections::BTreeSet;
 use std::fs::File;
 use std::io::Error;
+use std::io::ErrorKind;
 use std::io::Write;
 use std::process;
 use binlex::types::LZ4String;
@@ -10,7 +10,7 @@ use binlex::config::AUTHOR;
 use binlex::config::VERSION;
 use binlex::terminal::io::Stdout;
 use binlex::terminal::io::JSON;
-use binlex::formats::SymbolIoJson;
+use binlex::controlflow::SymbolIoJson;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -29,13 +29,12 @@ struct Args {
 fn process_value(parsed: &Value) -> Result<LZ4String, Error> {
     let virtual_address = parsed.get("offset").unwrap().as_u64().unwrap();
     let function_name = parsed.get("name").unwrap().as_str().unwrap().to_string();
-    let mut function_names = BTreeSet::<String>::new();
-    if !function_name.starts_with("fcn.") {
-        function_names.insert(function_name);
+    if function_name.starts_with("fcn.") {
+        return Err(Error::new(ErrorKind::NotFound, "symbol not found"));
     }
     let symbol = SymbolIoJson {
         type_: "function".to_string(),
-        names: function_names,
+        name: function_name,
         file_offset: None,
         relative_virtual_address: None,
         virtual_address: Some(virtual_address),

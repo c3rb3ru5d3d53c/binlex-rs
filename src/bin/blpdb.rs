@@ -1,12 +1,11 @@
-use std::collections::BTreeSet;
 use std::process;
-use binlex::formats::SymbolIoJson;
+use binlex::controlflow::SymbolIoJson;
 use clap::Parser;
 use pdb::FallibleIterator;
 use std::fs::File;
 use binlex::terminal::io::Stdin;
 use binlex::terminal::io::Stdout;
-use binlex::formats::Symbol;
+use binlex::controlflow::Symbol;
 use binlex::config::AUTHOR;
 use binlex::config::VERSION;
 
@@ -45,11 +44,9 @@ fn main() -> pdb::Result<()> {
                 if cli.demangle_msvc_names {
                     name = Symbol::demangle_msvc_name(&name);
                 }
-                let mut names = BTreeSet::<String>::new();
-                names.insert(name);
                 results.push(SymbolIoJson{
                     type_: "function".to_string(),
-                    names: names,
+                    name: name,
                     file_offset: None,
                     relative_virtual_address: Some(rva.0 as u64),
                     virtual_address: None,

@@ -1,6 +1,6 @@
 use serde_json::json;
 use crate::formats::file::FileJson;
-use crate::formats::SymbolJson;
+use crate::controlflow::SymbolJson;
 use crate::controlflow::TagJson;
 use serde_json::Value;
 use std::io::Error;

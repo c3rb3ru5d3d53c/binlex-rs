@@ -3,6 +3,7 @@ use binlex::formats::pe::PE;
 use binlex::disassemblers::capstone::Disassembler;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde_json::json;
+use std::collections::BTreeMap;
 use std::process;
 use std::fs::File;
 use std::io::Write;
@@ -14,7 +15,7 @@ use binlex::controlflow::Function;
 use binlex::types::LZ4String;
 use binlex::terminal::io::Stdout;
 use binlex::terminal::io::JSON;
-use binlex::formats::Symbol;
+use binlex::controlflow::Symbol;
 use clap::Parser;
 use binlex::config::Config;
 use binlex::config::VERSION;
@@ -105,8 +106,8 @@ fn validate_args(args: &Args) {
 
 }
 
-fn get_pe_function_symbols(pe: &PE) -> Vec<Symbol> {
-    let mut symbols = Vec::<Symbol>::new();
+fn get_pe_function_symbols(pe: &PE) -> BTreeMap<u64, Symbol> {
+    let mut symbols = BTreeMap::<u64, Symbol>::new();
 
     let json = JSON::from_stdin_with_filter(|value| {
         let obj = match value.as_object_mut() {
@@ -154,17 +155,16 @@ fn get_pe_function_symbols(pe: &PE) -> Vec<Symbol> {
     if json.is_ok() {
         for value in json.unwrap().values() {
             let address = value.get("virtual_address").and_then(|v| v.as_u64());
-            if address.is_some() {
-                let mut symbol = Symbol::new(address.unwrap());
-                if let Some(names) = value.get("names").and_then(|v| v.as_array()) {
-                    for name in names {
-                        if let Some(name_str) = name.as_str() {
-                            symbol.insert_name(name_str.to_string());
-                        }
-                    }
-                }
-                symbols.push(symbol);
-            }
+            let name = value.get("name").and_then(|v| v.as_str());
+            let symbol_type = value.get("type").and_then(|v| v.as_str());
+            if address.is_none() { continue; }
+            if name.is_none() { continue; }
+            if symbol_type.is_none() { continue; }
+            let symbol = Symbol::new(
+                address.unwrap(),
+                symbol_type.unwrap().to_string(),
+                name.unwrap().to_string());
+            symbols.insert(address.unwrap(),symbol);
         }
     }
 
@@ -336,12 +336,7 @@ fn main() {
         entrypoints.extend(disassembler.disassemble_sweep());
     }
 
-    let function_symbol_addresses: BTreeSet<u64> = function_symbols
-        .iter()
-        .map(|symbol| symbol.address)
-        .collect();
-
-    entrypoints.extend(function_symbol_addresses);
+    entrypoints.extend(function_symbols.keys());
 
     let mut cfg = Graph::new(machine, config.clone());
 
@@ -367,15 +362,13 @@ fn main() {
 
     let cfg = cfg;
 
-    // Apply Tags, File Hashes, Symbols
-
     let blocks: Vec<LZ4String> = cfg.blocks.valid()
         .iter()
         .map(|entry| *entry)
         .collect::<Vec<u64>>()
         .par_iter()
         .filter_map(|address| Block::new(*address, &cfg).ok())
-        .filter_map(|block|block.json_with_attributes(attributes.clone()).ok())
+        .filter_map(|block| block.json_with_attributes(attributes.clone()).ok())
         .map(|js| LZ4String::new(&js))
         .collect();
 
@@ -385,7 +378,14 @@ fn main() {
         .collect::<Vec<u64>>()
         .par_iter()
         .filter_map(|address| Function::new(*address, &cfg).ok())
-        .filter_map(|function| function.json_with_attributes(attributes.clone()).ok())
+        .filter_map(|function| {
+            let mut function_attributes = attributes.clone();
+            let symbol= function_symbols.get(&function.address);
+            if symbol.is_some() {
+                function_attributes.push(symbol.unwrap().attribute());
+            }
+            function.json_with_attributes(function_attributes).ok()
+        })
         .map(|js| LZ4String::new(&js))
         .collect();
 
