@@ -33,7 +33,8 @@ fn process_value(parsed: &Value) -> Result<LZ4String, Error> {
         return Err(Error::new(ErrorKind::NotFound, "symbol not found"));
     }
     let symbol = SymbolIoJson {
-        type_: "function".to_string(),
+        type_: "symbol".to_string(),
+        symbol_type: "function".to_string(),
         name: function_name,
         file_offset: None,
         relative_virtual_address: None,

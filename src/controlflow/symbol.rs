@@ -9,6 +9,8 @@ pub struct SymbolIoJson {
     /// The type of this entity.
     #[serde(rename = "type")]
     pub type_: String,
+    /// The type of symbol
+    pub symbol_type: String,
     /// Names associated with the function symbol.
     pub name: String,
     /// The offset of the function symbol, if available.
@@ -23,8 +25,10 @@ pub struct SymbolIoJson {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SymbolJson {
     #[serde(rename = "type")]
-    /// The type of the symbol
+    /// The type always `symbol`.
     pub type_: String,
+    /// The type of symbol.
+    pub symbol_type: String,
     /// Names associated with the function symbol.
     pub name: String,
     /// The virtual address of the function symbol.
@@ -60,7 +64,8 @@ impl Symbol {
     /// Returns a `FunctionSymbolJson` struct containing metadata about the function symbol.
     pub fn process(&self) -> SymbolJson {
         SymbolJson {
-            type_: self.symbol_type.clone(),
+            type_: "symbol".to_string(),
+            symbol_type: self.symbol_type.clone(),
             name: self.name.clone(),
             address: self.address,
         }

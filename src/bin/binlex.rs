@@ -116,11 +116,16 @@ fn get_pe_function_symbols(pe: &PE) -> BTreeMap<u64, Symbol> {
         };
 
         let obj_type = obj.get("type").and_then(|v| v.as_str()).map(String::from);
+        let symbol_type = obj.get("symbol_type").and_then(|v| v.as_str()).map(String::from);
         let file_offset = obj.get("file_offset").and_then(|v| v.as_u64());
         let relative_virtual_address = obj.get("relative_virtual_address").and_then(|v| v.as_u64());
         let mut virtual_address = obj.get("virtual_address").and_then(|v| v.as_u64());
 
-        if obj_type.as_deref() != Some("function") {
+        if obj_type.as_deref() != Some("symbol") {
+            return false;
+        }
+
+        if symbol_type.is_none() {
             return false;
         }
 
@@ -156,7 +161,7 @@ fn get_pe_function_symbols(pe: &PE) -> BTreeMap<u64, Symbol> {
         for value in json.unwrap().values() {
             let address = value.get("virtual_address").and_then(|v| v.as_u64());
             let name = value.get("name").and_then(|v| v.as_str());
-            let symbol_type = value.get("type").and_then(|v| v.as_str());
+            let symbol_type = value.get("symbol_type").and_then(|v| v.as_str());
             if address.is_none() { continue; }
             if name.is_none() { continue; }
             if symbol_type.is_none() { continue; }

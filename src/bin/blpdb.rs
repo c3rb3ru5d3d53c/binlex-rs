@@ -45,7 +45,8 @@ fn main() -> pdb::Result<()> {
                     name = Symbol::demangle_msvc_name(&name);
                 }
                 results.push(SymbolIoJson{
-                    type_: "function".to_string(),
+                    type_: "symbol".to_string(),
+                    symbol_type: "function".to_string(),
                     name: name,
                     file_offset: None,
                     relative_virtual_address: Some(rva.0 as u64),
