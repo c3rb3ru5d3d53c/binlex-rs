@@ -81,20 +81,16 @@ impl GraphQueue {
 
 #[pyclass]
 pub struct Graph {
-    pub inner: Arc<Mutex<InnerGraph<'static>>>,
+    pub inner: Arc<Mutex<InnerGraph>>,
 }
 
 #[pymethods]
 impl Graph {
     #[new]
     #[pyo3(text_signature = "(architecture, config)")]
-    pub fn new(py: Python, architecture: Py<BinaryArchitecture>, config: &Bound<'_, Config>) -> Self {
-        let config_arc_mutex = config.clone().unbind().borrow(py).inner.clone();
-        let config_lock = config_arc_mutex.lock().unwrap();
-        let config_clone = (*config_lock).clone();
-        let boxed_config = Box::new(config_clone);
-        let leaked_config = Box::leak(boxed_config);
-        let inner = InnerGraph::new(architecture.borrow(py).inner, leaked_config);
+    pub fn new(py: Python, architecture: Py<BinaryArchitecture>, config: Py<Config>) -> Self {
+        let inner_config = config.borrow(py).inner.lock().unwrap().clone();
+        let inner = InnerGraph::new(architecture.borrow(py).inner, inner_config);
         Self {
             inner: Arc::new(Mutex::new(inner)),
         }

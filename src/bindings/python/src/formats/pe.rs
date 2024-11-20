@@ -14,20 +14,16 @@ use std::sync::Mutex;
 
 #[pyclass(unsendable)]
 pub struct PE {
-    pub inner: Arc<Mutex<InnerPe<'static>>>,
+    pub inner: Arc<Mutex<InnerPe>>,
 }
 
 #[pymethods]
 impl PE {
     #[new]
     #[pyo3(text_signature = "(path, config)")]
-    pub fn new(py: Python, path: String, config: &Bound<'_, Config>) -> Result<Self, Error> {
-        let config_arc_mutex = config.clone().unbind().borrow_mut(py).inner.clone();
-        let config_lock = config_arc_mutex.lock().unwrap();
-        let config_clone = (*config_lock).clone();
-        let boxed_config = Box::new(config_clone);
-        let leaked_config = Box::leak(boxed_config);
-        let inner = InnerPe::new(path, leaked_config)?;
+    pub fn new(py: Python, path: String, config: Py<Config>) -> Result<Self, Error> {
+        let inner_config = config.borrow(py).inner.lock().unwrap().clone();
+        let inner = InnerPe::new(path, inner_config)?;
         Ok(Self{
             inner: Arc::new(Mutex::new(inner)),
         })
@@ -35,13 +31,9 @@ impl PE {
 
     #[classmethod]
     #[pyo3(text_signature = "(bytes, config)")]
-    pub fn from_bytes(_: &Bound<'_, PyType>, py: Python, bytes: Vec<u8>, config: &Bound<'_, Config>) -> PyResult<Self> {
-        let config_arc_mutex = config.clone().unbind().borrow(py).inner.clone();
-        let config_lock = config_arc_mutex.lock().unwrap();
-        let config_clone = (*config_lock).clone();
-        let boxed_config = Box::new(config_clone);
-        let leaked_config = Box::leak(boxed_config);
-        let inner = InnerPe::from_bytes(bytes, leaked_config)?;
+    pub fn from_bytes(_: &Bound<'_, PyType>, py: Python, bytes: Vec<u8>, config: Py<Config>) -> PyResult<Self> {
+        let inner_config = config.borrow(py).inner.lock().unwrap().clone();
+        let inner = InnerPe::from_bytes(bytes, inner_config)?;
         Ok(Self { inner: Arc::new(Mutex::new(inner)) })
     }
 

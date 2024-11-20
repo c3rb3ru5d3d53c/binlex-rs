@@ -14,7 +14,7 @@ use binlex::controlflow::Function;
 use binlex::types::LZ4String;
 use binlex::terminal::io::Stdout;
 use binlex::terminal::io::JSON;
-use binlex::controlflow::Symbol;
+use binlex::attributes::Symbol;
 use clap::Parser;
 use binlex::config::Config;
 use binlex::config::VERSION;
@@ -103,7 +103,73 @@ fn validate_args(args: &Args) {
 
 }
 
-fn get_config() -> Config {
+fn get_pe_function_symbols(pe: &PE) -> Vec<Symbol> {
+    let mut symbols = Vec::<Symbol>::new();
+
+    let json = JSON::from_stdin_with_filter(|value| {
+        let obj = match value.as_object_mut() {
+            Some(obj) => obj,
+            None => return false,
+        };
+
+        let obj_type = obj.get("type").and_then(|v| v.as_str()).map(String::from);
+        let file_offset = obj.get("file_offset").and_then(|v| v.as_u64());
+        let relative_virtual_address = obj.get("relative_virtual_address").and_then(|v| v.as_u64());
+        let mut virtual_address = obj.get("virtual_address").and_then(|v| v.as_u64());
+
+        if obj_type.as_deref() != Some("function") {
+            return false;
+        }
+
+        if file_offset.is_none() && relative_virtual_address.is_none() && virtual_address.is_none() {
+            return false;
+        }
+
+        if virtual_address.is_some() {
+            return true;
+        }
+
+        if virtual_address.is_none() {
+            if let Some(rva) = relative_virtual_address {
+                virtual_address = Some(pe.relative_virtual_address_to_virtual_address(rva));
+            }
+            if let Some(offset) = file_offset {
+                if let Some(va) = pe.file_offset_to_virtual_address(offset) {
+                    virtual_address = Some(va);
+                }
+            }
+
+            if let Some(va) = virtual_address {
+                obj.insert("virtual_address".to_string(), json!(va));
+                return true;
+            }
+        }
+
+        false
+
+    });
+
+    if json.is_ok() {
+        for value in json.unwrap().values() {
+            let address = value.get("virtual_address").and_then(|v| v.as_u64());
+            if address.is_some() {
+                let mut symbol = Symbol::new(address.unwrap());
+                if let Some(names) = value.get("names").and_then(|v| v.as_array()) {
+                    for name in names {
+                        if let Some(name_str) = name.as_str() {
+                            symbol.insert_name(name_str.to_string());
+                        }
+                    }
+                }
+                symbols.push(symbol);
+            }
+        }
+    }
+
+    return symbols;
+}
+
+fn main() {
 
     let args = Args::parse();
 
@@ -129,9 +195,6 @@ fn get_config() -> Config {
             process::exit(1);
         }
     }
-
-    config.general.input = Some(args.input);
-    config.general.output = args.output;
 
     if args.debug != false {
         config.general.debug = args.debug;
@@ -202,10 +265,6 @@ fn get_config() -> Config {
         config.disassembler.sweep.enabled = !args.disable_linear_pass;
     }
 
-    if args.tags.is_some() {
-        config.general.tags = args.tags.unwrap();
-    }
-
     if args.disable_hashing == true {
         config.hashing.minhash.enabled = false;
         config.hashing.sha256.enabled = false;
@@ -221,86 +280,15 @@ fn get_config() -> Config {
         config.heuristics.normalization.enabled = false;
     }
 
-    config
 
-}
-
-fn get_pe_function_symbols(pe: &PE) -> Vec<Symbol> {
-    let mut symbols = Vec::<Symbol>::new();
-
-    let json = JSON::from_stdin_with_filter(|value| {
-        let obj = match value.as_object_mut() {
-            Some(obj) => obj,
-            None => return false,
-        };
-
-        let obj_type = obj.get("type").and_then(|v| v.as_str()).map(String::from);
-        let file_offset = obj.get("file_offset").and_then(|v| v.as_u64());
-        let relative_virtual_address = obj.get("relative_virtual_address").and_then(|v| v.as_u64());
-        let mut virtual_address = obj.get("virtual_address").and_then(|v| v.as_u64());
-
-        if obj_type.as_deref() != Some("function") {
-            return false;
-        }
-
-        if file_offset.is_none() && relative_virtual_address.is_none() && virtual_address.is_none() {
-            return false;
-        }
-
-        if virtual_address.is_some() {
-            return true;
-        }
-
-        if virtual_address.is_none() {
-            if let Some(rva) = relative_virtual_address {
-                virtual_address = Some(pe.relative_virtual_address_to_virtual_address(rva));
-            }
-            if let Some(offset) = file_offset {
-                if let Some(va) = pe.file_offset_to_virtual_address(offset) {
-                    virtual_address = Some(va);
-                }
-            }
-
-            if let Some(va) = virtual_address {
-                obj.insert("virtual_address".to_string(), json!(va));
-                return true;
-            }
-        }
-
-        false
-
-    });
-
-    if json.is_ok() {
-        for value in json.unwrap().values() {
-            let address = value.get("virtual_address").and_then(|v| v.as_u64());
-            if address.is_some() {
-                let mut symbol = Symbol::new(address.unwrap());
-                if let Some(names) = value.get("names").and_then(|v| v.as_array()) {
-                    for name in names {
-                        if let Some(name_str) = name.as_str() {
-                            symbol.insert_name(name_str.to_string());
-                        }
-                    }
-                }
-                symbols.push(symbol);
-            }
-        }
-    }
-
-    return symbols;
-}
-
-fn main() {
-
-    let mut config = get_config();
+    //let config = get_config();
 
     ThreadPoolBuilder::new()
         .num_threads(config.general.threads)
         .build_global()
         .expect("failed to build thread pool");
 
-    let pe = match PE::new(config.general.input.clone().unwrap(), &mut config) {
+    let pe = match PE::new(args.input, config.clone()) {
         Ok(pe) => pe,
         Err(error) => {
             eprintln!("{}", error);
@@ -344,10 +332,9 @@ fn main() {
 
     entrypoints.extend(function_symbol_addresses);
 
-    let mut cfg = Graph::new(machine, &config);
+    let mut cfg = Graph::new(machine, config.clone());
 
     cfg.functions.enqueue_extend(entrypoints);
-    cfg.functions.insert_symbols_extend(function_symbols);
 
     while !cfg.functions.queue.is_empty() {
         let function_addresses = cfg.functions.dequeue_all();
@@ -355,8 +342,7 @@ fn main() {
         let graphs: Vec<Graph> = function_addresses
             .par_iter()
             .map(|address| {
-                let mut graph = Graph::new(machine, &config);
-                //graph.options = cfg.options.clone();
+                let mut graph = Graph::new(machine, config.clone());
                 if let Ok(disasm) = Disassembler::new(machine, &image, executable_address_ranges.clone()) {
                     let _ = disasm.disassemble_function(*address, &mut graph);
                 }
@@ -369,6 +355,8 @@ fn main() {
     }
 
     let cfg = cfg;
+
+    // Apply Tags, File Hashes, Symbols
 
     let blocks: Vec<LZ4String> = cfg.blocks.valid()
         .iter()
@@ -390,7 +378,7 @@ fn main() {
         .map(|js| LZ4String::new(&js))
         .collect();
 
-    if config.general.output.is_none() {
+    if args.output.is_none() {
         functions.iter().for_each(|result| {
             Stdout.print(result);
         });
@@ -400,7 +388,7 @@ fn main() {
         });
     }
 
-     if let Some(output_file) = &config.general.output {
+     if let Some(output_file) = args.output {
         let mut file = match File::create(output_file) {
             Ok(file) => file,
             Err(error) => {

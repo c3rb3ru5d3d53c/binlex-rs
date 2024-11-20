@@ -33,7 +33,7 @@ pub struct Signature<'a> {
     /// The ending address of the signature.
     pub end_address: u64,
     /// The control flow graph the signature belongs to.
-    pub cfg: &'a Graph <'a>,
+    pub cfg: &'a Graph,
 }
 
 impl<'a> Signature<'a> {

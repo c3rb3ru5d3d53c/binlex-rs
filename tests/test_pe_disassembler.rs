@@ -172,12 +172,12 @@ mod tests {
 
     #[test]
     fn test_formats_pe() {
-        let mut config = Config::new();
+        let config = Config::new();
         let mut decoder = lz4::Decoder::new(DATA).expect("failed to create lz4 decoder");
         let mut data = Vec::new();
         let result = decoder.read_to_end(&mut data);
         assert!(result.is_ok(), "failed to lz4 decompress pe file");
-        let pe_result = PE::from_bytes(data, &mut config);
+        let pe_result = PE::from_bytes(data, config);
         assert!(pe_result.is_ok(), "failed to parse pe file");
         let pe = pe_result.unwrap();
         assert_eq!(pe.entrypoint(), 0x140001cd0, "incorrect pe entrypoint");

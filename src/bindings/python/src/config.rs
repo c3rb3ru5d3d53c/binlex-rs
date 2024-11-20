@@ -205,17 +205,6 @@ impl ConfigTLSH {
         inner.hashing.tlsh.minimum_byte_size = value;
     }
 
-    #[getter]
-    pub fn get_hexdigest(&self) -> Option<String> {
-        let inner = self.inner.lock().unwrap();
-        inner.hashing.tlsh.hexdigest.clone()
-    }
-
-    #[setter]
-    pub fn set_hexdigest(&mut self, value: String) {
-        let mut inner = self.inner.lock().unwrap();
-        inner.hashing.tlsh.hexdigest = Some(value);
-    }
 }
 
 #[pyclass]
@@ -310,17 +299,7 @@ impl ConfigGeneral {
         let mut inner = self.inner.lock().unwrap();
         inner.general.debug = value;
     }
-    #[getter]
-    pub fn get_tags(&self) -> Vec<String> {
-        let inner = self.inner.lock().unwrap();
-        inner.general.tags.clone()
-    }
 
-    #[setter]
-    pub fn set_tags(&self, value: Vec<String>) {
-        let mut inner = self.inner.lock().unwrap();
-        inner.general.tags = value;
-    }
 }
 
 
@@ -409,17 +388,6 @@ impl ConfigSHA256 {
         Ok(())
     }
 
-    #[getter]
-    pub fn get_hexdigest(&self) -> Option<String> {
-        let inner = self.inner.lock().unwrap();
-        inner.hashing.sha256.hexdigest.clone()
-    }
-
-    #[setter]
-    pub fn set_hexdigest(&mut self, value: String) {
-        let mut inner = self.inner.lock().unwrap();
-        inner.hashing.sha256.hexdigest = Some(value);
-    }
 }
 
 #[pyclass]

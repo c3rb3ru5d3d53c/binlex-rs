@@ -14,13 +14,13 @@ use crate::types::MemoryMappedFile;
 use crate::Config;
 
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
-pub struct PE <'pe>{
+pub struct PE {
     pub pe: lief::pe::Binary,
     pub file: File,
-    pub config: &'pe Config,
+    pub config: Config,
 }
 
-impl <'pe> PE <'pe>{
+impl PE {
     /// Creates a new `PE` instance by reading a PE file from the provided path.
     ///
     /// # Parameters
@@ -28,7 +28,7 @@ impl <'pe> PE <'pe>{
     ///
     /// # Returns
     /// A `Result` containing the `PE` object on success or an `Error` on failure.
-    pub fn new(path: String, config: &'pe mut Config) -> Result<Self, Error> {
+    pub fn new(path: String, config: Config) -> Result<Self, Error> {
         let mut file = File::new(path.clone());
         match file.read() {
             Ok(_) => (),
@@ -37,12 +37,6 @@ impl <'pe> PE <'pe>{
             }
         };
         if let Some(Binary::PE(pe)) = Binary::parse(&path) {
-            if config.hashing.file.sha256.enabled {
-                config.hashing.file.sha256.hexdigest = file.sha256();
-            }
-            if config.hashing.file.tlsh.enabled {
-                config.hashing.file.tlsh.hexdigest = file.tlsh();
-            }
             return Ok(Self {
                 pe: pe,
                 file: file,
@@ -60,16 +54,10 @@ impl <'pe> PE <'pe>{
     /// # Returns
     /// A `Result` containing the `PE` object on success or an `Error` on failure.
     #[allow(dead_code)]
-    pub fn from_bytes(bytes: Vec<u8>, config: &'pe mut Config) -> Result<Self, Error> {
+    pub fn from_bytes(bytes: Vec<u8>, config: Config) -> Result<Self, Error> {
         let file = File::from_bytes(bytes);
         let mut cursor = Cursor::new(&file.data);
         if let Some(Binary::PE(pe)) = Binary::from(&mut cursor) {
-            if config.hashing.file.sha256.enabled {
-                config.hashing.file.sha256.hexdigest = file.sha256();
-            }
-            if config.hashing.file.tlsh.enabled {
-                config.hashing.file.tlsh.hexdigest = file.tlsh();
-            }
             return Ok(Self{
                 pe: pe,
                 file: file,

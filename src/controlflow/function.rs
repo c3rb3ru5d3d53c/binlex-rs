@@ -13,9 +13,6 @@ use crate::controlflow::GraphQueue;
 use crate::controlflow::Block;
 use crate::controlflow::Signature;
 use crate::controlflow::SignatureJson;
-use crate::controlflow::Symbol;
-use crate::controlflow::FileJson;
-use crate::controlflow::File;
 use crate::hashing::SHA256;
 use crate::hashing::TLSH;
 use crate::hashing::MinHash32;
@@ -36,8 +33,6 @@ pub struct FunctionJson {
     pub prologue: bool,
     /// The signature of the function in JSON format.
     pub signature: Option<SignatureJson>,
-    /// The symbol names representing the function, if available.
-    pub names: BTreeSet<String>,
     /// The size of the function in bytes, if available.
     pub size: Option<usize>,
     /// The raw bytes of the function in hexadecimal format, if available.
@@ -46,8 +41,6 @@ pub struct FunctionJson {
     pub functions: BTreeMap<u64, u64>,
     /// The set of blocks contained within the function.
     pub blocks: BTreeSet<u64>,
-    /// File metadata associated with the function, if available.
-    pub file: Option<FileJson>,
     /// The number of instructions in the function.
     pub instructions: usize,
     /// The entropy of the function, if enabled.
@@ -60,8 +53,6 @@ pub struct FunctionJson {
     pub tlsh: Option<String>,
     /// Indicates whether the function is contiguous.
     pub contiguous: bool,
-    /// Tags associated with the function.
-    pub tags: Vec<String>,
 }
 
 /// Represents a control flow function within a graph.
@@ -70,11 +61,9 @@ pub struct Function <'function>{
     /// The starting address of the function.
     pub address: u64,
     /// The control flow graph this function belongs to.
-    pub cfg: &'function Graph <'function>,
+    pub cfg: &'function Graph,
     /// The blocks that make up the function, mapped by their start addresses.
     pub blocks: BTreeMap<u64, Instruction>,
-    /// The function symbol, if available.
-    pub symbol: Option<Symbol>,
     /// A map of functions associated with this function.
     pub functions: BTreeMap<u64, u64>,
     /// The number of instructions in the function.
@@ -111,7 +100,6 @@ impl<'function> Function<'function> {
         let mut edges: usize = 0;
         let mut is_prologue = false;
         let mut size: usize = 0;
-        let symbol = cfg.functions.get_symbol(address);
 
         let mut queue = GraphQueue::new();
 
@@ -151,7 +139,6 @@ impl<'function> Function<'function> {
             edges: edges,
             is_prologue: is_prologue,
             size: size,
-            symbol: symbol,
         });
     }
 
@@ -182,31 +169,8 @@ impl<'function> Function<'function> {
             minhash: self.minhash(),
             tlsh: self.tlsh(),
             contiguous: self.is_contiguous(),
-            file: self.file(),
-            tags: self.cfg.config.general.tags.clone(),
-            names: self.names(),
             architecture: self.architecture().to_string(),
         }
-    }
-
-    /// Retrieves function names from symbols, if available.
-    ///
-    /// # Returns
-    ///
-    /// Returns an `BTreeString<String>` containing names associated with symbols, if available.
-    pub fn names(&self) -> BTreeSet<String> {
-        if self.symbol.is_none() { return BTreeSet::<String>::new(); }
-        return self.symbol.clone().unwrap().names;
-    }
-
-    /// Retrieves metadata about the file associated with this function, if available.
-    ///
-    /// # Returns
-    ///
-    /// Returns an `Option<FileJson>` containing file metadata if available, or `None` otherwise.
-    pub fn file(&self) -> Option<FileJson> {
-        if !self.cfg.config.hashing.file.sha256.enabled && !self.cfg.config.hashing.file.tlsh.enabled { return None; }
-        Some(File::new(self.cfg).process())
     }
 
     /// Prints the JSON representation of the function to standard output.

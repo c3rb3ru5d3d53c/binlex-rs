@@ -10,8 +10,6 @@ use crate::binary::Binary;
 use crate::controlflow::graph::Graph;
 use crate::controlflow::signature::Signature;
 use crate::controlflow::signature::SignatureJson;
-use crate::controlflow::file::File;
-use crate::controlflow::file::FileJson;
 use crate::hashing::SHA256;
 use crate::hashing::TLSH;
 use crate::hashing::MinHash32;
@@ -56,10 +54,6 @@ pub struct BlockJson {
     pub tlsh: Option<String>,
     /// Indicates whether the block is contiguous.
     pub contiguous: bool,
-    /// File metadata related to the block.
-    pub file: Option<FileJson>,
-    /// Tags associated with the block.
-    pub tags: Vec<String>,
 }
 
 /// Represents a control flow block within a graph.
@@ -68,7 +62,7 @@ pub struct Block <'block>{
     /// The starting address of the block.
     pub address: u64,
     /// The control flow graph this block belongs to.
-    pub cfg: &'block Graph <'block>,
+    pub cfg: &'block Graph,
     /// The terminating instruction of the block.
     pub terminator: Instruction,
 }
@@ -170,20 +164,7 @@ impl<'block> Block<'block> {
             minhash: self.minhash(),
             tlsh: self.tlsh(),
             contiguous: true,
-            file: self.file(),
-            tags: self.cfg.config.general.tags.clone(),
         }
-    }
-
-
-    /// Retrieves metadata about the file associated with this block, if available.
-    ///
-    /// # Returns
-    ///
-    /// Returns an `Option<FileJson>` containing file metadata if available, or `None` otherwise.
-    pub fn file(&self) -> Option<FileJson> {
-        if !self.cfg.config.hashing.file.sha256.enabled && !self.cfg.config.hashing.tlsh.enabled { return None; }
-        Some(File::new(self.cfg).process())
     }
 
     /// Determines whether the block starts with a function prologue.

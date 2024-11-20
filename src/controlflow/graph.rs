@@ -4,7 +4,6 @@ use crate::controlflow::Instruction;
 use crossbeam::queue::SegQueue;
 use crossbeam_skiplist::SkipMap;
 use crossbeam_skiplist::SkipSet;
-use crate::controlflow::Symbol;
 use crate::config::Config;
 
 /// Queue structure used within `Graph` for managing addresses in processing stages.
@@ -17,8 +16,6 @@ pub struct GraphQueue {
     pub valid: SkipSet<u64>,
     /// Set of invalid addresses in the graph.
     pub invalid: SkipSet<u64>,
-    /// Map of symbol addresses in the graph.
-    pub symbols: SkipMap<u64, Symbol>,
 }
 
 impl Clone for GraphQueue {
@@ -45,16 +42,11 @@ impl Clone for GraphQueue {
         for item in self.invalid.iter() {
             cloned_invalid.insert(*item);
         }
-        let cloned_symbols = SkipMap::<u64, Symbol>::new();
-        for entry in self.symbols.iter() {
-            cloned_symbols.insert(*entry.key(), entry.value().clone());
-        }
         GraphQueue {
             queue: cloned_queue,
             processed: cloned_processed,
             valid: cloned_valid,
             invalid: cloned_invalid,
-            symbols: cloned_symbols,
         }
     }
 }
@@ -71,38 +63,7 @@ impl GraphQueue {
             processed: SkipSet::<u64>::new(),
             valid: SkipSet::<u64>::new(),
             invalid: SkipSet::<u64>::new(),
-            symbols: SkipMap::<u64, Symbol>::new(),
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn get_symbol(&self, address: u64) -> Option<Symbol> {
-        let entry = self.symbols.get(&address);
-        if entry.is_none() {
-            return None;
-        }
-        Some(entry.unwrap().value().clone())
-    }
-
-    #[allow(dead_code)]
-    pub fn insert_symbol(&self, mut symbol: Symbol) {
-        if let Some(existing) = self.symbols.get(&symbol.address) {
-            symbol.insert_name_entend(existing.value().names.clone());
-            return;
-        }
-        self.symbols.insert(symbol.address, symbol);
-    }
-
-    #[allow(dead_code)]
-    pub fn insert_symbols_extend(&self, symbols: Vec<Symbol>) {
-        for symbol in symbols {
-            self.insert_symbol(symbol);
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn is_symbol(&self, address: u64) -> bool {
-        self.symbols.contains_key(&address)
     }
 
     /// Marks an address as invalid if it has not been marked as valid.
@@ -250,7 +211,7 @@ impl GraphQueue {
 }
 
 /// Represents a control flow graph with instructions, blocks, and functions.
-pub struct Graph <'graph> {
+pub struct Graph {
     /// The Instruction Architecture
     pub architecture: BinaryArchitecture,
     /// A map of instruction addresses to `Instruction` instances.
@@ -262,17 +223,17 @@ pub struct Graph <'graph> {
     /// Configuration options for the graph.
     //pub options: GraphOptions,
     /// Configuration
-    pub config: &'graph Config,
+    pub config: Config,
 }
 
-impl <'graph> Graph <'graph> {
+impl Graph {
     /// Creates a new, empty `Graph` instance with default options.
     ///
     /// # Returns
     ///
     /// Returns a `Graph` instance with empty instructions, blocks, and functions.
     #[allow(dead_code)]
-    pub fn new(architecture: BinaryArchitecture, config: &'graph Config) -> Self  {
+    pub fn new(architecture: BinaryArchitecture, config: Config) -> Self  {
         return Self{
             architecture: architecture,
             instructions: SkipMap::<u64, Instruction>::new(),
