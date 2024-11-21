@@ -318,7 +318,7 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(String)` containing the hash, or `None` if SHA-256 is disabled or the function is not contiguous.
     pub fn sha256(&self) -> Option<String> {
-        if !self.cfg.config.hashing.sha256.enabled { return None; }
+        if !self.cfg.config.functions.hashing.sha256.enabled { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
             return SHA256::new(&bytes).hexdigest();
@@ -332,7 +332,7 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(f64)` containing the entropy, or `None` if entropy calculation is disabled or the function is not contiguous.
     pub fn entropy(&self) -> Option<f64> {
-        if !self.cfg.config.heuristics.entropy.enabled { return None; }
+        if !self.cfg.config.functions.heuristics.entropy.enabled { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
             return Binary::entropy(&bytes);
@@ -346,10 +346,10 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(String)` containing the TLSH, or `None` if TLSH is disabled or the function is not contiguous.
     pub fn tlsh(&self) -> Option<String> {
-        if !self.cfg.config.hashing.tlsh.enabled { return None; }
+        if !self.cfg.config.functions.hashing.tlsh.enabled { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
-            return TLSH::new(&bytes, self.cfg.config.hashing.tlsh.minimum_byte_size).hexdigest();
+            return TLSH::new(&bytes, self.cfg.config.functions.hashing.tlsh.minimum_byte_size).hexdigest();
         }
         return None;
     }
@@ -360,15 +360,15 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(String)` containing the MinHash, or `None` if MinHash is disabled or the function is not contiguous.
     pub fn minhash(&self) -> Option<String> {
-        if !self.cfg.config.hashing.minhash.enabled { return None; }
+        if !self.cfg.config.functions.hashing.minhash.enabled { return None; }
         if !self.is_contiguous() { return None; }
         if let Some(bytes) = self.bytes() {
-            if bytes.len() > self.cfg.config.hashing.minhash.maximum_byte_size { return None; }
+            if bytes.len() > self.cfg.config.functions.hashing.minhash.maximum_byte_size { return None; }
             return MinHash32::new(
                 &bytes,
-                self.cfg.config.hashing.minhash.number_of_hashes,
-                self.cfg.config.hashing.minhash.shingle_size,
-                self.cfg.config.hashing.minhash.seed).hexdigest();
+                self.cfg.config.functions.hashing.minhash.number_of_hashes,
+                self.cfg.config.functions.hashing.minhash.shingle_size,
+                self.cfg.config.functions.hashing.minhash.seed).hexdigest();
         }
         return None;
     }

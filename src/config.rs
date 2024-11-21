@@ -12,10 +12,41 @@ pub const DIRECTORY: &str = "binlex";
 pub const FILE_NAME: &str = "binlex.toml";
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct ConfigBlocks {
+    pub hashing: ConfigHashing,
+    pub heuristics: ConfigHeuristics,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ConfigSignatures {
+    pub hashing: ConfigHashing,
+    pub heuristics: ConfigHeuristics,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ConfigFunctions {
+    pub hashing: ConfigHashing,
+    pub heuristics: ConfigHeuristics,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ConfigFile {
+    pub hashing: ConfigHashing,
+    pub heuristics: ConfigHeuristics,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ConfigFormats {
+    pub file: ConfigFile,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
     pub general: ConfigGeneral,
-    pub heuristics: ConfigHeuristics,
-    pub hashing: ConfigHashing,
+    pub formats: ConfigFormats,
+    pub blocks: ConfigBlocks,
+    pub functions: ConfigFunctions,
+    pub signatures: ConfigSignatures,
     pub mmap: ConfigMmap,
     pub disassembler: ConfigDisassembler,
 }
@@ -57,7 +88,6 @@ pub struct ConfigHashing {
     pub sha256: ConfigSHA256,
     pub tlsh: ConfigTLSH,
     pub minhash: ConfigMinhash,
-    pub file: ConfigFileHashes,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -113,33 +143,39 @@ impl Config {
                 minimal: false,
                 debug: false,
             },
-            heuristics: ConfigHeuristics {
-                features: ConfigHeuristicFeatures {
-                    enabled: true,
-                },
-                normalization: ConfigHeuristicNormalization {
-                    enabled: false,
-                },
-                entropy: ConfigHeuristicEntropy {
-                    enabled: true,
-                },
+            formats: ConfigFormats {
+                file: ConfigFile {
+                    hashing: ConfigHashing {
+                        sha256: ConfigSHA256 {
+                            enabled: true,
+                        },
+                        tlsh: ConfigTLSH {
+                            enabled: true,
+                            minimum_byte_size: 50,
+                        },
+                        minhash: ConfigMinhash {
+                            enabled: true,
+                            number_of_hashes: 64,
+                            shingle_size: 4,
+                            maximum_byte_size: 50,
+                            seed: 0,
+                        }
+                    },
+                    heuristics: ConfigHeuristics {
+                        features: ConfigHeuristicFeatures {
+                            enabled: true,
+                        },
+                        normalization: ConfigHeuristicNormalization {
+                            enabled: false,
+                        },
+                        entropy: ConfigHeuristicEntropy {
+                            enabled: true,
+                        }
+                    }
+                }
             },
-            hashing: ConfigHashing {
-                sha256: ConfigSHA256 {
-                    enabled: true,
-                },
-                tlsh: ConfigTLSH {
-                    enabled: true,
-                    minimum_byte_size: 50,
-                },
-                minhash: ConfigMinhash {
-                    enabled: true,
-                    number_of_hashes: 64,
-                    shingle_size: 4,
-                    maximum_byte_size: 50,
-                    seed: 0,
-                },
-                file: ConfigFileHashes {
+            blocks: ConfigBlocks {
+                hashing: ConfigHashing {
                     sha256: ConfigSHA256 {
                         enabled: true,
                     },
@@ -147,20 +183,164 @@ impl Config {
                         enabled: true,
                         minimum_byte_size: 50,
                     },
+                    minhash: ConfigMinhash {
+                        enabled: true,
+                        number_of_hashes: 64,
+                        shingle_size: 4,
+                        maximum_byte_size: 50,
+                        seed: 0,
+                    }
+                },
+                heuristics: ConfigHeuristics {
+                    features: ConfigHeuristicFeatures {
+                        enabled: true,
+                    },
+                    normalization: ConfigHeuristicNormalization {
+                        enabled: false,
+                    },
+                    entropy: ConfigHeuristicEntropy {
+                        enabled: true,
+                    }
+                }
+            },
+            functions: ConfigFunctions {
+                hashing: ConfigHashing {
+                    sha256: ConfigSHA256 {
+                        enabled: true,
+                    },
+                    tlsh: ConfigTLSH {
+                        enabled: true,
+                        minimum_byte_size: 50,
+                    },
+                    minhash: ConfigMinhash {
+                        enabled: true,
+                        number_of_hashes: 64,
+                        shingle_size: 4,
+                        maximum_byte_size: 50,
+                        seed: 0,
+                    }
+                },
+                heuristics: ConfigHeuristics {
+                    features: ConfigHeuristicFeatures {
+                        enabled: true,
+                    },
+                    normalization: ConfigHeuristicNormalization {
+                        enabled: false,
+                    },
+                    entropy: ConfigHeuristicEntropy {
+                        enabled: true,
+                    }
+                }
+            },
+            signatures: ConfigSignatures {
+                hashing: ConfigHashing {
+                    sha256: ConfigSHA256 {
+                        enabled: true,
+                    },
+                    tlsh: ConfigTLSH {
+                        enabled: true,
+                        minimum_byte_size: 50,
+                    },
+                    minhash: ConfigMinhash {
+                        enabled: true,
+                        number_of_hashes: 64,
+                        shingle_size: 4,
+                        maximum_byte_size: 50,
+                        seed: 0,
+                    }
+                },
+                heuristics: ConfigHeuristics {
+                    features: ConfigHeuristicFeatures {
+                        enabled: true,
+                    },
+                    normalization: ConfigHeuristicNormalization {
+                        enabled: false,
+                    },
+                    entropy: ConfigHeuristicEntropy {
+                        enabled: true,
+                    }
                 }
             },
             mmap: ConfigMmap {
                 directory: Config::default_file_mapping_directory(),
                 cache: ConfigMmapCache {
                     enabled: false,
-                },
+                }
             },
             disassembler: ConfigDisassembler {
                 sweep: ConfigDisassemblerSweep {
                     enabled: true,
-                },
-            },
+                }
+            }
         }
+    }
+
+    pub fn enable_minimal(&mut self) {
+        self.general.minimal = true;
+        self.disable_heuristics();
+        self.disable_hashing();
+    }
+
+    pub fn disable_hashing(&mut self) {
+        self.disable_block_hashing();
+        self.disable_function_hashing();
+        self.disable_signature_hashing();
+        self.disable_file_hashing();
+    }
+
+    pub fn disable_signature_heuristics(&mut self) {
+        self.signatures.heuristics.entropy.enabled = false;
+        self.signatures.heuristics.features.enabled = false;
+        self.signatures.heuristics.normalization.enabled = false;
+    }
+
+    pub fn disable_block_hashing(&mut self){
+        self.blocks.hashing.sha256.enabled = false;
+        self.blocks.hashing.tlsh.enabled = false;
+        self.blocks.hashing.minhash.enabled = false;
+    }
+
+    pub fn disable_file_hashing(&mut self) {
+        self.formats.file.hashing.sha256.enabled = false;
+        self.formats.file.hashing.tlsh.enabled = false;
+        self.formats.file.hashing.minhash.enabled = false;
+    }
+
+    pub fn disable_file_heuristics(&mut self) {
+        self.formats.file.heuristics.entropy.enabled = false;
+        self.formats.file.heuristics.features.enabled = false;
+        self.formats.file.heuristics.normalization.enabled = false;
+    }
+
+    pub fn disable_heuristics(&mut self) {
+        self.disable_block_heuristics();
+        self.disable_function_heuristics();
+        self.disable_signature_heuristics();
+        self.disable_file_heuristics();
+    }
+
+    pub fn disable_signature_hashing(&mut self) {
+        self.signatures.hashing.sha256.enabled = false;
+        self.signatures.hashing.tlsh.enabled = false;
+        self.signatures.hashing.minhash.enabled = false;
+    }
+
+    pub fn disable_function_hashing(&mut self) {
+        self.functions.hashing.sha256.enabled = false;
+        self.functions.hashing.tlsh.enabled = false;
+        self.functions.hashing.minhash.enabled = false;
+    }
+
+    pub fn disable_block_heuristics(&mut self) {
+        self.blocks.heuristics.entropy.enabled = false;
+        self.blocks.heuristics.features.enabled = false;
+        self.blocks.heuristics.normalization.enabled = false;
+    }
+
+    pub fn disable_function_heuristics(&mut self) {
+        self.functions.heuristics.entropy.enabled = false;
+        self.functions.heuristics.features.enabled = false;
+        self.functions.heuristics.normalization.enabled = false;
     }
 
     // Get Default File Mapping Directory

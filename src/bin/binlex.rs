@@ -45,34 +45,12 @@ pub struct Args {
     pub minimal: bool,
     #[arg(short, long, default_value_t = false)]
     pub debug: bool,
-    #[arg(long)]
-    pub minhash_seed: Option<u64>,
-    #[arg(long)]
-    pub minhash_number_of_hashes: Option<usize>,
-    #[arg(long)]
-    pub minhash_shingle_size: Option<usize>,
-    #[arg(long)]
-    pub minhash_maximum_byte_size: Option<usize>,
-    #[arg(long)]
-    pub tlsh_minimum_byte_size: Option<usize>,
-    #[arg(long, default_value_t = false)]
-    pub disable_file_hashing: bool,
-    #[arg(long, default_value_t = false)]
-    pub disable_linear_pass: bool,
-    #[arg(long, default_value_t = false)]
-    pub disable_tlsh: bool,
-    #[arg(long, default_value_t = false)]
-    pub disable_minhash: bool,
-    #[arg(long, default_value_t = false)]
-    pub disable_sha256: bool,
-    #[arg(long, default_value_t = false)]
-    pub disable_entropy: bool,
-    #[arg(long, default_value_t = false)]
-    pub disable_features: bool,
     #[arg(long, default_value_t = false)]
     pub disable_hashing: bool,
     #[arg(long, default_value_t = false)]
-    pub enable_normalized: bool,
+    pub disable_disassembler_sweep: bool,
+    #[arg(long, default_value_t = false)]
+    pub disable_heuristics: bool,
     #[arg(long, default_value_t = false)]
     pub enable_mmap_cache: bool,
     #[arg(long)]
@@ -80,19 +58,6 @@ pub struct Args {
 }
 
 fn validate_args(args: &Args) {
-
-    if args.minhash_number_of_hashes.is_some() {
-        if args.minhash_number_of_hashes.unwrap() < 16 || args.minhash_number_of_hashes.unwrap() > 128 {
-            eprintln!("minhash number of hashes can only be between 16 and 128");
-            process::exit(1);
-        }
-    }
-    if args.minhash_shingle_size.is_some() {
-        if args.minhash_shingle_size.unwrap() == 0 {
-            eprintln!("minhash shingle size must be greater than zero");
-            process::exit(1);
-        }
-    }
 
     if let Some(tags) = &args.tags {
         let mut unique_tags = HashSet::new();
@@ -211,41 +176,12 @@ fn main() {
         config.general.threads = args.threads.unwrap();
     }
 
-    if args.disable_file_hashing != false {
-        config.hashing.file.sha256.enabled = false;
-        config.hashing.file.tlsh.enabled = false;
+    if args.disable_heuristics == true {
+        config.disable_heuristics();
     }
 
-    if args.disable_features != false {
-        config.heuristics.features.enabled = !args.disable_features;
-    }
-
-    if args.disable_sha256 != false {
-        config.hashing.sha256.enabled = !args.disable_sha256;
-    }
-
-    if args.disable_entropy != false {
-        config.heuristics.entropy.enabled = !args.disable_entropy;
-    }
-
-    if args.disable_minhash != false {
-        config.hashing.minhash.enabled = !args.disable_minhash;
-    }
-
-    if args.minhash_maximum_byte_size.is_some() {
-        config.hashing.minhash.maximum_byte_size = args.minhash_maximum_byte_size.unwrap();
-    }
-
-    if args.minhash_number_of_hashes.is_some() {
-        config.hashing.minhash.number_of_hashes = args.minhash_number_of_hashes.unwrap();
-    }
-
-    if args.minhash_shingle_size.is_some() {
-        config.hashing.minhash.shingle_size = args.minhash_shingle_size.unwrap();
-    }
-
-    if args.minhash_seed.is_some() {
-        config.hashing.minhash.seed = args.minhash_seed.unwrap();
+    if args.disable_hashing == true {
+        config.disable_hashing();
     }
 
     if args.mmap_directory.is_some() {
@@ -256,35 +192,12 @@ fn main() {
         config.mmap.cache.enabled = args.enable_mmap_cache;
     }
 
-    if args.disable_tlsh != false {
-        config.hashing.tlsh.enabled = !args.disable_tlsh;
-    }
-
-    if args.tlsh_minimum_byte_size.is_some() {
-        config.hashing.tlsh.minimum_byte_size = args.tlsh_minimum_byte_size.unwrap();
-    }
-
-    if args.enable_normalized != false {
-        config.heuristics.normalization.enabled = args.enable_normalized;
-    }
-
-    if args.disable_linear_pass != false {
-        config.disassembler.sweep.enabled = !args.disable_linear_pass;
-    }
-
-    if args.disable_hashing == true {
-        config.hashing.minhash.enabled = false;
-        config.hashing.sha256.enabled = false;
-        config.hashing.tlsh.enabled = false;
+    if args.disable_disassembler_sweep == true {
+        config.disassembler.sweep.enabled = false;
     }
 
     if args.minimal == true || config.general.minimal == true {
-        config.hashing.minhash.enabled = false;
-        config.hashing.sha256.enabled = false;
-        config.hashing.tlsh.enabled = false;
-        config.heuristics.entropy.enabled = false;
-        config.heuristics.features.enabled = false;
-        config.heuristics.normalization.enabled = false;
+        config.enable_minimal();
     }
 
     ThreadPoolBuilder::new()
@@ -300,17 +213,17 @@ fn main() {
         }
     };
 
-    let file_attribute = pe.file.attribute();
-
     let mut attributes = Attributes::new();
 
-    if args.tags.is_some() {
-        for tag in args.tags.unwrap() {
-            attributes.push(Tag::new(tag).attribute());
+    if !config.general.minimal {
+        let file_attribute = pe.file.attribute();
+        if args.tags.is_some() {
+            for tag in args.tags.unwrap() {
+                attributes.push(Tag::new(tag).attribute());
+            }
         }
+        attributes.push(file_attribute);
     }
-
-    attributes.push(file_attribute);
 
     let function_symbols = get_pe_function_symbols(&pe);
 

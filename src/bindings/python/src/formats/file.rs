@@ -2,19 +2,23 @@ use pyo3::prelude::*;
 
 use std::io::Error;
 use binlex::formats::file::File as InnerFile;
+use crate::Config;
 
 #[pyclass]
 pub struct File {
     pub inner: InnerFile,
+    pub config: Py<Config>,
 }
 
 #[pymethods]
 impl File {
     #[new]
-    #[pyo3(text_signature = "(path)")]
-    pub fn new(path: String) -> Self {
+    #[pyo3(text_signature = "(path, config)")]
+    pub fn new(py: Python, path: String, config: Py<Config>) -> Self {
+        let inner_config = config.borrow(py).inner.lock().unwrap().clone();
         Self {
-            inner: InnerFile::new(path)
+            inner: InnerFile::new(path, inner_config),
+            config: config,
         }
     }
 

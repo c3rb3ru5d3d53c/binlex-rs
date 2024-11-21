@@ -91,7 +91,7 @@ impl<'a> Signature<'a> {
     ///
     /// Returns a `Vec<u8>` containing the feature vector, or an empty vector if feature extraction is disabled.
     pub fn feature(&self) -> Vec<u8> {
-        if !self.cfg.config.heuristics.features.enabled { return Vec::<u8>::new(); }
+        if !self.cfg.config.signatures.heuristics.features.enabled { return Vec::<u8>::new(); }
         self.normalize()
             .iter()
             .flat_map(|byte| vec![((byte & 0xf0) >> 4) as u8, (byte & 0x0f) as u8])
@@ -133,7 +133,7 @@ impl<'a> Signature<'a> {
     ///
     /// Returns `Some(String)` containing the normalized hexadecimal representation, or `None` if normalization is disabled.
     pub fn normalized(&self) -> Option<String> {
-        if !self.cfg.config.heuristics.normalization.enabled{ return None; }
+        if !self.cfg.config.signatures.heuristics.normalization.enabled { return None; }
         Some(Binary::to_hex(&self.normalize()))
     }
 
@@ -143,8 +143,8 @@ impl<'a> Signature<'a> {
     ///
     /// Returns `Some(String)` containing the TLSH, or `None` if TLSH is disabled.
     pub fn tlsh(&self) -> Option<String> {
-        if !self.cfg.config.hashing.tlsh.enabled { return None; }
-        return TLSH::new(&self.normalize(), self.cfg.config.hashing.tlsh.minimum_byte_size).hexdigest();
+        if !self.cfg.config.signatures.hashing.tlsh.enabled { return None; }
+        return TLSH::new(&self.normalize(), self.cfg.config.signatures.hashing.tlsh.minimum_byte_size).hexdigest();
     }
 
     /// Computes the MinHash of the normalized signature, if enabled.
@@ -154,13 +154,13 @@ impl<'a> Signature<'a> {
     /// Returns `Some(String)` containing the MinHash, or `None` if MinHash is disabled.
     #[allow(dead_code)]
     pub fn minhash(&self) -> Option<String> {
-        if !self.cfg.config.hashing.minhash.enabled { return None; }
-        if self.normalize().len() > self.cfg.config.hashing.minhash.maximum_byte_size { return None; }
+        if !self.cfg.config.signatures.hashing.minhash.enabled { return None; }
+        if self.normalize().len() > self.cfg.config.signatures.hashing.minhash.maximum_byte_size { return None; }
         return MinHash32::new(
             &self.normalize(),
-            self.cfg.config.hashing.minhash.number_of_hashes,
-            self.cfg.config.hashing.minhash.shingle_size,
-            self.cfg.config.hashing.minhash.seed).hexdigest();
+            self.cfg.config.signatures.hashing.minhash.number_of_hashes,
+            self.cfg.config.signatures.hashing.minhash.shingle_size,
+            self.cfg.config.signatures.hashing.minhash.seed).hexdigest();
     }
 
     /// Computes the SHA-256 hash of the normalized signature, if enabled.
@@ -169,7 +169,7 @@ impl<'a> Signature<'a> {
     ///
     /// Returns `Some(String)` containing the SHA-256 hash, or `None` if SHA-256 is disabled.
     pub fn sha256(&self) -> Option<String> {
-        if !self.cfg.config.hashing.sha256.enabled { return None; }
+        if !self.cfg.config.signatures.hashing.sha256.enabled { return None; }
         SHA256::new(&self.normalize()).hexdigest()
     }
 
@@ -179,7 +179,7 @@ impl<'a> Signature<'a> {
     ///
     /// Returns `Some(f64)` containing the entropy, or `None` if entropy calculation is disabled.
     pub fn entropy(&self) -> Option<f64> {
-        if !self.cfg.config.heuristics.entropy.enabled { return None; }
+        if !self.cfg.config.signatures.heuristics.entropy.enabled { return None; }
         Binary::entropy(&self.normalize())
     }
 

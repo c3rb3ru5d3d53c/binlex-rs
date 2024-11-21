@@ -29,7 +29,7 @@ impl PE {
     /// # Returns
     /// A `Result` containing the `PE` object on success or an `Error` on failure.
     pub fn new(path: String, config: Config) -> Result<Self, Error> {
-        let mut file = File::new(path.clone());
+        let mut file = File::new(path.clone(), config.clone());
         match file.read() {
             Ok(_) => (),
             Err(_) => {
@@ -55,7 +55,7 @@ impl PE {
     /// A `Result` containing the `PE` object on success or an `Error` on failure.
     #[allow(dead_code)]
     pub fn from_bytes(bytes: Vec<u8>, config: Config) -> Result<Self, Error> {
-        let file = File::from_bytes(bytes);
+        let file = File::from_bytes(bytes, config.clone());
         let mut cursor = Cursor::new(&file.data);
         if let Some(Binary::PE(pe)) = Binary::from(&mut cursor) {
             return Ok(Self{
@@ -255,7 +255,7 @@ impl PE {
     /// A `Result` containing the `MemoryMappedFile` object on success or an `Error` on failure.
     pub fn image(&self) -> Result<MemoryMappedFile, Error> {
         let pathbuf = PathBuf::from(self.config.mmap.directory.clone())
-            .join(self.file.sha256().unwrap());
+            .join(self.file.sha256_no_config().unwrap());
         let mut tempmap = match MemoryMappedFile::new(pathbuf, true, self.config.mmap.cache.enabled) {
             Ok(tempmmap) => tempmmap,
             Err(error) => return Err(error),

@@ -7,6 +7,7 @@ use std::io::ErrorKind;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use crate::controlflow::Attribute;
+use crate::Config;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct FileJson {
@@ -29,6 +30,8 @@ pub struct File {
     pub data: Vec<u8>,
     /// The path of the file, if available.
     pub path: Option<String>,
+    /// The configuration `Config`
+    pub config: Config,
 }
 
 impl File {
@@ -41,10 +44,11 @@ impl File {
     /// # Returns
     ///
     /// A `File` instance with the given path and empty data.
-    pub fn new(path: String) -> Self {
+    pub fn new(path: String, config: Config) -> Self {
         Self {
             data: Vec::new(),
             path: Some(path),
+            config: config,
         }
     }
 
@@ -58,10 +62,11 @@ impl File {
     ///
     /// A `File` instance with the given byte data and no path.
     #[allow(dead_code)]
-    pub fn from_bytes(bytes: Vec<u8>) -> Self {
+    pub fn from_bytes(bytes: Vec<u8>, config: Config) -> Self {
         Self {
             data: bytes,
             path: None,
+            config: config,
         }
     }
 
@@ -73,10 +78,10 @@ impl File {
     /// or `None` if the file's size is zero or less.
     #[allow(dead_code)]
     pub fn tlsh(&self) -> Option<String> {
+        if !self.config.formats.file.hashing.tlsh.enabled { return None; }
         if self.size() <= 0 { return None; }
         TLSH::new(&self.data, 50).hexdigest()
     }
-
 
     /// Computes the SHA-256 hash of the file's data.
     ///
@@ -86,6 +91,19 @@ impl File {
     /// or `None` if the file's size is zero or less.
     #[allow(dead_code)]
     pub fn sha256(&self) -> Option<String> {
+        if !self.config.formats.file.hashing.sha256.enabled { return None; }
+        if self.size() <= 0 { return None; }
+        SHA256::new(&self.data).hexdigest()
+    }
+
+    /// Computes the SHA-256 hash of the file's data.
+    ///
+    /// # Returns
+    ///
+    /// An `Option<String>` containing the hexadecimal representation of the SHA-256 hash,
+    /// or `None` if the file's size is zero or less.
+    #[allow(dead_code)]
+    pub fn sha256_no_config(&self) -> Option<String> {
         if self.size() <= 0 { return None; }
         SHA256::new(&self.data).hexdigest()
     }
@@ -141,6 +159,7 @@ impl File {
     }
 
     pub fn entropy(&self) -> Option<f64> {
+        if !self.config.formats.file.heuristics.entropy.enabled { return None; }
         Binary::entropy(&self.data)
     }
 

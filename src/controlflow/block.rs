@@ -277,7 +277,7 @@ impl<'block> Block<'block> {
     ///
     /// Returns `Some(f64)` containing the entropy, or `None` if entropy calculation is disabled.
     pub fn entropy(&self) -> Option<f64> {
-        if !self.cfg.config.heuristics.entropy.enabled { return None; }
+        if !self.cfg.config.blocks.heuristics.entropy.enabled { return None; }
         return Binary::entropy(&self.bytes());
     }
 
@@ -287,8 +287,8 @@ impl<'block> Block<'block> {
     ///
     /// Returns `Some(String)` containing the TLSH, or `None` if TLSH is disabled or the block size is too small.
     pub fn tlsh(&self) -> Option<String> {
-        if !self.cfg.config.hashing.tlsh.enabled { return None; }
-        return TLSH::new(&self.bytes(), self.cfg.config.hashing.tlsh.minimum_byte_size).hexdigest();
+        if !self.cfg.config.blocks.hashing.tlsh.enabled { return None; }
+        return TLSH::new(&self.bytes(), self.cfg.config.blocks.hashing.tlsh.minimum_byte_size).hexdigest();
     }
 
     /// Computes the MinHash of the block's bytes, if enabled.
@@ -297,13 +297,13 @@ impl<'block> Block<'block> {
     ///
     /// Returns `Some(String)` containing the MinHash, or `None` if MinHash is disabled or the block's size exceeds the configured maximum.
     pub fn minhash(&self) -> Option<String> {
-        if !self.cfg.config.hashing.minhash.enabled { return None; }
-        if self.bytes().len() > self.cfg.config.hashing.minhash.maximum_byte_size { return None; }
+        if !self.cfg.config.blocks.hashing.minhash.enabled { return None; }
+        if self.bytes().len() > self.cfg.config.blocks.hashing.minhash.maximum_byte_size { return None; }
         return MinHash32::new(
             &self.bytes(),
-            self.cfg.config.hashing.minhash.number_of_hashes,
-            self.cfg.config.hashing.minhash.shingle_size,
-            self.cfg.config.hashing.minhash.seed
+            self.cfg.config.blocks.hashing.minhash.number_of_hashes,
+            self.cfg.config.blocks.hashing.minhash.shingle_size,
+            self.cfg.config.blocks.hashing.minhash.seed
         ).hexdigest();
     }
 
@@ -313,7 +313,7 @@ impl<'block> Block<'block> {
     ///
     /// Returns `Some(String)` containing the hash, or `None` if SHA-256 is disabled.
     pub fn sha256(&self) -> Option<String> {
-        if !self.cfg.config.hashing.sha256.enabled { return None; }
+        if !self.cfg.config.blocks.hashing.sha256.enabled { return None; }
         return SHA256::new(&self.bytes()).hexdigest();
     }
 

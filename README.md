@@ -133,64 +133,49 @@ In the JSON format, binlex treats addresses as virtual addresses, and provides v
 
 ```JSON
 {
-  // The Type of Trait (function or block)
-  "type": "function",
-  // The virtual address of the function
-  "address": 6442455056,
-  // The number of edges
-  "edges": 1,
-  // If a function prologue is detected this will set this to true
+  "type": "block",
+  "architecture": "amd64",
+  "address": 6442934602,
+  "next": 6442934632,
+  "to": [],
+  "edges": 0,
   "prologue": false,
-  // Signature related properties
+  "conditional": false,
   "signature": {
-    // Signature pattern or YARA hex string
-    "pattern": "4c8bdc4883ec??488b8424880000??498943??488b8424800000??498943??488b4424??498943??488b4424??498943??ff15????????4883c4??c3",
-    // Normalized hex string without wildcards (disabled by default)
+    "pattern": "65488b0c25600000??33d2488b49??ff156949????65488b0c25600000??",
     "normalized": null,
-    // Normalized array of nibbles for machine learning
-    "feature": [4,12,8,11,13,12,4,8,8,3,14,12,4,8,8,11,8,4,2,4,8,8,0,0,0,0,4,9,8,9,4,3,4,8,8,11,8,4,2,4,8,0,0,0,0,0,4,9,8,9,4,3,4,8,8,11,4,4,2,4,4,9,8,9,4,3,4,8,8,11,4,4,2,4,4,9,8,9,4,3,15,15,1,5,4,8,8,3,12,4,12,3],
-    // The entropy of the normalized bytes
-    "entropy": 3.9340094456491053,
-    // The SHA256 of the normalized bytes
-    "sha256": "9515340549e85ba24bc70e7f38274a4a11544e101c15e0f90655ac89f8404b32",
-    // The minhash of the normalized bytes
-    "minhash": "0e592cd30cfeb545015c915f0831a007037207d90fa48bb80b22128708df0bc003ac518e00ff17970d5754e10656e09f08cfd10c1b853f6b16a0a9c10e323a6a03768caa0463f27501226bb40d73dc1b00b4c35401b0bebc07adbc1504ef8b2f01b097650dfb089b0b4f9cb9027a6cf80318eb710a553fe605f237d502960b4e0763bc8909bce2e30453ef6306a073ea0185934a0155df0200675671051494e50c8fd11a020abe9301a77d181993c9d201e89a011073539615a7fa8705ad24fe00663acf13f3540e0132e63b052639b402a5f39101d3e34c01ca4646049964da166dd6af09f729f703e637e700ceb7e5084d132d05db0180124641360918edeb",
-    // the TLSH similarity hash
+    "feature": [6,5,4,8,8,11,0,12,2,5,6,0,0,0,0,0,3,3,13,2,4,8,8,11,4,9,15,15,1,5,6,9,4,9,6,5,4,8,8,11,0,12,2,5,6,0,0,0,0,0],
+    "entropy": 3.543465189601647,
+    "sha256": "e5d06d2e33a547ba7066f5071a27f95bc2a7f81b2993632562ae076f2dc33742",
+    "minhash": "023278a7001650a502d32a9a02e69cae1642097d0a21b92f45ab9d2c0b02c7c3057fa72e1009f8ad186cfa5102207bd10a3c742f0a2e370b05e88a9302d5d80601e8b0b206af5b6d04492a8c03d825eb1cdee52014ae84860f547c730729431d02fd7ed50703a26d01f5df8c0bafb45c183f517903714c862b82be950136b7c30a8403a725fc41b8173cc1451b5816b80078f0ee014d858a01872d711071c3083b8f9c5a0032300c127b6545114884050a0bbe8d07150a780c0115591c33f6a201ab50440d4b91ce18ba5f830a5d8afa136f319d0f27d41326b05ed51681ab120d3684dc0cecc3a107bea11b0f42016923dcf7a11b64dc90134d973a01ab5daf",
     "tlsh": null
   },
-  // The size of the trait
-  "size": 60,
-  // The hex string of the raw bytes (not wildcarded)
-  "bytes": "4c8bdc4883ec48488b842488000000498943f0488b842480000000498943e8488b442478498943e0488b442470498943d8ff15398907004883c448c3",
-  // Function cross references
+  "size": 30,
+  "bytes": "65488b0c256000000033d2488b4930ff156949000065488b0c2560000000",
   "functions": {},
-  // Basic block cross references
-  "blocks": [
-    6442455056
-  ],
-  // The information for the file
-  "file": {
-    // The SHA256 hash of the processed file
-    "sha256": "ec1426109420445df8e9799ac21a4c13364dc12229fb16197e428803bece1140",
-    // The TLSH similarity hash of the entire file
-    "tlsh": "T17AF48C12AF990595E9BBC23DD1974637FAB2B445232047CF426489BD0E1BBE4B73E381",
-    // The size of the entire file in bytes
-    "size": 725696
-  },
-  // The number of instructions in the trait
-  "instructions": 13,
-  // Entropy of the raw bytes
-  "entropy": 4.292377838887237,
-  // The SHA256 of the
-  "sha256": "44cbdd66e8ae22e8cc91448c2e33fe3b1cb2d3d927584159dbf27b763da723b2",
-  // The minhash of the traitt
-  "minhash": null,
-  // The TLSH similarity hash
-  "tlsh": "T1FAA0027593956B4C16E906559BF5855174700066A301812944D4CA9653409292B33751",
-  // If the trait is contiguous
+  "instructions": 5,
+  "entropy": 3.456564762130954,
+  "sha256": "e63b2063e25bed1410239a0dde6f5e602c924f72558951f88b5e1399ac53b389",
+  "minhash": "023278a7001650a502d32a9a0677c3c1013ad35d0a21b92f019369ee0b02c7c312155efc1009f8ad186cfa5103d4eecd0a3c742f0a2e370b11656de102d5d80601e8b0b206af5b6d04492a8c10a874370073c9d400777e901400e2b10729431d02fd7ed50703a26d01f5df8c12b4f6420a66234103714c86373828360136b7c30a8403a7100f871e03ffccb70b8a413407c210da014d858a0188a2810b86791a050e3dfa00443f2007bf538902e6e1310a0bbe8d07150a781ea4b6950f44416a01ab50440d4b91ce06109acb0a5d8afa136f319d1b3b5b2f08e91ae71681ab120ee750e30cecc3a106d06a070f42016923dcf7a1015681c40f88621e02be8883",
+  "tlsh": null,
   "contiguous": true,
-  // Tags you want to set
-  "tags": []
+  "attributes": [
+    {
+      "type": "tag",
+      "value": "corpus:malware"
+    },
+    {
+      "type": "tag",
+      "value": "malware:lummastealer"
+    },
+    {
+      "entropy": 6.550615506443111,
+      "sha256": "ec1426109420445df8e9799ac21a4c13364dc12229fb16197e428803bece1140",
+      "size": 725696,
+      "tlsh": "T17AF48C12AF990595E9BBC23DD1974637FAB2B445232047CF426489BD0E1BBE4B73E381",
+      "type": "file"
+    }
+  ]
 }
 ```
 
@@ -222,28 +207,97 @@ threads = 16
 minimal = false
 debug = false
 
-[heuristics.features]
+[formats.file.hashing.sha256]
 enabled = true
 
-[heuristics.normalization]
-enabled = false
-
-[heuristics.entropy]
-enabled = true
-
-[hashing.sha256]
-enabled = true
-
-[hashing.tlsh]
+[formats.file.hashing.tlsh]
 enabled = true
 minimum_byte_size = 50
 
-[hashing.minhash]
+[formats.file.hashing.minhash]
 enabled = true
 number_of_hashes = 64
 shingle_size = 4
 maximum_byte_size = 50
 seed = 0
+
+[formats.file.heuristics.features]
+enabled = true
+
+[formats.file.heuristics.normalization]
+enabled = false
+
+[formats.file.heuristics.entropy]
+enabled = true
+
+[blocks.hashing.sha256]
+enabled = true
+
+[blocks.hashing.tlsh]
+enabled = true
+minimum_byte_size = 50
+
+[blocks.hashing.minhash]
+enabled = true
+number_of_hashes = 64
+shingle_size = 4
+maximum_byte_size = 50
+seed = 0
+
+[blocks.heuristics.features]
+enabled = true
+
+[blocks.heuristics.normalization]
+enabled = false
+
+[blocks.heuristics.entropy]
+enabled = true
+
+[functions.hashing.sha256]
+enabled = true
+
+[functions.hashing.tlsh]
+enabled = true
+minimum_byte_size = 50
+
+[functions.hashing.minhash]
+enabled = true
+number_of_hashes = 64
+shingle_size = 4
+maximum_byte_size = 50
+seed = 0
+
+[functions.heuristics.features]
+enabled = true
+
+[functions.heuristics.normalization]
+enabled = false
+
+[functions.heuristics.entropy]
+enabled = true
+
+[signatures.hashing.sha256]
+enabled = true
+
+[signatures.hashing.tlsh]
+enabled = true
+minimum_byte_size = 50
+
+[signatures.hashing.minhash]
+enabled = true
+number_of_hashes = 64
+shingle_size = 4
+maximum_byte_size = 50
+seed = 0
+
+[signatures.heuristics.features]
+enabled = true
+
+[signatures.heuristics.normalization]
+enabled = false
+
+[signatures.heuristics.entropy]
+enabled = true
 
 [mmap]
 directory = "/tmp/binlex"
@@ -411,16 +465,6 @@ let pe = PE.new("./sample.dll", config)
     eprintln!("{}", error);
     process::exit(1);
   });
-
-
-// Read File Attribute from PE
-let file_attribute = Attribute::File(pe.file.process());
-
-// Create Attributes
-let mut attributes = Attributes::new();
-
-// Add PE File Attribute to Attributes
-attributes.push(file_attribute);
 
 // Get Memory Mapped Image
 let mapped_file = pe.image()
