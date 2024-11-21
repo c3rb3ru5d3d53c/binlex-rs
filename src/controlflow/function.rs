@@ -67,7 +67,7 @@ pub struct Function <'function>{
     /// The control flow graph this function belongs to.
     pub cfg: &'function Graph,
     /// The blocks that make up the function, mapped by their start addresses.
-    pub blocks: BTreeMap<u64, Instruction>,
+    pub inner_blocks: BTreeMap<u64, Instruction>,
     /// A map of functions associated with this function.
     pub functions: BTreeMap<u64, u64>,
     /// The number of instructions in the function.
@@ -137,7 +137,7 @@ impl<'function> Function<'function> {
         return Ok(Self {
             address: address,
             cfg: cfg,
-            blocks: blocks,
+            inner_blocks: blocks,
             functions: functions,
             instruction_count: instruction_count,
             edges: edges,
@@ -166,7 +166,7 @@ impl<'function> Function<'function> {
             bytes: self.bytes_to_hex(),
             size: self.size(),
             functions: self.functions(),
-            blocks: self.block_addresses(),
+            blocks: self.blocks(),
             number_of_instructions: self.number_of_instructions(),
             entropy: self.entropy(),
             sha256: self.sha256(),
@@ -252,8 +252,8 @@ impl<'function> Function<'function> {
     /// # Returns
     ///
     /// Returns a `BTreeSet<u64>` containing the addresses of all blocks in the function.
-    pub fn block_addresses(&self) -> BTreeSet<u64> {
-        self.blocks().keys().cloned().collect()
+    pub fn blocks(&self) -> BTreeSet<u64> {
+        self.inner_blocks().keys().cloned().collect()
     }
 
     /// Retrieves the number of edges (connections) in the function.
@@ -293,7 +293,7 @@ impl<'function> Function<'function> {
     /// Returns `Some(u64)` containing the address, or `None` if the function is not contiguous.
     pub fn end(&self) -> Option<u64> {
         if !self.is_contiguous() { return None; }
-        self.blocks().iter().last().map(|(_, terminator)|terminator.address)
+        self.inner_blocks().iter().last().map(|(_, terminator)|terminator.address)
     }
 
     /// Retrieves the raw bytes of the function, if contiguous.
@@ -377,8 +377,8 @@ impl<'function> Function<'function> {
     /// # Returns
     ///
     /// Returns a reference to a `BTreeMap<u64, Instruction>` containing the function's blocks.
-    pub fn blocks(&self) -> &BTreeMap<u64, Instruction> {
-        return &self.blocks;
+    pub fn inner_blocks(&self) -> &BTreeMap<u64, Instruction> {
+        return &self.inner_blocks;
     }
 
     /// Retrieves the functions associated with this function.
@@ -397,7 +397,7 @@ impl<'function> Function<'function> {
     /// Returns `true` if the function is contiguous; otherwise, `false`.
     pub fn is_contiguous(&self) -> bool {
         let mut block_previous_end: Option<u64> = None;
-        for (block_start_address, terminator )in self.blocks() {
+        for (block_start_address, terminator )in self.inner_blocks() {
             if let Some(previous_end) = block_previous_end {
                 if previous_end != *block_start_address {
                     return false;

@@ -120,6 +120,7 @@ impl<'block> Block<'block> {
     }
 
     #[allow(dead_code)]
+    /// Get the architecture of the block.
     pub fn architecture(&self) -> BinaryArchitecture {
         self.cfg.architecture
     }
