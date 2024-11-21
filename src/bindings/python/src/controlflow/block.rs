@@ -81,8 +81,8 @@ impl Block {
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn instruction_count(&self, py: Python) -> PyResult<usize> {
-        self.with_inner_block(py, |block| Ok(block.instruction_count()))
+    pub fn number_of_instructions(&self, py: Python) -> PyResult<usize> {
+        self.with_inner_block(py, |block| Ok(block.number_of_instructions()))
     }
 
     #[pyo3(text_signature = "($self)")]

@@ -36,7 +36,7 @@ pub struct FunctionJson {
     /// The signature of the function in JSON format.
     pub signature: Option<SignatureJson>,
     /// The size of the function in bytes, if available.
-    pub size: Option<usize>,
+    pub size: usize,
     /// The raw bytes of the function in hexadecimal format, if available.
     pub bytes: Option<String>,
     /// A map of functions associated with the function.
@@ -44,7 +44,7 @@ pub struct FunctionJson {
     /// The set of blocks contained within the function.
     pub blocks: BTreeSet<u64>,
     /// The number of instructions in the function.
-    pub instructions: usize,
+    pub number_of_instructions: usize,
     /// The entropy of the function, if enabled.
     pub entropy: Option<f64>,
     /// The SHA-256 hash of the function, if enabled.
@@ -122,7 +122,7 @@ impl<'function> Function<'function> {
                     queue.enqueue_extend(block.blocks());
                     functions.extend(block.functions());
                     size += block.size();
-                    instruction_count += block.instruction_count();
+                    instruction_count += block.number_of_instructions();
                     edges += block.edges();
                     blocks.insert(block_address, block.terminator.clone());
                 }
@@ -167,7 +167,7 @@ impl<'function> Function<'function> {
             size: self.size(),
             functions: self.functions(),
             blocks: self.block_addresses(),
-            instructions: self.instruction_count(),
+            number_of_instructions: self.number_of_instructions(),
             entropy: self.entropy(),
             sha256: self.sha256(),
             minhash: self.minhash(),
@@ -234,7 +234,7 @@ impl<'function> Function<'function> {
     /// # Returns
     ///
     /// Returns the number of instructions as a `usize`.
-    pub fn instruction_count(&self) -> usize {
+    pub fn number_of_instructions(&self) -> usize {
         return self.instruction_count;
     }
 
@@ -282,9 +282,8 @@ impl<'function> Function<'function> {
     /// # Returns
     ///
     /// Returns `Some(usize)` if the function is contiguous; otherwise, `None`.
-    pub fn size(&self) -> Option<usize> {
-        if !self.is_contiguous() { return None; }
-        return Some(self.size);
+    pub fn size(&self) -> usize {
+        return self.size;
     }
 
     /// Retrieves the address of the function's last instruction, if contiguous.

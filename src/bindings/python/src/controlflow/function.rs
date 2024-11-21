@@ -79,8 +79,8 @@ impl Function {
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn instruction_count(&self, py: Python) -> PyResult<usize> {
-        self.with_inner_function(py, |function| Ok(function.instruction_count()))
+    pub fn number_of_instructions(&self, py: Python) -> PyResult<usize> {
+        self.with_inner_function(py, |function| Ok(function.number_of_instructions()))
     }
 
     #[pyo3(text_signature = "($self)")]
@@ -104,7 +104,7 @@ impl Function {
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn size(&self, py: Python) -> PyResult<Option<usize>> {
+    pub fn size(&self, py: Python) -> PyResult<usize> {
         self.with_inner_function(py, |function| Ok(function.size()))
     }
 

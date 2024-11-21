@@ -45,7 +45,7 @@ pub struct BlockJson {
     /// A map of function addresses related to this block.
     pub functions: BTreeMap<u64, u64>,
     /// The number of instructions in this block.
-    pub instructions: usize,
+    pub number_of_instructions: usize,
     /// The entropy of the block, if enabled.
     pub entropy: Option<f64>,
     /// The SHA-256 hash of the block, if enabled.
@@ -172,7 +172,7 @@ impl<'block> Block<'block> {
             conditional: self.terminator.is_conditional,
             size: self.size(),
             bytes: Binary::to_hex(&self.bytes()),
-            instructions: self.instruction_count(),
+            number_of_instructions: self.number_of_instructions(),
             functions: self.functions(),
             entropy: self.entropy(),
             sha256: self.sha256(),
@@ -345,7 +345,7 @@ impl<'block> Block<'block> {
     /// # Returns
     ///
     /// Returns the number of instructions as a `usize`.
-    pub fn instruction_count(&self) -> usize {
+    pub fn number_of_instructions(&self) -> usize {
         let mut result: usize = 0;
         for _ in self.cfg.instructions.range(self.address..=self.terminator.address){
             result += 1;
