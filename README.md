@@ -585,4 +585,6 @@ Please note that although the Python bindings also take advantage of Rust multi-
 
 There are limitations in Python that will affect speed and memory performance due to how Python is designed.
 
+Mainly, this is due to requiring additional locking and unlocking in Python for thread safety.
+
 As such, if you need lightening fast performance consider using the Rust API instead.
