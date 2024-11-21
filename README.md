@@ -185,6 +185,36 @@ The simplest way to get started is with the command-line, leveraging a JSON filt
 
 The following command disassembles `sample.dll` with `16` threads, the relevant traits are JSON objects, one per line and are piped into `jq` for filtering and beautifying.
 
+To see what options are available when using the **binlex** command-line use `-h` or `--help`.
+
+```bash
+A Binary Pattern Lexer
+
+Version: 1.0.0
+
+Usage: binlex [OPTIONS] --input <INPUT>
+
+Options:
+  -i, --input <INPUT>
+  -o, --output <OUTPUT>
+  -c, --config <CONFIG>
+  -t, --threads <THREADS>
+      --tags <TAGS>
+      --minimal
+  -d, --debug
+      --disable-hashing
+      --disable-disassembler-sweep
+      --disable-heuristics
+      --enable-mmap-cache
+      --mmap-directory <MMAP_DIRECTORY>
+  -h, --help                             Print help
+  -V, --version                          Print version
+
+Author: @c3rb3ru5d3d53c
+```
+
+A simple example of using the command-line is provided below.
+
 ```bash
 binlex -i sample.dll --threads 16 | jq
 ```
@@ -193,13 +223,15 @@ binlex -i sample.dll --threads 16 | jq
 
 Upon your first execution of **binlex** it will store the configuration file in your configuration directory in `binlex/binlex.toml`.
 
+This **binlex** finds the default configuration directory based on your operating system as indicated in the table below for its configuration.
+
 | OS       | Environment Variable                  | Example Binlex Configuration Path                              |
 |----------|---------------------------------------|----------------------------------------------------------------|
 | Linux    | `$XDG_CONFIG_HOME` or `$HOME/.config` | `/home/alice/.config/binlex/binlex.toml`                       |
 | macOS    | `$HOME/Library/Application Support`   | `/Users/Alice/Library/Application Support/binlex/binlex.toml`  |
 | Windows  | `{FOLDERID_RoamingAppData}`           | `C:\Users\Alice\AppData\Roaming\binlex\binlex.toml`            |
 
-The default configuration **binlex** provides is provided below.
+The default configuration name `binlex.toml` for **binlex** is provided below.
 
 ```toml
 [general]
@@ -308,6 +340,8 @@ enabled = false
 [disassembler.sweep]
 enabled = true
 ```
+
+If the command-line options are not enough the configuration file provides the most granular control of all options.
 
 If you wish to override the default configuration file and specify another configuration file use the command-line parameter.
 
