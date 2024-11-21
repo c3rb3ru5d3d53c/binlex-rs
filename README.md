@@ -549,6 +549,7 @@ from binlex.disassemblers.capstone import Disassembler
 from binlex.controlflow import Graph
 from binlex import Config
 from binlex.controlflow import Block
+from binlex.controlflow import Function
 
 # Get Default Configuration
 config = Config()
@@ -574,11 +575,19 @@ cfg = Graph(pe.architecture(), config)
 # Disassemble the PE Image Entrypoints Recursively
 disassembler.disassemble_controlflow(pe.functions(), cfg)
 
-# Read Block from Control Flow
-block = Block(pe.entrypoint(), cfg)
+# Iterate Valid Blocks
+for address in cfg.blocks.valid():
+  # Read Block from Control Flow
+  block = Block(address, cfg)
+  # Print Block from Control Flow
+  block.print()
 
-# Print Block from Control Flow
-block.print()
+# Iterate Valid Functions
+for address in cfg.functions.valid():
+  # Read Block from Control Flow
+  function = Function(address, cfg)
+  # Print Block from Control Flow
+  function.print()
 ```
 
 Please note that although the Python bindings also take advantage of Rust multi-threading.

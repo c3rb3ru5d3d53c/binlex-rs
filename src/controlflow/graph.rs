@@ -107,6 +107,45 @@ impl GraphQueue {
         return &self.valid;
     }
 
+    /// Collects valid addresses in a set
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BTreeSet` containing valid addresses.
+    pub fn collect_valid(&self) -> BTreeSet<u64> {
+        let mut result = BTreeSet::<u64>::new();
+        for entry in self.valid() {
+            result.insert(*entry.value());
+        }
+        result
+    }
+
+    /// Collects invalid addresses in a set
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BTreeSet` containing valid addresses.
+    pub fn collect_invalid(&self) -> BTreeSet<u64> {
+        let mut result = BTreeSet::<u64>::new();
+        for entry in self.invalid() {
+            result.insert(*entry.value());
+        }
+        result
+    }
+
+    /// Collects processed addresses in a set
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BTreeSet` containing processed addresses.
+    pub fn collect_processed(&self) -> BTreeSet<u64> {
+        let mut result = BTreeSet::<u64>::new();
+        for entry in self.processed() {
+            result.insert(*entry.value());
+        }
+        result
+    }
+
     /// Retrieves a reference to the processed address set.
     ///
     /// # Returns

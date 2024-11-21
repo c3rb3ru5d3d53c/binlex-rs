@@ -33,6 +33,21 @@ impl GraphQueue {
     }
 
     #[pyo3(text_signature = "($self, address)")]
+    pub fn valid(&self) -> BTreeSet<u64> {
+        self.inner.collect_valid()
+    }
+
+    #[pyo3(text_signature = "($self, address)")]
+    pub fn invalid(&self) -> BTreeSet<u64> {
+        self.inner.collect_invalid()
+    }
+
+    #[pyo3(text_signature = "($self, address)")]
+    pub fn processed(&self) -> BTreeSet<u64> {
+        self.inner.collect_processed()
+    }
+
+    #[pyo3(text_signature = "($self, address)")]
     pub fn is_valid(&self, address: u64) -> bool {
         self.inner.is_valid(address)
     }

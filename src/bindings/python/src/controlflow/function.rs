@@ -123,11 +123,27 @@ impl Function {
         self.with_inner_function(py, |function| Ok(function.print()))
     }
 
-    #[pyo3(text_signature = "($self)")]
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyAny>> {
+        // Retrieve the JSON string using the `json` method.
+        let json_str = self.json(py)?;
+
+        // Import the built-in `json` module.
+        let json_module = py.import_bound("json")?;
+
+        // Use `json.loads` to convert the JSON string into a Python dictionary.
+        let py_dict = json_module.call_method1("loads", (json_str,))?;
+
+        Ok(py_dict.into())
+    }
+
     pub fn json(&self, py: Python) -> PyResult<String> {
         self.with_inner_function(py, |block| {
             block.json().map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
         })
+    }
+
+    pub fn __str__(&self, py: Python) -> PyResult<String> {
+        self.json(py)
     }
 }
 
