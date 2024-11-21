@@ -64,7 +64,7 @@ pub fn instruction_init(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Instruction>()?;
     py.import_bound("sys")?
         .getattr("modules")?
-        .set_item("binlex.models.controlflow.instruction", m)?;
-    m.setattr("__name__", "binlex.models.controlflow.instruction")?;
+        .set_item("binlex.controlflow.instruction", m)?;
+    m.setattr("__name__", "binlex.controlflow.instruction")?;
     Ok(())
 }

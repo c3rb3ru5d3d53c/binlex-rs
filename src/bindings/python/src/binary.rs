@@ -53,7 +53,7 @@ pub fn binary_init(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Binary>()?;
     py.import_bound("sys")?
         .getattr("modules")?
-        .set_item("binlex.models.binary", m)?;
-    m.setattr("__name__", "binlex.models.binary")?;
+        .set_item("binlex.binary", m)?;
+    m.setattr("__name__", "binlex.binary")?;
     Ok(())
 }
