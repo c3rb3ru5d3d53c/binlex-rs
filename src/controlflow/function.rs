@@ -1,6 +1,5 @@
 
 use crate::binary::BinaryArchitecture;
-use crate::controlflow::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::BTreeMap;
@@ -67,17 +66,7 @@ pub struct Function <'function>{
     /// The control flow graph this function belongs to.
     pub cfg: &'function Graph,
     /// The blocks that make up the function, mapped by their start addresses.
-    pub inner_blocks: BTreeMap<u64, Instruction>,
-    /// A map of functions associated with this function.
-    pub functions: BTreeMap<u64, u64>,
-    /// The number of instructions in the function.
-    pub instruction_count: usize,
-    /// The number of edges (connections) in the function.
-    pub edges: usize,
-    /// Indicates whether this function starts with a prologue.
-    pub is_prologue: bool,
-    /// The size of the function in bytes.
-    pub size: usize,
+    pub blocks: BTreeMap<u64, Block<'function>>,
 }
 
 impl<'function> Function<'function> {
@@ -98,12 +87,7 @@ impl<'function> Function<'function> {
             return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x}: is not valid", address)));
         }
 
-        let mut blocks = BTreeMap::<u64, Instruction>::new();
-        let mut functions = BTreeMap::<u64, u64>::new();
-        let mut instruction_count: usize = 0;
-        let mut edges: usize = 0;
-        let mut is_prologue = false;
-        let mut size: usize = 0;
+        let mut blocks = BTreeMap::<u64, Block>::new();
 
         let mut queue = GraphQueue::new();
 
@@ -114,35 +98,16 @@ impl<'function> Function<'function> {
             if cfg.blocks.is_invalid(block_address) {
                 return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x} -> Block -> 0x{:x}: is invalid", address, block_address)));
             }
-            match Block::new(block_address, &cfg) {
-                Ok(block) => {
-                    if block.address == address {
-                        is_prologue = block.is_prologue();
-                    }
-                    queue.enqueue_extend(block.blocks());
-                    functions.extend(block.functions());
-                    size += block.size();
-                    instruction_count += block.number_of_instructions();
-                    edges += block.edges();
-                    blocks.insert(block_address, block.terminator.clone());
-                }
-                Err(error) => {
-                    return Err(Error::new(
-                    ErrorKind::Other,
-                    format!("Function -> 0x{:x} -> Block -> 0x{:x}: {}", address, block_address, error)
-                ))},
+            if let Ok(block) = Block::new(block_address, &cfg) {
+                queue.enqueue_extend(block.blocks());
+                blocks.insert(block_address, block);
             }
         }
 
         return Ok(Self {
             address: address,
             cfg: cfg,
-            inner_blocks: blocks,
-            functions: functions,
-            instruction_count: instruction_count,
-            edges: edges,
-            is_prologue: is_prologue,
-            size: size,
+            blocks: blocks,
         });
     }
 
@@ -235,7 +200,11 @@ impl<'function> Function<'function> {
     ///
     /// Returns the number of instructions as a `usize`.
     pub fn number_of_instructions(&self) -> usize {
-        return self.instruction_count;
+        let mut result: usize = 0;
+        for (_, block) in &self.blocks {
+            result += block.number_of_instructions();
+        }
+        result
     }
 
     /// Indicates whether this function starts with a prologue.
@@ -244,7 +213,10 @@ impl<'function> Function<'function> {
     ///
     /// Returns `true` if the function starts with a prologue; otherwise, `false`.
     pub fn is_prologue(&self) -> bool {
-        return self.is_prologue;
+        if let Some((_, block)) = self.blocks.iter().next() {
+            return block.is_prologue();
+        }
+        return false;
     }
 
     /// Retrieves the set of block addresses in the function.
@@ -253,7 +225,11 @@ impl<'function> Function<'function> {
     ///
     /// Returns a `BTreeSet<u64>` containing the addresses of all blocks in the function.
     pub fn blocks(&self) -> BTreeSet<u64> {
-        self.inner_blocks().keys().cloned().collect()
+        let mut result = BTreeSet::<u64>::new();
+        for (block_address, _) in &self.blocks {
+            result.insert(*block_address);
+        }
+        result
     }
 
     /// Retrieves the number of edges (connections) in the function.
@@ -262,7 +238,11 @@ impl<'function> Function<'function> {
     ///
     /// Returns the number of edges as a `usize`.
     pub fn edges(&self) -> usize {
-        return self.edges;
+        let mut result: usize = 0;
+        for (_, block) in &self.blocks {
+            result += block.edges();
+        }
+        result
     }
 
     /// Converts the function's bytes to a hexadecimal string, if available.
@@ -270,7 +250,7 @@ impl<'function> Function<'function> {
     /// # Returns
     ///
     /// Returns `Some(String)` containing the hexadecimal representation of the bytes, or `None` if unavailable.
-    pub fn bytes_to_hex(&self) -> Option<String> {
+    fn bytes_to_hex(&self) -> Option<String> {
         if let Some(bytes) = self.bytes() {
             return Some(Binary::to_hex(&bytes));
         }
@@ -283,7 +263,11 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(usize)` if the function is contiguous; otherwise, `None`.
     pub fn size(&self) -> usize {
-        return self.size;
+        let mut result: usize = 0;
+        for (_, block) in &self.blocks {
+            result += block.size();
+        }
+        result
     }
 
     /// Retrieves the address of the function's last instruction, if contiguous.
@@ -293,8 +277,12 @@ impl<'function> Function<'function> {
     /// Returns `Some(u64)` containing the address, or `None` if the function is not contiguous.
     pub fn end(&self) -> Option<u64> {
         if !self.is_contiguous() { return None; }
-        self.inner_blocks().iter().last().map(|(_, terminator)|terminator.address)
+        if let Some((_, block)) = self.blocks.iter().last() {
+            return Some(block.end());
+        }
+        None
     }
+
 
     /// Retrieves the raw bytes of the function, if contiguous.
     ///
@@ -372,22 +360,17 @@ impl<'function> Function<'function> {
         return None;
     }
 
-    /// Retrieves the blocks that make up the function.
-    ///
-    /// # Returns
-    ///
-    /// Returns a reference to a `BTreeMap<u64, Instruction>` containing the function's blocks.
-    pub fn inner_blocks(&self) -> &BTreeMap<u64, Instruction> {
-        return &self.inner_blocks;
-    }
-
     /// Retrieves the functions associated with this function.
     ///
     /// # Returns
     ///
     /// Returns a `BTreeMap<u64, u64>` containing function addresses.
     pub fn functions(&self) -> BTreeMap<u64, u64> {
-        return self.functions.clone();
+        let mut result = BTreeMap::<u64, u64>::new();
+        for (_, block) in &self.blocks {
+            result.extend(block.functions());
+        }
+        result
     }
 
     /// Checks whether the function is contiguous in memory.
@@ -397,13 +380,13 @@ impl<'function> Function<'function> {
     /// Returns `true` if the function is contiguous; otherwise, `false`.
     pub fn is_contiguous(&self) -> bool {
         let mut block_previous_end: Option<u64> = None;
-        for (block_start_address, terminator )in self.inner_blocks() {
+        for (block_start_address, block) in &self.blocks {
             if let Some(previous_end) = block_previous_end {
                 if previous_end != *block_start_address {
                     return false;
                 }
             }
-            block_previous_end = Some(terminator.address + terminator.size() as u64);
+            block_previous_end = Some(block.end());
         }
         return true;
     }
