@@ -522,13 +522,13 @@ let disassembler = Disassembler(pe.architecture(), &image, pe.executable_virtual
   });
 
 // Create Control Flow Graph
-cfg = Graph(pe.architecture(), config);
+let cfg = Graph(pe.architecture(), config);
 
 // Disassemble Control Flow
-disassembler.disassemble_controlflow(pe.functions(), cfg);
+disassembler.disassemble_controlflow(pe.functions(), &mut cfg);
 
 // Read Block from Control Flow
-block = Block(pe.entrypoint(), cfg);
+block = Block(pe.entrypoint(), &cfg);
 
 // Print Block from Control Flow
 block.print();
