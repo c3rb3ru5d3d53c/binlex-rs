@@ -133,7 +133,7 @@ impl<'a> Signature<'a> {
     ///
     /// Returns `Some(String)` containing the normalized hexadecimal representation, or `None` if normalization is disabled.
     pub fn normalized(&self) -> Option<String> {
-        if !self.cfg.config.signatures.heuristics.normalization.enabled { return None; }
+        if !self.cfg.config.signatures.heuristics.normalized.enabled { return None; }
         Some(Binary::to_hex(&self.normalize()))
     }
 

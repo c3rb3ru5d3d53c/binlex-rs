@@ -64,7 +64,7 @@ pub struct ConfigDisassemblerSweep {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigHeuristics {
     pub features: ConfigHeuristicFeatures,
-    pub normalization: ConfigHeuristicNormalization,
+    pub normalized: ConfigHeuristicNormalization,
     pub entropy: ConfigHeuristicEntropy,
 }
 
@@ -165,7 +165,7 @@ impl Config {
                         features: ConfigHeuristicFeatures {
                             enabled: true,
                         },
-                        normalization: ConfigHeuristicNormalization {
+                        normalized: ConfigHeuristicNormalization {
                             enabled: false,
                         },
                         entropy: ConfigHeuristicEntropy {
@@ -195,7 +195,7 @@ impl Config {
                     features: ConfigHeuristicFeatures {
                         enabled: true,
                     },
-                    normalization: ConfigHeuristicNormalization {
+                    normalized: ConfigHeuristicNormalization {
                         enabled: false,
                     },
                     entropy: ConfigHeuristicEntropy {
@@ -224,7 +224,7 @@ impl Config {
                     features: ConfigHeuristicFeatures {
                         enabled: true,
                     },
-                    normalization: ConfigHeuristicNormalization {
+                    normalized: ConfigHeuristicNormalization {
                         enabled: false,
                     },
                     entropy: ConfigHeuristicEntropy {
@@ -253,7 +253,7 @@ impl Config {
                     features: ConfigHeuristicFeatures {
                         enabled: true,
                     },
-                    normalization: ConfigHeuristicNormalization {
+                    normalized: ConfigHeuristicNormalization {
                         enabled: false,
                     },
                     entropy: ConfigHeuristicEntropy {
@@ -291,7 +291,7 @@ impl Config {
     pub fn disable_signature_heuristics(&mut self) {
         self.signatures.heuristics.entropy.enabled = false;
         self.signatures.heuristics.features.enabled = false;
-        self.signatures.heuristics.normalization.enabled = false;
+        self.signatures.heuristics.normalized.enabled = false;
     }
 
     pub fn disable_block_hashing(&mut self){
@@ -309,7 +309,7 @@ impl Config {
     pub fn disable_file_heuristics(&mut self) {
         self.formats.file.heuristics.entropy.enabled = false;
         self.formats.file.heuristics.features.enabled = false;
-        self.formats.file.heuristics.normalization.enabled = false;
+        self.formats.file.heuristics.normalized.enabled = false;
     }
 
     pub fn disable_heuristics(&mut self) {
@@ -334,13 +334,13 @@ impl Config {
     pub fn disable_block_heuristics(&mut self) {
         self.blocks.heuristics.entropy.enabled = false;
         self.blocks.heuristics.features.enabled = false;
-        self.blocks.heuristics.normalization.enabled = false;
+        self.blocks.heuristics.normalized.enabled = false;
     }
 
     pub fn disable_function_heuristics(&mut self) {
         self.functions.heuristics.entropy.enabled = false;
         self.functions.heuristics.features.enabled = false;
-        self.functions.heuristics.normalization.enabled = false;
+        self.functions.heuristics.normalized.enabled = false;
     }
 
     // Get Default File Mapping Directory

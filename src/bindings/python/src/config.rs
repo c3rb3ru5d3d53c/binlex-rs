@@ -37,7 +37,7 @@ impl ConfigSignaturesHeuristics {
         }
     }
     #[getter]
-    pub fn get_normalization(&self) -> ConfigSignaturesHeuristicsNormalization {
+    pub fn get_normalized(&self) -> ConfigSignaturesHeuristicsNormalization {
         ConfigSignaturesHeuristicsNormalization {
             inner: Arc::clone(&self.inner)
         }
@@ -111,13 +111,13 @@ impl ConfigSignaturesHeuristicsNormalization {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.heuristics.normalization.enabled
+        inner.signatures.heuristics.normalized.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.heuristics.normalization.enabled = value;
+        inner.signatures.heuristics.normalized.enabled = value;
     }
 }
 
@@ -298,7 +298,7 @@ impl ConfigFunctionsHeuristics {
         }
     }
     #[getter]
-    pub fn get_normalization(&self) -> ConfigFunctionsHeuristicsNormalization {
+    pub fn get_normalized(&self) -> ConfigFunctionsHeuristicsNormalization {
         ConfigFunctionsHeuristicsNormalization {
             inner: Arc::clone(&self.inner)
         }
@@ -372,13 +372,13 @@ impl ConfigFunctionsHeuristicsNormalization {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.functions.heuristics.normalization.enabled
+        inner.functions.heuristics.normalized.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.functions.heuristics.normalization.enabled = value;
+        inner.functions.heuristics.normalized.enabled = value;
     }
 }
 
@@ -559,7 +559,7 @@ impl ConfigBlocksHeuristics {
         }
     }
     #[getter]
-    pub fn get_normalization(&self) -> ConfigBlocksHeuristicsNormalization {
+    pub fn get_normalized(&self) -> ConfigBlocksHeuristicsNormalization {
         ConfigBlocksHeuristicsNormalization {
             inner: Arc::clone(&self.inner)
         }
@@ -633,13 +633,13 @@ impl ConfigBlocksHeuristicsNormalization {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.blocks.heuristics.normalization.enabled
+        inner.blocks.heuristics.normalized.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.blocks.heuristics.normalization.enabled = value;
+        inner.blocks.heuristics.normalized.enabled = value;
     }
 }
 
@@ -836,7 +836,7 @@ impl ConfigFormatsFileHeuristics {
         }
     }
     #[getter]
-    pub fn get_normalization(&self) -> ConfigFormatsFileHeuristicsNormalization {
+    pub fn get_normalized(&self) -> ConfigFormatsFileHeuristicsNormalization {
         ConfigFormatsFileHeuristicsNormalization {
             inner: Arc::clone(&self.inner)
         }
@@ -910,13 +910,13 @@ impl ConfigFormatsFileHeuristicsNormalization {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.formats.file.heuristics.normalization.enabled
+        inner.formats.file.heuristics.normalized.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.formats.file.heuristics.normalization.enabled = value;
+        inner.formats.file.heuristics.normalized.enabled = value;
     }
 }
 
