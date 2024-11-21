@@ -2,3 +2,4 @@
 *.exe
 *.so
 venv/
+*.py

@@ -250,33 +250,15 @@ fn main() {
 
     entrypoints.extend(pe.functions());
 
-    if config.disassembler.sweep.enabled {
-        entrypoints.extend(disassembler.disassemble_sweep());
-    }
-
     entrypoints.extend(function_symbols.keys());
 
     let mut cfg = Graph::new(machine, config.clone());
 
-    cfg.functions.enqueue_extend(entrypoints);
-
-    while !cfg.functions.queue.is_empty() {
-        let function_addresses = cfg.functions.dequeue_all();
-        cfg.functions.insert_processed_extend(function_addresses.clone());
-        let graphs: Vec<Graph> = function_addresses
-            .par_iter()
-            .map(|address| {
-                let mut graph = Graph::new(machine, config.clone());
-                if let Ok(disasm) = Disassembler::new(machine, &image, executable_address_ranges.clone()) {
-                    let _ = disasm.disassemble_function(*address, &mut graph);
-                }
-                graph
-            })
-            .collect();
-        for mut graph in graphs {
-            cfg.absorb(&mut graph);
-        }
-    }
+    disassembler.disassemble_controlflow(entrypoints, &mut cfg)
+        .unwrap_or_else(|error| {
+            eprintln!("{}", error);
+            process::exit(1);
+        });
 
     let cfg = cfg;
 

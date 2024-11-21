@@ -491,7 +491,10 @@ use binlex::controlflow::Block;
 use binlex::controlflow::Attribute;
 
 // Get Default Configuration
-let config = Config();
+let mut config = Config();
+
+// Use 16 Threads for Multi-Threaded Operations
+config.general.threads = 16;
 
 // Read PE File
 let pe = PE.new("./sample.dll", config)
@@ -550,6 +553,9 @@ from binlex.controlflow import Block
 # Get Default Configuration
 config = Config()
 
+# Use 16 Threads for Multi-Threaded Operations
+config.general.threads = 16
+
 # Open the PE File
 pe = PE('./sample.dll', config)
 
@@ -575,6 +581,8 @@ block = Block(pe.entrypoint(), cfg)
 block.print()
 ```
 
-Please note that there are limitations in Python that will affect speed and memory performance.
+Please note that although the Python bindings also take advantage of Rust multi-threading.
 
-As such, if you absolutely need lightening fast performance consider using the Rust API instead.
+There are limitations in Python that will affect speed and memory performance due to how Python is designed.
+
+As such, if you need lightening fast performance consider using the Rust API instead.

@@ -21,6 +21,8 @@ use crate::binary::Binary;
 use crate::binary::BinaryArchitecture;
 use crate::controlflow::instruction::Instruction;
 use crate::controlflow::graph::Graph;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::ThreadPoolBuilder;
 
 pub struct Disassembler<'disassembler> {
     cs: Capstone,
@@ -107,17 +109,45 @@ impl<'disassembler> Disassembler<'disassembler> {
     #[allow(dead_code)]
     pub fn disassemble_controlflow<'a>(&'a self, addresses: BTreeSet<u64>, cfg: &'a mut Graph) -> Result<(), Error> {
 
+        let pool = ThreadPoolBuilder::new()
+            .num_threads(cfg.config.general.threads)
+            .build()
+            .map_err(|error| Error::new(ErrorKind::Other, format!("{}", error)))?;
+
         if cfg.config.disassembler.sweep.enabled {
             cfg.functions.enqueue_extend(self.disassemble_sweep());
         }
 
         cfg.functions.enqueue_extend(addresses);
 
-        while let Some(function_start_address) = cfg.functions.dequeue() {
-            if let Err(_) = self.disassemble_function(function_start_address, cfg) {
-                continue;
+        let external_image = self.image;
+
+        let external_machine = self.machine.clone();
+
+        let external_executable_address_ranges = self.executable_address_ranges.clone();
+
+        pool.install(|| {
+            while !cfg.functions.queue.is_empty() {
+                let function_addresses = cfg.functions.dequeue_all();
+                cfg.functions.insert_processed_extend(function_addresses.clone());
+                let graphs: Vec<Graph> = function_addresses
+                    .par_iter()
+                    .map(|address| {
+                        let machine = external_machine.clone();
+                        let executable_address_ranges = external_executable_address_ranges.clone();
+                        let image = external_image;
+                        let mut graph = Graph::new(machine, cfg.config.clone());
+                        if let Ok(disasm) = Disassembler::new(machine, image, executable_address_ranges) {
+                            let _ = disasm.disassemble_function(*address, &mut graph);
+                        }
+                        graph
+                    })
+                    .collect();
+                for mut graph in graphs {
+                    cfg.absorb(&mut graph);
+                }
             }
-        }
+        });
 
         return Ok(());
     }
