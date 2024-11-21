@@ -2,7 +2,6 @@ use clap::Parser;
 use serde_json::Value;
 use std::fs::File;
 use std::io::Error;
-use std::io::ErrorKind;
 use std::io::Write;
 use std::process;
 use binlex::types::LZ4String;
@@ -29,9 +28,6 @@ struct Args {
 fn process_value(parsed: &Value) -> Result<LZ4String, Error> {
     let virtual_address = parsed.get("offset").unwrap().as_u64().unwrap();
     let function_name = parsed.get("name").unwrap().as_str().unwrap().to_string();
-    if function_name.starts_with("fcn.") {
-        return Err(Error::new(ErrorKind::NotFound, "symbol not found"));
-    }
     let symbol = SymbolIoJson {
         type_: "symbol".to_string(),
         symbol_type: "function".to_string(),
