@@ -52,3 +52,7 @@ path = "src/bin/blscaler.rs"
 [[bin]]
 name = "blrizin"
 path = "src/bin/blrizin.rs"
+
+[[bin]]
+name = "blimage"
+path = "src/bin/blimage.rs"
