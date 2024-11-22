@@ -125,6 +125,7 @@ impl Instruction {
     /// Returns a `BTreeSet<u64>` containing the block addresses.
     pub fn blocks(&self) -> BTreeSet<u64> {
         let mut result = BTreeSet::new();
+        if !self.is_jump { return result; }
         for item in self.to.iter().map(|ref_multi| *ref_multi).chain(self.next()) {
             result.insert(item);
         }
