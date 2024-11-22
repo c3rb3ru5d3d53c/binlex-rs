@@ -52,7 +52,7 @@ fn main() {
             process::exit(1);
         }
     } else {
-        Stdout.print(signature);
+        Stdout::print(signature);
     }
 }
 

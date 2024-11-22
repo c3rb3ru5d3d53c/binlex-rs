@@ -5,6 +5,7 @@ use std::process;
 use std::fs::File;
 use serde_json::{Value, Deserializer};
 use std::fmt;
+use crate::Config;
 
 /// Represents a wrapper for standard input operations.
 pub struct Stdin;
@@ -36,7 +37,7 @@ impl Stdin {
             for line in handle.lines() {
                 match line {
                     Ok(line) => {
-                        Stdout.print(line);
+                        Stdout::print(line);
                     },
                     Err(error) => {
                         eprintln!("{}", error);
@@ -56,7 +57,7 @@ impl Stdin {
     /// If it was, the program exits with code `0`. For other errors, it logs
     /// an error message to standard error and exits with code `1`.
     #[allow(dead_code)]
-    pub fn print<T: Display>(&self, line: T) {
+    pub fn print<T: Display>(line: T) {
         writeln!(io::stderr(), "{}", line).unwrap_or_else(|e| {
             if e.kind() == ErrorKind::BrokenPipe {
                 std::process::exit(0);
@@ -66,6 +67,7 @@ impl Stdin {
             }
         });
     }
+
 }
 
 impl Stdout {
@@ -80,7 +82,7 @@ impl Stdout {
     /// an error message to standard error and exits with code `1`.
 
     #[allow(dead_code)]
-    pub fn print<T: Display>(&self, line: T) {
+    pub fn print<T: Display>(line: T) {
         writeln!(io::stdout(), "{}", line).unwrap_or_else(|e| {
             if e.kind() == ErrorKind::BrokenPipe {
                 std::process::exit(0);
@@ -103,7 +105,7 @@ impl Stderr {
     /// If it was, the program exits with code `0`. For other errors, it logs
     /// an error message to standard error and exits with code `1`.
     #[allow(dead_code)]
-    pub fn print<T: Display>(&self, line: T) {
+    pub fn print<T: Display>(line: T) {
         writeln!(io::stderr(), "{}", line).unwrap_or_else(|e| {
             if e.kind() == ErrorKind::BrokenPipe {
                 std::process::exit(0);
@@ -112,6 +114,13 @@ impl Stderr {
                 std::process::exit(1);
             }
         });
+    }
+
+    /// Prints a line to standard error if debug configuration is set.
+    pub fn print_debug<T: Display>(config: Config, line: T) {
+        if config.general.debug {
+            Stderr::print(line);
+        }
     }
 }
 

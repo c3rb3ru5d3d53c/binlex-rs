@@ -59,7 +59,7 @@ fn main() {
     if args.output.is_none() && json.is_ok(){
         for value in json.unwrap().values() {
             if let Ok(string) = process_value(value) {
-                Stdout.print(string);
+                Stdout::print(string);
             }
         }
     } else if args.output.is_some() && json.is_ok() {

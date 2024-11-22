@@ -61,7 +61,7 @@ fn main() -> pdb::Result<()> {
 
     for result in results {
         if let Ok(json_string) = serde_json::to_string(&result){
-            Stdout.print(json_string);
+            Stdout::print(json_string);
         }
     }
 

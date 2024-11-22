@@ -291,11 +291,11 @@ fn main() {
 
     if args.output.is_none() {
         functions.iter().for_each(|result| {
-            Stdout.print(result);
+            Stdout::print(result);
         });
 
         blocks.iter().for_each(|result| {
-            Stdout.print(result);
+            Stdout::print(result);
         });
     }
 

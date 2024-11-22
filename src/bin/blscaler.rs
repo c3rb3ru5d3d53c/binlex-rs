@@ -99,7 +99,7 @@ fn main() {
         }
     } else {
         results.iter().for_each(|result| {
-            Stdout.print(result);
+            Stdout::print(result);
         });
     }
 

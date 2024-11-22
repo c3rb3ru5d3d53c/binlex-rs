@@ -23,6 +23,7 @@ use crate::controlflow::instruction::Instruction;
 use crate::controlflow::graph::Graph;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rayon::ThreadPoolBuilder;
+use crate::terminal::io::Stderr;
 
 pub struct Disassembler<'disassembler> {
     cs: Capstone,
@@ -158,6 +159,7 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         if !self.is_executable_address(address) {
             cfg.functions.insert_invalid(address);
+            Stderr::print_debug(cfg.config.clone(), format!("Function -> 0x{:x}: it not in executable memory", address));
             return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x}: it not in executable memory", address)));
         }
 
@@ -195,7 +197,9 @@ impl<'disassembler> Disassembler<'disassembler> {
         }
 
         if !self.is_executable_address(address) {
-            return Err(Error::new(ErrorKind::Other, format!("Instruction -> 0x{:x}: it not in executable memory", address)));
+            let error = format!("Instruction -> 0x{:x}: it not in executable memory", address);
+            Stderr::print_debug(cfg.config.clone(), error.clone());
+            return Err(Error::new(ErrorKind::Other, error));
         }
 
         let instruction_container = self.disassemble_instructions(address, 1)
@@ -256,7 +260,9 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         if !self.is_executable_address(address) {
             cfg.functions.insert_invalid(address);
-            return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: it not in executable memory", address)));
+            let error = format!("Block -> 0x{:x}: it not in executable memory", address);
+            Stderr::print_debug(cfg.config.clone(), error.clone());
+            return Err(Error::new(ErrorKind::Other, error));
         }
 
         let mut pc: u64 = address;
