@@ -24,6 +24,8 @@ struct Args {
     output: Option<String>,
     #[arg(short, long, value_enum, default_value = "grayscale")]
     color: ColorMap,
+    #[arg(short, long, default_value_t = 10)]
+    shape_size: usize,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -101,7 +103,7 @@ fn main() {
         let mut metadata = BTreeMap::<String, String>::new();
         metadata.insert("Hash".to_string(), "sha256:".to_string() + &SHA256::new(&byte_data).hexdigest().unwrap());
 
-        let svg_content = bytes_to_svg(&byte_data, 10, &colormap, metadata);
+        let svg_content = bytes_to_svg(&byte_data, args.shape_size, &colormap, metadata);
 
         std::fs::write(args.output.unwrap(), svg_content).unwrap_or_else(|error| {
             eprintln!("{}", error);
@@ -123,7 +125,7 @@ fn main() {
         let mut metadata = BTreeMap::<String, String>::new();
         metadata.insert("Hash".to_string(), "sha256:".to_string() + &SHA256::new(&byte_data).hexdigest().unwrap());
 
-        let svg_content = bytes_to_svg(&byte_data, 10, &colormap, metadata);
+        let svg_content = bytes_to_svg(&byte_data, args.shape_size, &colormap, metadata);
         Stdout::print(svg_content);
     }
 
