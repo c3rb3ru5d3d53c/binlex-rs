@@ -167,6 +167,8 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         while let Some(block_start_address) = cfg.blocks.dequeue() {
 
+            if cfg.blocks.is_processed(block_start_address) { continue; }
+
             let block_end_address = match self.disassemble_block(block_start_address, cfg) {
                 Ok(block_end_address) => block_end_address,
                 Err(error) => {
@@ -319,6 +321,7 @@ impl<'disassembler> Disassembler<'disassembler> {
             cfg.functions.enqueue(address);
         }
         cfg.blocks.insert_valid(address);
+
         return Ok(pc);
 
     }
