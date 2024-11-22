@@ -320,11 +320,20 @@ impl<'function> Function<'function> {
     /// Returns `Some(f64)` containing the entropy, or `None` if entropy calculation is disabled or the function is not contiguous.
     pub fn entropy(&self) -> Option<f64> {
         if !self.cfg.config.functions.heuristics.entropy.enabled { return None; }
-        if !self.is_contiguous() { return None; }
-        if let Some(bytes) = self.bytes() {
-            return Binary::entropy(&bytes);
+        if self.is_contiguous() {
+            if let Some(bytes) = self.bytes() {
+                return Binary::entropy(&bytes);
+            }
+            return None;
         }
-        return None;
+        let mut entropi = Vec::<f64>::new();
+        for (_, block) in &self.blocks {
+            if let Some(entropy) = block.entropy() {
+                entropi.push(entropy);
+            }
+        }
+        if entropi.is_empty() { return Some(0.0); }
+        Some(entropi.iter().sum::<f64>() / entropi.len() as f64)
     }
 
     /// Computes the TLSH of the function's bytes, if enabled and contiguous.
