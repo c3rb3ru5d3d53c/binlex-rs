@@ -2,10 +2,10 @@ use pyo3::prelude::*;
 use std::collections::BTreeSet;
 use binlex::controlflow::GraphQueue as InnerGraphQueue;
 use binlex::controlflow::Graph as InnerGraph;
-use crate::controlflow::Instruction;
 use crate::BinaryArchitecture;
 use crate::config::Config;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::sync::Mutex;
 
 #[pyclass]
 pub struct GraphQueue {
@@ -33,18 +33,18 @@ impl GraphQueue {
     }
 
     #[pyo3(text_signature = "($self, address)")]
-    pub fn valid(&self) -> BTreeSet<u64> {
-        self.inner.collect_valid()
+    pub fn valid_addresses(&self) -> BTreeSet<u64> {
+        self.inner.valid_addresses()
     }
 
     #[pyo3(text_signature = "($self, address)")]
-    pub fn invalid(&self) -> BTreeSet<u64> {
-        self.inner.collect_invalid()
+    pub fn invalid_addresses(&self) -> BTreeSet<u64> {
+        self.inner.invalid_addresses()
     }
 
     #[pyo3(text_signature = "($self, address)")]
-    pub fn processed(&self) -> BTreeSet<u64> {
-        self.inner.collect_processed()
+    pub fn processed_addresses(&self) -> BTreeSet<u64> {
+        self.inner.processed_addresses()
     }
 
     #[pyo3(text_signature = "($self, address)")]
@@ -111,9 +111,9 @@ impl Graph {
         }
     }
 
-    #[pyo3(text_signature = "($self, instruction)")]
-    pub fn insert_instruction(&mut self, py: Python, instruction: Py<Instruction>) {
-        self.inner.lock().unwrap().insert_instruction(instruction.borrow_mut(py).inner.clone());
+    #[pyo3(text_signature = "($self, address)")]
+    pub fn instruction_addresses(&self) -> BTreeSet<u64> {
+        self.inner.lock().unwrap().instruction_addresses()
     }
 
     #[pyo3(text_signature = "($self, address)")]
@@ -151,9 +151,7 @@ impl Graph {
     pub fn absorb(&mut self, py: Python, cfg: Py<Self>) {
         self.inner.lock().unwrap().absorb(&mut cfg.borrow_mut(py).inner.lock().unwrap());
     }
-
 }
-
 
 #[pymodule]
 #[pyo3(name = "graph")]

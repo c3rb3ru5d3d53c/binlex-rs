@@ -216,7 +216,7 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         let instruction_signature = self.get_instruction_pattern(&instruction)?;
 
-        let mut blinstruction = Instruction::new(instruction.address(), self.machine);
+        let mut blinstruction = Instruction::create(instruction.address(), self.machine);
 
         blinstruction.is_jump = Disassembler::is_jump_instruction(instruction);
         blinstruction.is_call = Disassembler::is_call_instruction(instruction);

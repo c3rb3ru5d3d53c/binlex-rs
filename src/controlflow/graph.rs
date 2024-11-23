@@ -112,7 +112,7 @@ impl GraphQueue {
     /// # Returns
     ///
     /// Returns a `BTreeSet` containing valid addresses.
-    pub fn collect_valid(&self) -> BTreeSet<u64> {
+    pub fn valid_addresses(&self) -> BTreeSet<u64> {
         let mut result = BTreeSet::<u64>::new();
         for entry in self.valid() {
             result.insert(*entry.value());
@@ -125,7 +125,7 @@ impl GraphQueue {
     /// # Returns
     ///
     /// Returns a `BTreeSet` containing valid addresses.
-    pub fn collect_invalid(&self) -> BTreeSet<u64> {
+    pub fn invalid_addresses(&self) -> BTreeSet<u64> {
         let mut result = BTreeSet::<u64>::new();
         for entry in self.invalid() {
             result.insert(*entry.value());
@@ -138,7 +138,7 @@ impl GraphQueue {
     /// # Returns
     ///
     /// Returns a `BTreeSet` containing processed addresses.
-    pub fn collect_processed(&self) -> BTreeSet<u64> {
+    pub fn processed_addresses(&self) -> BTreeSet<u64> {
         let mut result = BTreeSet::<u64>::new();
         for entry in self.processed() {
             result.insert(*entry.value());
@@ -280,6 +280,14 @@ impl Graph {
             functions: GraphQueue::new(),
             config: config,
         };
+    }
+
+    pub fn instruction_addresses(&self) -> BTreeSet<u64> {
+        let mut result = BTreeSet::<u64>::new();
+        for entry in &self.instructions {
+            result.insert(*entry.key());
+        }
+        result
     }
 
     pub fn instructions(&self) -> &SkipMap<u64, Instruction> {

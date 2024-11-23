@@ -3,6 +3,8 @@ use crate::binary::{Binary, BinaryArchitecture};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
+use std::io::ErrorKind;
+use crate::controlflow::Graph;
 
 /// Represents a single instruction in disassembled binary code.
 ///
@@ -98,7 +100,7 @@ impl Instruction {
     ///
     /// Returns a new `Instruction` with default values for its properties.
     #[allow(dead_code)]
-    pub fn new(address: u64, architecture: BinaryArchitecture) -> Self {
+    pub fn create(address: u64, architecture: BinaryArchitecture) -> Self {
         Self {
             address: address,
             is_prologue: false,
@@ -116,6 +118,17 @@ impl Instruction {
             is_trap: false,
             architecture: architecture,
         }
+    }
+
+    /// Retrieves an `Instruction` from the control flow graph if available.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result<Instruction, Error>` containing the `Instruction`.
+    pub fn new(address: u64, cfg: &mut Graph) -> Result<Instruction, Error> {
+        let instruction = cfg.get_instruction(address);
+        if  instruction.is_none() { return Err(Error::new(ErrorKind::Other, format!("instruction does not exist"))); }
+        Ok(instruction.unwrap())
     }
 
     /// Retrieves the set of addresses for the blocks this instruction may branch to.
