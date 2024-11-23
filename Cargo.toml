@@ -56,3 +56,7 @@ path = "src/bin/blrizin.rs"
 [[bin]]
 name = "blimage"
 path = "src/bin/blimage.rs"
+
+[[bin]]
+name = "blhash"
+path = "src/bin/blhash.rs"
