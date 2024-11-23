@@ -5,7 +5,7 @@ use std::io::Error;
 use std::collections::BTreeSet;
 use std::collections::BTreeMap;
 use binlex::disassemblers::capstone::Disassembler as InnerDisassembler;
-use crate::binary::BinaryArchitecture;
+use crate::Architecture;
 use crate::controlflow::Graph;
 use pyo3::types::PyBytes;
 use pyo3::types::PyAny;
@@ -16,7 +16,7 @@ use pyo3::buffer::PyBuffer;
 #[pyclass(unsendable)]
 pub struct Disassembler{
     image: Py<PyAny>,
-    machine: Py<BinaryArchitecture>,
+    machine: Py<Architecture>,
     executable_address_ranges: BTreeMap<u64, u64>,
 }
 
@@ -24,7 +24,7 @@ pub struct Disassembler{
 impl Disassembler {
     #[new]
     #[pyo3(text_signature = "(machine, image, executable_address_ranges)")]
-    pub fn new(machine: Py<BinaryArchitecture>, image: Py<PyAny>, executable_address_ranges: BTreeMap<u64, u64>) -> Self {
+    pub fn new(machine: Py<Architecture>, image: Py<PyAny>, executable_address_ranges: BTreeMap<u64, u64>) -> Self {
         Self {
             machine: machine,
             image: image,

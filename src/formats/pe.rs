@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use lief::pe::headers::MachineType;
-use crate::binary::BinaryArchitecture;
+use crate::Architecture;
 use crate::formats::File;
 use std::collections::BTreeMap;
 use lief::pe::debug::Entries;
@@ -72,11 +72,11 @@ impl PE {
     /// # Returns
     /// The `BinaryArchitecture` enum value corresponding to the PE machine type (e.g., AMD64, I386, or UNKNOWN).
     #[allow(dead_code)]
-    pub fn architecture(&self) -> BinaryArchitecture {
+    pub fn architecture(&self) -> Architecture {
         let machine = match self.pe.header().machine() {
-            MachineType::AMD64 => BinaryArchitecture::AMD64,
-            MachineType::I386 => BinaryArchitecture::I386,
-            _ => BinaryArchitecture::UNKNOWN,
+            MachineType::AMD64 => Architecture::AMD64,
+            MachineType::I386 => Architecture::I386,
+            _ => Architecture::UNKNOWN,
         };
         return machine;
     }

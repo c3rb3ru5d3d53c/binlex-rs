@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use binlex::formats::pe::PE as InnerPe;
-use crate::BinaryArchitecture;
+use crate::Architecture;
 use crate::types::memorymappedfile::MemoryMappedFile;
 use pyo3::types::PyType;
 use crate::Config;
@@ -48,8 +48,8 @@ impl PE {
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn architecture(&self) -> BinaryArchitecture {
-        return BinaryArchitecture::new(self.inner.lock().unwrap().architecture() as u16);
+    pub fn architecture(&self) -> Architecture {
+        return Architecture::new(self.inner.lock().unwrap().architecture() as u16);
     }
 
     #[pyo3(text_signature = "($self)")]

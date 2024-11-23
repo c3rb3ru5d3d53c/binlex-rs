@@ -1,4 +1,4 @@
-use crate::binary::BinaryArchitecture;
+use crate::Architecture;
 use crate::controlflow::instruction::Instruction;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -121,7 +121,7 @@ impl<'block> Block<'block> {
 
     #[allow(dead_code)]
     /// Get the architecture of the block.
-    pub fn architecture(&self) -> BinaryArchitecture {
+    pub fn architecture(&self) -> Architecture {
         self.cfg.architecture
     }
 

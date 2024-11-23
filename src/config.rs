@@ -5,11 +5,55 @@ use std::io::ErrorKind;
 use std::env;
 use serde::{Deserialize, Serialize};
 use serde;
+use std::fmt;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const AUTHOR: &str = "@c3rb3ru5d3d53c";
 pub const DIRECTORY: &str = "binlex";
 pub const FILE_NAME: &str = "binlex.toml";
+
+#[repr(u16)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum Format {
+    /// Raw File
+    Code = 0x00,
+    /// Portable Executable
+    Pe = 0x01,
+}
+
+impl fmt::Display for Format {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let format: &str = match self {
+            Format::Code => "code",
+            Format::Pe => "pe",
+        };
+        write!(f, "{}", format)
+    }
+}
+
+/// Represents the different architectures of a binary.
+#[repr(u16)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum Architecture {
+    /// 64-bit AMD architecture.
+    AMD64 = 0x00,
+    /// 32-bit Intel architecture.
+    I386 = 0x01,
+    /// Unknown architecture.
+    UNKNOWN= 0x03,
+}
+
+/// Implements Display for `BinaryArchitecture` enum
+impl fmt::Display for Architecture {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let architecture = match self {
+            Architecture::AMD64 => "amd64",
+            Architecture::I386 => "i386",
+            Architecture::UNKNOWN => "unknown",
+        };
+        write!(f, "{}", architecture)
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ConfigBlocks {

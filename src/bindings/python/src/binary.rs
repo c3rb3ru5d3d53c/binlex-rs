@@ -1,31 +1,6 @@
 use pyo3::prelude::*;
 
 use binlex::binary::Binary as InnerBinary;
-use binlex::binary::BinaryArchitecture as InnerBinaryArchitecture;
-
-#[pyclass(eq)]
-#[derive(PartialEq)]
-pub struct BinaryArchitecture {
-    pub inner: InnerBinaryArchitecture,
-}
-
-#[pymethods]
-impl BinaryArchitecture {
-    #[new]
-    pub fn new(value: u16) -> Self {
-        let inner = match value {
-            0x00 => InnerBinaryArchitecture::AMD64,
-            0x01 => InnerBinaryArchitecture::I386,
-            _ => InnerBinaryArchitecture::UNKNOWN,
-        };
-        BinaryArchitecture { inner }
-    }
-
-    #[getter]
-    pub fn get_value(&self) -> u16 {
-        self.inner as u16
-    }
-}
 
 #[pyclass]
 pub struct Binary;
@@ -49,7 +24,6 @@ impl Binary {
 #[pymodule]
 #[pyo3(name = "binary")]
 pub fn binary_init(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<BinaryArchitecture>()?;
     m.add_class::<Binary>()?;
     py.import_bound("sys")?
         .getattr("modules")?

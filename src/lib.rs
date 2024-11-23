@@ -9,4 +9,6 @@ pub mod binary;
 
 pub use config::Config;
 pub use binary::Binary;
-pub use binary::BinaryArchitecture;
+// pub use binary::BinaryArchitecture;
+pub use config::Architecture;
+pub use config::Format;

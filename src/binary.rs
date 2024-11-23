@@ -1,33 +1,8 @@
-use std::fmt;
 use std::collections::HashMap;
 
 /// A struct representing a binary, used for various binary-related utilities.
 
 pub struct Binary;
-
-/// Represents the different architectures of a binary.
-#[repr(u16)]
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum BinaryArchitecture {
-    /// 64-bit AMD architecture.
-    AMD64 = 0x00,
-    /// 32-bit Intel architecture.
-    I386 = 0x01,
-    /// Unknown architecture.
-    UNKNOWN= 0x03,
-}
-
-/// Implements Display for `BinaryArchitecture` enum
-impl fmt::Display for BinaryArchitecture {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let architecture = match self {
-            BinaryArchitecture::AMD64 => "amd64",
-            BinaryArchitecture::I386 => "i386",
-            BinaryArchitecture::UNKNOWN => "unknown",
-        };
-        write!(f, "{}", architecture)
-    }
-}
 
 impl Binary {
 

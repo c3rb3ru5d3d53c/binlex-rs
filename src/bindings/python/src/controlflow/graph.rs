@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use std::collections::BTreeSet;
 use binlex::controlflow::GraphQueue as InnerGraphQueue;
 use binlex::controlflow::Graph as InnerGraph;
-use crate::BinaryArchitecture;
+use crate::Architecture;
 use crate::config::Config;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -103,7 +103,7 @@ pub struct Graph {
 impl Graph {
     #[new]
     #[pyo3(text_signature = "(architecture, config)")]
-    pub fn new(py: Python, architecture: Py<BinaryArchitecture>, config: Py<Config>) -> Self {
+    pub fn new(py: Python, architecture: Py<Architecture>, config: Py<Config>) -> Self {
         let inner_config = config.borrow(py).inner.lock().unwrap().clone();
         let inner = InnerGraph::new(architecture.borrow(py).inner, inner_config);
         Self {

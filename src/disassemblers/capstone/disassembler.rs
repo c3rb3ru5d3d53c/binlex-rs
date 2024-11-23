@@ -18,7 +18,7 @@ use std::io::Error;
 use std::io::ErrorKind;
 use std::collections::{BTreeMap, BTreeSet};
 use crate::binary::Binary;
-use crate::binary::BinaryArchitecture;
+use crate::Architecture;
 use crate::controlflow::instruction::Instruction;
 use crate::controlflow::graph::Graph;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -28,13 +28,13 @@ use crate::terminal::io::Stderr;
 pub struct Disassembler<'disassembler> {
     cs: Capstone,
     image: &'disassembler[u8],
-    machine: BinaryArchitecture,
+    machine: Architecture,
     executable_address_ranges: BTreeMap<u64, u64>,
 }
 
 impl<'disassembler> Disassembler<'disassembler> {
 
-    pub fn new(machine: BinaryArchitecture, image: &'disassembler[u8], executable_address_ranges: BTreeMap<u64, u64>) -> Result<Self, Error> {
+    pub fn new(machine: Architecture, image: &'disassembler[u8], executable_address_ranges: BTreeMap<u64, u64>) -> Result<Self, Error> {
         let cs = Disassembler::cs_new(machine, true)?;
         Ok(Self{
             cs: cs,
@@ -308,7 +308,7 @@ impl<'disassembler> Disassembler<'disassembler> {
         // Starting Instructions
         if let Ok(instructions) = self.disassemble_instructions(address, 2) {
             match self.machine {
-                BinaryArchitecture::AMD64 => {
+                Architecture::AMD64 => {
                     if instructions[0].id() == InsnId(X86Insn::X86_INS_PUSH as u32)
                         && self.instruction_has_register_operand(&instructions[0], 0, RegId(X86_REG_RBP as u16))
                         && instructions[1].id() != InsnId(X86Insn::X86_INS_MOV as u32)
@@ -318,7 +318,7 @@ impl<'disassembler> Disassembler<'disassembler> {
                             return true;
                         }
                 },
-                BinaryArchitecture::I386 => {
+                Architecture::I386 => {
                     if instructions[0].id() == InsnId(X86Insn::X86_INS_PUSH as u32)
                         && self.instruction_has_register_operand(&instructions[0], 0, RegId(X86_REG_EBP as u16))
                         && instructions[1].id() != InsnId(X86Insn::X86_INS_MOV as u32)
@@ -862,9 +862,9 @@ impl<'disassembler> Disassembler<'disassembler> {
         Ok(instructions)
     }
 
-    fn cs_new(machine: BinaryArchitecture, detail: bool) -> Result<Capstone, Error> {
+    fn cs_new(machine: Architecture, detail: bool) -> Result<Capstone, Error> {
         match machine {
-            BinaryArchitecture::AMD64 => {
+            Architecture::AMD64 => {
                 Capstone::new()
                     .x86()
                     .mode(arch::x86::ArchMode::Mode64)
@@ -873,7 +873,7 @@ impl<'disassembler> Disassembler<'disassembler> {
                     .build()
                     .map_err(|e| Error::new(ErrorKind::Other, format!("capstone error: {:?}", e)))
             },
-            BinaryArchitecture::I386 => {
+            Architecture::I386 => {
                 Capstone::new()
                     .x86()
                     .mode(arch::x86::ArchMode::Mode32)

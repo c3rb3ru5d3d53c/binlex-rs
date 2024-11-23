@@ -1,5 +1,6 @@
 use std::{collections::BTreeSet, io::Error};
-use crate::binary::{Binary, BinaryArchitecture};
+use crate::binary::Binary;
+use crate::Architecture;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
@@ -15,7 +16,7 @@ use crate::controlflow::Attributes;
 pub struct Instruction {
     /// The binary architecture
     #[allow(dead_code)]
-    pub architecture: BinaryArchitecture,
+    pub architecture: Architecture,
     /// The address of the instruction in memory.
     pub address: u64,
     /// Indicates whether this instruction is part of a function prologue.
@@ -101,7 +102,7 @@ impl Instruction {
     ///
     /// Returns a new `Instruction` with default values for its properties.
     #[allow(dead_code)]
-    pub fn create(address: u64, architecture: BinaryArchitecture) -> Self {
+    pub fn create(address: u64, architecture: Architecture) -> Self {
         Self {
             address: address,
             is_prologue: false,

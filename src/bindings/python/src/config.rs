@@ -2,6 +2,32 @@ use pyo3::prelude::*;
 use std::sync::{Arc, Mutex};
 use binlex::Config as InnerConfig;
 
+use binlex::Architecture as InnerBinaryArchitecture;
+
+#[pyclass(eq)]
+#[derive(PartialEq)]
+pub struct Architecture {
+    pub inner: InnerBinaryArchitecture,
+}
+
+#[pymethods]
+impl Architecture {
+    #[new]
+    pub fn new(value: u16) -> Self {
+        let inner = match value {
+            0x00 => InnerBinaryArchitecture::AMD64,
+            0x01 => InnerBinaryArchitecture::I386,
+            _ => InnerBinaryArchitecture::UNKNOWN,
+        };
+        Architecture { inner }
+    }
+
+    #[getter]
+    pub fn get_value(&self) -> u16 {
+        self.inner as u16
+    }
+}
+
 #[pyclass]
 pub struct ConfigSignatures {
     inner: Arc<Mutex<InnerConfig>>,

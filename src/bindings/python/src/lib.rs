@@ -6,7 +6,7 @@ pub mod binary;
 pub mod disassemblers;
 pub mod controlflow;
 
-pub use binary::BinaryArchitecture;
+pub use config::Architecture;
 pub use binary::Binary;
 pub use config::Config;
 

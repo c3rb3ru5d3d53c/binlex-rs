@@ -1,5 +1,5 @@
 
-use crate::binary::BinaryArchitecture;
+use crate::Architecture;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::BTreeMap;
@@ -112,7 +112,7 @@ impl<'function> Function<'function> {
     }
 
     #[allow(dead_code)]
-    pub fn architecture(&self) -> BinaryArchitecture {
+    pub fn architecture(&self) -> Architecture {
         self.cfg.architecture
     }
 
