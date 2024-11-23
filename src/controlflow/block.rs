@@ -223,6 +223,8 @@ impl<'block> Block<'block> {
     /// Returns `Some(u64)` containing the address of the next block if it is
     /// conditional or has specific ending conditions. Returns `None` otherwise.
     pub fn next(&self) -> Option<u64> {
+        if self.terminator.address == self.address { return None; }
+        if self.terminator.is_block_start { return Some(self.terminator.address); }
         if self.terminator.is_return { return None; }
         if self.terminator.is_trap { return None; }
         if self.terminator.is_block_start {
@@ -363,6 +365,10 @@ impl<'block> Block<'block> {
     /// Returns the address as a `u64`.
     #[allow(dead_code)]
     pub fn end(&self) -> u64 {
+        if self.address == self.terminator.address { return self.terminator.address + self.terminator.size() as u64; }
+        if self.terminator.is_block_start {
+            return self.terminator.address;
+        }
         if self.terminator.is_return {
             return self.terminator.address + self.terminator.size() as u64;
         }
