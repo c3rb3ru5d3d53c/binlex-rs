@@ -44,6 +44,8 @@ pub struct FunctionJson {
     pub blocks: BTreeSet<u64>,
     /// The number of instructions in the function.
     pub number_of_instructions: usize,
+    /// The cyclomatic complexity of the function.
+    pub cyclomatic_complexity: usize,
     /// The entropy of the function, if enabled.
     pub entropy: Option<f64>,
     /// The SHA-256 hash of the function, if enabled.
@@ -116,6 +118,18 @@ impl<'function> Function<'function> {
         self.cfg.architecture
     }
 
+    /// Calculates the cyclomatic complexity of the function.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `usize` representing the cyclomatic complexity.
+    pub fn cyclomatic_complexity(&self) -> usize {
+        let nodes = self.blocks().len();
+        let edges = self.edges();
+        let components = 1;
+        edges - nodes + 2 * components
+    }
+
     /// Processes the function into its JSON-serializable representation.
     ///
     /// # Returns
@@ -133,6 +147,7 @@ impl<'function> Function<'function> {
             functions: self.functions(),
             blocks: self.blocks(),
             number_of_instructions: self.number_of_instructions(),
+            cyclomatic_complexity: self.cyclomatic_complexity(),
             entropy: self.entropy(),
             sha256: self.sha256(),
             minhash: self.minhash(),
@@ -284,7 +299,6 @@ impl<'function> Function<'function> {
         }
         None
     }
-
 
     /// Retrieves the raw bytes of the function, if contiguous.
     ///
