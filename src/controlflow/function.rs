@@ -190,7 +190,7 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(SignatureJson)` if the function is contiguous; otherwise, `None`.
     pub fn signature(&self) -> Option<SignatureJson> {
-        //if !self.is_contiguous() { return None; }
+        if !self.is_contiguous() { return None; }
         let bytes = self.bytes();
         if bytes.is_none() { return None; }
         return Some(Signature::new(self.address, self.address + bytes.unwrap().len() as u64, &self.cfg).process());
@@ -292,6 +292,7 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(Vec<u8>)` containing the bytes, or `None` if the function is not contiguous.
     pub fn bytes(&self) -> Option<Vec<u8>> {
+        if !self.is_contiguous() { return None; }
         let mut bytes = Vec::<u8>::new();
         let mut block_previous_end: Option<u64> = None;
         for (block_start_address, block) in &self.blocks {
