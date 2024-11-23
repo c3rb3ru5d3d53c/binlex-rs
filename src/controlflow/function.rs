@@ -290,13 +290,27 @@ impl<'function> Function<'function> {
     ///
     /// Returns `Some(Vec<u8>)` containing the bytes, or `None` if the function is not contiguous.
     pub fn bytes(&self) -> Option<Vec<u8>> {
-        if !self.is_contiguous() { return None; }
-        let mut result = Vec::<u8>::new();
-        for entry in self.cfg.instructions.range(self.address..=self.end().unwrap()) {
-            let instruction = entry.value();
-            result.extend(instruction.bytes.clone());
+        if self.is_contiguous() {
+            let mut result = Vec::<u8>::new();
+            for entry in self.cfg.instructions.range(self.address..=self.end().unwrap()) {
+                let instruction = entry.value();
+                result.extend(instruction.bytes.clone());
+            }
+            return Some(result);
         }
-        return Some(result);
+        let mut bytes = Vec::<u8>::new();
+        let mut block_previous_end: Option<u64> = None;
+        for (block_start_address, block) in &self.blocks {
+            bytes.extend(block.bytes());
+            if block.terminator.is_return { break; }
+            if let Some(previous_end) = block_previous_end {
+                if previous_end != *block_start_address {
+                    return None;
+                }
+            }
+            block_previous_end = Some(block.address + block.size() as u64);
+        }
+        Some(bytes)
     }
 
     /// Computes the SHA-256 hash of the function's bytes, if enabled and contiguous.
@@ -395,7 +409,7 @@ impl<'function> Function<'function> {
                     return false;
                 }
             }
-            block_previous_end = Some(block.end());
+            block_previous_end = Some(block.address + block.size() as u64);
         }
         return true;
     }

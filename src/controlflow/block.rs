@@ -165,7 +165,7 @@ impl<'block> Block<'block> {
             type_: "block".to_string(),
             address: self.address,
             architecture: self.architecture().to_string(),
-            next: self.terminator.next(),
+            next: self.next(),
             to: self.terminator.to(),
             edges: self.edges(),
             signature: self.signature(),
@@ -225,7 +225,9 @@ impl<'block> Block<'block> {
     pub fn next(&self) -> Option<u64> {
         if self.terminator.is_return { return None; }
         if self.terminator.is_trap { return None; }
-        if !self.terminator.is_conditional { return None; }
+        if self.terminator.is_block_start {
+            return Some(self.terminator.address);
+        }
         self.terminator.next()
     }
 
@@ -324,7 +326,7 @@ impl<'block> Block<'block> {
     ///
     /// Returns the size as a `usize`.
     pub fn size(&self) -> usize {
-        self.bytes().len()
+        (self.end() - self.address) as usize
     }
 
     /// Retrieves the raw bytes of the block.
@@ -334,7 +336,7 @@ impl<'block> Block<'block> {
     /// Returns a `Vec<u8>` containing the bytes of the block.
     pub fn bytes(&self) -> Vec<u8> {
         let mut result = Vec::<u8>::new();
-        for entry in self.cfg.instructions.range(self.address..=self.terminator.address){
+        for entry in self.cfg.instructions.range(self.address..=self.end()){
             let instruction = entry.value();
             result.extend(instruction.bytes.clone());
         }
@@ -361,6 +363,9 @@ impl<'block> Block<'block> {
     /// Returns the address as a `u64`.
     #[allow(dead_code)]
     pub fn end(&self) -> u64 {
+        if let Some(next)= self.next() {
+            return next;
+        }
         return self.terminator.address;
     }
 
