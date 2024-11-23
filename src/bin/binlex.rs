@@ -10,6 +10,7 @@ use std::io::Write;
 use std::collections::BTreeSet;
 use std::collections::HashSet;
 use binlex::controlflow::Graph;
+use binlex::controlflow::Instruction;
 use binlex::controlflow::Block;
 use binlex::controlflow::Function;
 use binlex::types::LZ4String;
@@ -45,6 +46,8 @@ pub struct Args {
     pub minimal: bool,
     #[arg(short, long, default_value_t = false)]
     pub debug: bool,
+    #[arg(long, default_value_t = false)]
+    pub enable_instructions: bool,
     #[arg(long, default_value_t = false)]
     pub disable_hashing: bool,
     #[arg(long, default_value_t = false)]
@@ -262,6 +265,20 @@ fn main() {
 
     let cfg = cfg;
 
+    let mut instructions = Vec::<LZ4String>::new();
+
+    if args.enable_instructions {
+        instructions = cfg.instructions()
+            .iter()
+            .map(|entry| *entry.key())
+            .collect::<Vec<u64>>()
+            .par_iter()
+            .filter_map(|address| Instruction::new(*address, &cfg).ok())
+            .filter_map(|instruction| instruction.json_with_attributes(attributes.clone()).ok())
+            .map(|js| LZ4String::new(&js))
+            .collect();
+    }
+
     let blocks: Vec<LZ4String> = cfg.blocks.valid()
         .iter()
         .map(|entry| *entry)
@@ -290,11 +307,18 @@ fn main() {
         .collect();
 
     if args.output.is_none() {
-        functions.iter().for_each(|result| {
+
+        if args.enable_instructions {
+            instructions.iter().for_each(|result| {
+                Stdout::print(result);
+            });
+        }
+
+        blocks.iter().for_each(|result| {
             Stdout::print(result);
         });
 
-        blocks.iter().for_each(|result| {
+        functions.iter().for_each(|result| {
             Stdout::print(result);
         });
     }
@@ -308,18 +332,29 @@ fn main() {
             }
         };
 
-        for function in functions {
-            if let Err(error) = writeln!(file, "{}", function) {
-                eprintln!("{}", error);
-                std::process::exit(1);
+        if args.enable_instructions {
+            for instruction in instructions {
+                if let Err(error) = writeln!(file, "{}", instruction) {
+                    eprintln!("{}", error);
+                    std::process::exit(1);
+                }
             }
         }
+
         for block in blocks {
             if let Err(error) = writeln!(file, "{}", block) {
                 eprintln!("{}", error);
                 std::process::exit(1);
             }
         }
+
+        for function in functions {
+            if let Err(error) = writeln!(file, "{}", function) {
+                eprintln!("{}", error);
+                std::process::exit(1);
+            }
+        }
+
     }
 
     process::exit(0);

@@ -5,6 +5,7 @@ use serde_json;
 use serde_json::Value;
 use std::io::ErrorKind;
 use crate::controlflow::Graph;
+use crate::controlflow::Attributes;
 
 /// Represents a single instruction in disassembled binary code.
 ///
@@ -125,7 +126,7 @@ impl Instruction {
     /// # Returns
     ///
     /// Returns a `Result<Instruction, Error>` containing the `Instruction`.
-    pub fn new(address: u64, cfg: &mut Graph) -> Result<Instruction, Error> {
+    pub fn new(address: u64, cfg: &Graph) -> Result<Instruction, Error> {
         let instruction = cfg.get_instruction(address);
         if  instruction.is_none() { return Err(Error::new(ErrorKind::Other, format!("instruction does not exist"))); }
         Ok(instruction.unwrap())
@@ -213,6 +214,28 @@ impl Instruction {
     /// Returns a `BTreeSet<u64>` containing the function addresses.
     pub fn functions(&self) -> BTreeSet<u64> {
         return self.functions.clone();
+    }
+
+    /// Converts the instruction into a JSON string representation including `Attributes`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(String)` containing the JSON representation, or an `Err` if serialization fails.
+    pub fn json_with_attributes(&self, attributes: Attributes) -> Result<String, Error> {
+        let raw = self.process_with_attributes(attributes);
+        let result = serde_json::to_string(&raw)?;
+        Ok(result)
+    }
+
+    /// Processes the instruction into its JSON-serializable representation including `Attributes`.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BlockJson` instance containing the block's metadata and `Attributes`.
+    pub fn process_with_attributes(&self, attributes: Attributes) -> InstructionJson {
+        let mut result = self.process();
+        result.attributes = Some(attributes.process());
+        return result;
     }
 
     /// Converts the `Instruction` into a JSON string representation.
