@@ -64,7 +64,7 @@ impl<'a> Signature<'a> {
     /// Returns a `Vec<u8>` containing the raw bytes of the signature.
     pub fn bytes(&self) -> Vec<u8> {
         let mut result = Vec::<u8>::new();
-        for entry in self.cfg.instructions.range(self.start_address..=self.end_address){
+        for entry in self.cfg.instructions.range(self.start_address..self.end_address){
             let instruction = entry.value();
             result.extend(instruction.bytes.clone());
         }
@@ -78,7 +78,7 @@ impl<'a> Signature<'a> {
     /// Returns a `String` containing the pattern representation of the signature.
     pub fn pattern(&self) -> String {
         let mut result: String = String::new();
-        for entry in self.cfg.instructions.range(self.start_address..=self.end_address){
+        for entry in self.cfg.instructions.range(self.start_address..self.end_address){
             let instruction = entry.value();
             result += instruction.pattern.as_str();
         }

@@ -254,7 +254,7 @@ impl<'block> Block<'block> {
     ///
     /// Returns a `SignatureJson` representing the block's signature.
     pub fn signature(&self) -> SignatureJson {
-        Signature::new(self.address, self.end(), &self.cfg).process()
+        Signature::new(self.address, self.address + self.size() as u64, &self.cfg).process()
     }
 
     /// Retrieves the function addresses associated with this block.
@@ -265,7 +265,7 @@ impl<'block> Block<'block> {
     /// and each value is the address of the function containing that instruction.
     pub fn functions(&self) -> BTreeMap<u64, u64> {
         let mut result = BTreeMap::<u64, u64>::new();
-        for entry in self.cfg.instructions.range(self.address..=self.terminator.address){
+        for entry in self.cfg.instructions.range(self.address..self.end()){
             let instruction = entry.value();
             for function_address in instruction.functions.clone() {
                 result.insert(instruction.address, function_address);
@@ -336,7 +336,7 @@ impl<'block> Block<'block> {
     /// Returns a `Vec<u8>` containing the bytes of the block.
     pub fn bytes(&self) -> Vec<u8> {
         let mut result = Vec::<u8>::new();
-        for entry in self.cfg.instructions.range(self.address..=self.end()){
+        for entry in self.cfg.instructions.range(self.address..self.end()){
             let instruction = entry.value();
             result.extend(instruction.bytes.clone());
         }
@@ -363,6 +363,9 @@ impl<'block> Block<'block> {
     /// Returns the address as a `u64`.
     #[allow(dead_code)]
     pub fn end(&self) -> u64 {
+        if self.terminator.is_return {
+            return self.terminator.address + self.terminator.size() as u64;
+        }
         if let Some(next)= self.next() {
             return next;
         }
