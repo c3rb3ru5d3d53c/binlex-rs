@@ -159,29 +159,33 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         if !self.is_executable_address(address) {
             cfg.functions.insert_invalid(address);
-            Stderr::print_debug(cfg.config.clone(), format!("Function -> 0x{:x}: it not in executable memory", address));
-            return Err(Error::new(ErrorKind::Other, format!("Function -> 0x{:x}: it not in executable memory", address)));
+            let error_message = format!("Function -> 0x{:x}: it is not in executable memory", address);
+            Stderr::print_debug(cfg.config.clone(), &error_message);
+            return Err(Error::new(ErrorKind::Other, error_message));
         }
 
         cfg.blocks.enqueue(address);
 
         while let Some(block_start_address) = cfg.blocks.dequeue() {
 
-            if cfg.blocks.is_processed(block_start_address) { continue; }
+            if cfg.blocks.is_processed(block_start_address) {
+                continue;
+            }
 
-            let block_end_address = match self.disassemble_block(block_start_address, cfg) {
-                Ok(block_end_address) => block_end_address,
-                Err(error) => {
+            let block_end_address = self
+                .disassemble_block(block_start_address, cfg)
+                .map_err(|error| {
                     cfg.functions.insert_invalid(address);
-                    return Err(error);
-                },
-            };
+                    error
+                })?;
+
             if block_start_address == address {
                 if let Some(mut instruction) = cfg.get_instruction(block_start_address) {
                     instruction.is_function_start = true;
                     cfg.update_instruction(instruction);
                 }
             }
+
             if let Some(instruction) = cfg.get_instruction(block_end_address) {
                 cfg.blocks.enqueue_extend(instruction.blocks());
             }
@@ -189,7 +193,7 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         cfg.functions.insert_valid(address);
 
-        return Ok(address);
+        Ok(address)
     }
 
     pub fn disassemble_instruction<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
@@ -199,18 +203,18 @@ impl<'disassembler> Disassembler<'disassembler> {
         }
 
         if !self.is_executable_address(address) {
-            let error = format!("Instruction -> 0x{:x}: it not in executable memory", address);
+            let error = format!("Instruction -> 0x{:x}: it is not in executable memory", address);
             Stderr::print_debug(cfg.config.clone(), error.clone());
             return Err(Error::new(ErrorKind::Other, error));
         }
 
-        let instruction_container = self.disassemble_instructions(address, 1)
-            .map_err(|error| error)?;
+        let instruction_container = self.disassemble_instructions(address, 1)?;
+        let instruction = instruction_container.iter().next().ok_or_else(|| {
+            let error = format!("Failed to fetch instruction at 0x{:x}", address);
+            Error::new(ErrorKind::Other, error)
+        })?;
 
-        let instruction = instruction_container.iter().next().unwrap();
-
-        let instruction_signature = self.get_instruction_pattern(&instruction)
-            .map_err(|error| error)?;
+        let instruction_signature = self.get_instruction_pattern(&instruction)?;
 
         let mut blinstruction = Instruction::new(instruction.address(), self.machine);
 
@@ -220,12 +224,7 @@ impl<'disassembler> Disassembler<'disassembler> {
         blinstruction.is_trap = Disassembler::is_trap_instruction(instruction);
 
         if blinstruction.is_jump {
-            if Disassembler::is_conditional_jump_instruction(instruction) {
-                blinstruction.is_conditional = true;
-            }
-            if Disassembler::is_unconditional_jump_instruction(instruction) {
-                blinstruction.is_conditional = false;
-            }
+            blinstruction.is_conditional = Disassembler::is_conditional_jump_instruction(instruction);
         }
 
         blinstruction.edges = self.get_instruction_edges(instruction);
@@ -238,12 +237,10 @@ impl<'disassembler> Disassembler<'disassembler> {
         if let Some(addr) = self.get_unconditional_jump_immutable(instruction) {
             blinstruction.to.insert(addr);
         }
-
         if let Some(addr) = self.get_call_immutable(instruction) {
             cfg.functions.enqueue(addr);
             blinstruction.functions.insert(addr);
         }
-
         if let Some(addr) = self.get_instruction_executable_addresses(instruction) {
             cfg.functions.enqueue(addr);
             blinstruction.functions.insert(addr);
@@ -251,8 +248,7 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         cfg.insert_instruction(blinstruction);
 
-        return Ok(address);
-
+        Ok(address)
     }
 
     #[allow(dead_code)]
@@ -262,68 +258,49 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         if !self.is_executable_address(address) {
             cfg.functions.insert_invalid(address);
-            let error = format!("Block -> 0x{:x}: it not in executable memory", address);
-            Stderr::print_debug(cfg.config.clone(), error.clone());
-            return Err(Error::new(ErrorKind::Other, error));
+            let error_message = format!("Block -> 0x{:x}: it is not in executable memory", address);
+            Stderr::print_debug(cfg.config.clone(), error_message.clone());
+            return Err(Error::new(ErrorKind::Other, error_message));
         }
 
-        let mut pc: u64 = address;
-        let mut has_prologue: bool = false;
-        loop {
+        let mut pc = address;
+        let mut has_prologue = false;
 
-            if let Err(error) = self.disassemble_instruction(pc, cfg) {
-                cfg.blocks.insert_invalid(address);
-                return Err(error);
+        while let Ok(_) = self.disassemble_instruction(pc, cfg) {
+            let mut instruction = match cfg.get_instruction(pc) {
+                Some(instr) => instr,
+                None => {
+                    cfg.blocks.insert_invalid(address);
+                    return Err(Error::new(ErrorKind::Other, "failed to disassemble instruction"));
+                }
+            };
+
+            if instruction.address == address {
+                instruction.is_block_start = true;
+                cfg.update_instruction(instruction.clone());
             }
 
-            let mut blinstruction = cfg.get_instruction(pc).unwrap();
-
-            if blinstruction.address == address {
-                blinstruction.is_block_start = true;
-                cfg.update_instruction(blinstruction.clone());
+            if instruction.address == address && instruction.is_block_start {
+                instruction.is_prologue = self.is_function_prologue(instruction.address);
+                has_prologue = instruction.is_prologue;
+                cfg.update_instruction(instruction.clone());
             }
 
-            // Is Function Prologue
-            if blinstruction.is_block_start == true && blinstruction.address == address {
-                blinstruction.is_prologue = self.is_function_prologue(blinstruction.address);
-                has_prologue = blinstruction.is_prologue;
-                cfg.update_instruction(blinstruction.clone());
-            }
+            let is_block_start = instruction.address != address && instruction.is_block_start;
 
-            // Block Starts with Trap Instruction
-            if blinstruction.address == address && blinstruction.is_trap {
+            if instruction.is_trap || instruction.is_return || instruction.is_jump || is_block_start {
                 break;
             }
 
-            // Block Ends with Trap Instruction
-            if blinstruction.address != address && blinstruction.is_trap {
-                break;
-            }
-
-            // Block Ends with Return Instruction
-            if blinstruction.is_return {
-                break;
-            }
-
-            // Block Ends with Jump Instruction
-            if blinstruction.is_jump {
-                break;
-            }
-
-            // Block Ends with Another Block
-            if blinstruction.address != address && blinstruction.is_block_start {
-                break;
-            }
-
-            pc += blinstruction.size() as u64;
+            pc += instruction.size() as u64;
         }
+
         if has_prologue {
             cfg.functions.enqueue(address);
         }
         cfg.blocks.insert_valid(address);
 
-        return Ok(pc);
-
+        Ok(pc)
     }
 
     pub fn is_function_prologue(&self, address: u64) -> bool {
