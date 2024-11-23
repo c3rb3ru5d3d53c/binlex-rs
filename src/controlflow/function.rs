@@ -46,6 +46,8 @@ pub struct FunctionJson {
     pub number_of_instructions: usize,
     /// The cyclomatic complexity of the function.
     pub cyclomatic_complexity: usize,
+    /// Average Instructions per Block
+    pub average_instructions_per_block: f64,
     /// The entropy of the function, if enabled.
     pub entropy: Option<f64>,
     /// The SHA-256 hash of the function, if enabled.
@@ -118,6 +120,15 @@ impl<'function> Function<'function> {
         self.cfg.architecture
     }
 
+    /// Calculates the average instructions per block in the function.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `usize` representing the average instrucitons per block.
+    pub fn average_instructions_per_block(&self) -> f64 {
+        self.number_of_instructions() as f64 / self.blocks.len() as f64
+    }
+
     /// Calculates the cyclomatic complexity of the function.
     ///
     /// # Returns
@@ -148,6 +159,7 @@ impl<'function> Function<'function> {
             blocks: self.blocks(),
             number_of_instructions: self.number_of_instructions(),
             cyclomatic_complexity: self.cyclomatic_complexity(),
+            average_instructions_per_block: self.average_instructions_per_block(),
             entropy: self.entropy(),
             sha256: self.sha256(),
             minhash: self.minhash(),
