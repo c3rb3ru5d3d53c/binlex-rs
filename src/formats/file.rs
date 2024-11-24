@@ -1,5 +1,5 @@
 use std::fs::File as StdFile;
-use std::io::{Read, Error};
+use std::io::{Read, SeekFrom, Seek, Error, Cursor};
 use crate::hashing::sha256::SHA256;
 use crate::hashing::tlsh::TLSH;
 use crate::Binary;
@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use crate::controlflow::Attribute;
 use crate::Config;
+pub trait FileHandle: Read + Seek + Send {}
+
+impl<T: Read + Seek + Send> FileHandle for T {}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct FileJson {
@@ -32,6 +35,8 @@ pub struct File {
     pub path: Option<String>,
     /// The configuration `Config`
     pub config: Config,
+    /// Handle to the file
+    handle: Box<dyn FileHandle>,
 }
 
 impl File {
@@ -44,12 +49,14 @@ impl File {
     /// # Returns
     ///
     /// A `File` instance with the given path and empty data.
-    pub fn new(path: String, config: Config) -> Self {
-        Self {
+    pub fn new(path: String, config: Config) -> Result<Self, Error> {
+        let handle = Box::new(StdFile::open(&path)?) as Box<dyn FileHandle>;
+        Ok(Self {
             data: Vec::new(),
             path: Some(path),
-            config: config,
-        }
+            config,
+            handle,
+        })
     }
 
     /// Creates a new `File` instance from the provided byte data.
@@ -63,10 +70,12 @@ impl File {
     /// A `File` instance with the given byte data and no path.
     #[allow(dead_code)]
     pub fn from_bytes(bytes: Vec<u8>, config: Config) -> Self {
+        let handle = Box::new(Cursor::new(bytes.clone())) as Box<dyn FileHandle>;
         Self {
             data: bytes,
             path: None,
-            config: config,
+            config,
+            handle,
         }
     }
 
@@ -118,6 +127,33 @@ impl File {
         self.data.len() as u64
     }
 
+    /// Seeks to a specific offset in the file.
+    ///
+    /// # Arguments
+    ///
+    /// * `offset` - The position to seek to, specified as a `u64` (absolute offset from the start of the file).
+    ///
+    /// # Returns
+    ///
+    /// A `Result` indicating the success or failure of the seek operation, returning the new position.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file path is missing or the seek operation fails.
+    pub fn seek(&mut self, offset: u64) -> Result<u64, Error> {
+        let new_position = self.handle.seek(SeekFrom::Start(offset))?;
+        Ok(new_position)
+    }
+
+    /// Gets the current position of the file cursor.
+    /// # Returns
+    ///
+    /// A `Result<u64, Error>` with the current cursor position.
+    pub fn current_position(&mut self) -> Result<u64, Error> {
+        let position = self.handle.seek(SeekFrom::Current(0))?;
+        Ok(position)
+    }
+
     /// Reads the content of the file from the given path and stores it in `data`.
     ///
     /// # Returns
@@ -129,7 +165,7 @@ impl File {
     ///
     /// Returns an error if the file path is missing or the file cannot be opened or read.
     pub fn read(&mut self) -> Result<(), Error> {
-        if self.path.is_none() { return Err(Error::new(ErrorKind::InvalidInput, "missing file path to write")); }
+        if self.path.is_none() { return Err(Error::new(ErrorKind::InvalidInput, "missing file path to read")); }
         let mut file = StdFile::open(&self.path.clone().unwrap())?;
         file.read_to_end(&mut self.data)?;
         Ok(())

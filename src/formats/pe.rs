@@ -29,7 +29,7 @@ impl PE {
     /// # Returns
     /// A `Result` containing the `PE` object on success or an `Error` on failure.
     pub fn new(path: String, config: Config) -> Result<Self, Error> {
-        let mut file = File::new(path.clone(), config.clone());
+        let mut file = File::new(path.clone(), config.clone())?;
         match file.read() {
             Ok(_) => (),
             Err(_) => {

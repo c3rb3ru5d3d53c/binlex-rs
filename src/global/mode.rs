@@ -9,8 +9,6 @@ use crate::global::Architecture;
 pub enum Modes {
     CodeI386,
     CodeAmd64,
-    PeAmd64,
-    PeI386,
 }
 
 impl Modes {
@@ -24,8 +22,6 @@ impl Modes {
         vec![
             Modes::CodeI386.to_string(),
             Modes::CodeAmd64.to_string(),
-            Modes::PeAmd64.to_string(),
-            Modes::PeI386.to_string(),
         ]
     }
 }
@@ -38,8 +34,6 @@ impl fmt::Display for Modes {
             match self {
                 Modes::CodeI386 => "code:i386",
                 Modes::CodeAmd64 => "code:amd64",
-                Modes::PeAmd64 => "pe:amd64",
-                Modes::PeI386 => "pe:i386",
             }
         )
     }
@@ -52,8 +46,6 @@ impl std::str::FromStr for Modes {
         match s {
             "code:i386" => Ok(Modes::CodeI386),
             "code:amd64" => Ok(Modes::CodeAmd64),
-            "pe:amd64" => Ok(Modes::PeAmd64),
-            "pe:i386" => Ok(Modes::PeI386),
             _ => Err(format!("invalid mode")),
         }
     }

@@ -14,12 +14,13 @@ pub struct File {
 impl File {
     #[new]
     #[pyo3(text_signature = "(path, config)")]
-    pub fn new(py: Python, path: String, config: Py<Config>) -> Self {
+    pub fn new(py: Python, path: String, config: Py<Config>) -> PyResult<Self> {
         let inner_config = config.borrow(py).inner.lock().unwrap().clone();
-        Self {
-            inner: InnerFile::new(path, inner_config),
+        let inner = InnerFile::new(path, inner_config)?;
+        Ok(Self {
+            inner: inner,
             config: config,
-        }
+        })
     }
 
     #[pyo3(text_signature = "($self)")]

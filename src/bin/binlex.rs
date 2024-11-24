@@ -314,7 +314,10 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
 fn process_code(input: String, config: Config, mode: Mode, output: Option<String>, enable_instructions: bool) {
     let mut attributes = Attributes::new();
 
-    let mut file = BLFile::new(input, config.clone());
+    let mut file = BLFile::new(input, config.clone()).unwrap_or_else(|error| {
+        eprintln!("{}", error);
+        process::exit(1);
+    });
     file.read()
         .unwrap_or_else(|error| {
             eprintln!("{}", error);
