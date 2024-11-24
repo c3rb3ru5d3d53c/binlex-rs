@@ -1,3 +1,4 @@
+use binlex::Architecture;
 use rayon::ThreadPoolBuilder;
 use binlex::formats::pe::PE;
 use binlex::disassemblers::capstone::Disassembler;
@@ -23,6 +24,7 @@ use binlex::config::VERSION;
 use binlex::config::AUTHOR;
 use binlex::controlflow::Attributes;
 use binlex::controlflow::Tag;
+use binlex::Format;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -36,6 +38,8 @@ pub struct Args {
     pub input: String,
     #[arg(short, long)]
     pub output: Option<String>,
+    #[arg(short, long)]
+    pub mode: Option<String>,
     #[arg(short, long)]
     pub config: Option<String>,
     #[arg(short, long)]
@@ -144,6 +148,101 @@ fn get_pe_function_symbols(pe: &PE) -> BTreeMap<u64, Symbol> {
     return symbols;
 }
 
+fn process_output(output: Option<String>, enable_instructions: bool, cfg: &Graph, attributes: &Attributes, function_symbols: &BTreeMap<u64, Symbol>) {
+
+    let mut instructions = Vec::<LZ4String>::new();
+
+    if enable_instructions {
+        instructions = cfg.instructions()
+            .iter()
+            .map(|entry| *entry.key())
+            .collect::<Vec<u64>>()
+            .par_iter()
+            .filter_map(|address| Instruction::new(*address, &cfg).ok())
+            .filter_map(|instruction| instruction.json_with_attributes(attributes.clone()).ok())
+            .map(|js| LZ4String::new(&js))
+            .collect();
+    }
+
+    let blocks: Vec<LZ4String> = cfg.blocks.valid()
+        .iter()
+        .map(|entry| *entry)
+        .collect::<Vec<u64>>()
+        .par_iter()
+        .filter_map(|address| Block::new(*address, &cfg).ok())
+        .filter_map(|block| block.json_with_attributes(attributes.clone()).ok())
+        .map(|js| LZ4String::new(&js))
+        .collect();
+
+    let functions: Vec<LZ4String> = cfg.functions.valid()
+        .iter()
+        .map(|entry| *entry)
+        .collect::<Vec<u64>>()
+        .par_iter()
+        .filter_map(|address| Function::new(*address, &cfg).ok())
+        .filter_map(|function| {
+            let mut function_attributes = attributes.clone();
+            let symbol= function_symbols.get(&function.address);
+            if symbol.is_some() {
+                function_attributes.push(symbol.unwrap().attribute());
+            }
+            function.json_with_attributes(function_attributes).ok()
+        })
+        .map(|js| LZ4String::new(&js))
+        .collect();
+
+    if output.is_none() {
+
+        if enable_instructions {
+            instructions.iter().for_each(|result| {
+                Stdout::print(result);
+            });
+        }
+
+        blocks.iter().for_each(|result| {
+            Stdout::print(result);
+        });
+
+        functions.iter().for_each(|result| {
+            Stdout::print(result);
+        });
+    }
+
+     if let Some(output_file) = output {
+        let mut file = match File::create(output_file) {
+            Ok(file) => file,
+            Err(error) => {
+                eprintln!("{}", error);
+                std::process::exit(1);
+            }
+        };
+
+        if enable_instructions {
+            for instruction in instructions {
+                if let Err(error) = writeln!(file, "{}", instruction) {
+                    eprintln!("{}", error);
+                    std::process::exit(1);
+                }
+            }
+        }
+
+        for block in blocks {
+            if let Err(error) = writeln!(file, "{}", block) {
+                eprintln!("{}", error);
+                std::process::exit(1);
+            }
+        }
+
+        for function in functions {
+            if let Err(error) = writeln!(file, "{}", function) {
+                eprintln!("{}", error);
+                std::process::exit(1);
+            }
+        }
+
+    }
+}
+
 fn main() {
 
     let args = Args::parse();
@@ -206,155 +305,88 @@ fn main() {
     ThreadPoolBuilder::new()
         .num_threads(config.general.threads)
         .build_global()
-        .expect("failed to build thread pool");
-
-    let pe = match PE::new(args.input, config.clone()) {
-        Ok(pe) => pe,
-        Err(error) => {
-            eprintln!("{}", error);
-            process::exit(1);
-        }
-    };
-
-    let mut attributes = Attributes::new();
-
-    if !config.general.minimal {
-        let file_attribute = pe.file.attribute();
-        if args.tags.is_some() {
-            for tag in args.tags.unwrap() {
-                attributes.push(Tag::new(tag).attribute());
-            }
-        }
-        attributes.push(file_attribute);
-    }
-
-    let function_symbols = get_pe_function_symbols(&pe);
-
-    let machine = pe.architecture();
-
-    let mapped_file = pe.image()
-        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
-
-    let image = mapped_file
-        .mmap()
-        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
-
-    let executable_address_ranges = pe.executable_virtual_address_ranges();
-
-    let disassembler = match Disassembler::new(machine, &image, executable_address_ranges.clone()) {
-        Ok(disassembler) => disassembler,
-        Err(error) => {
-            eprintln!("{}", error);
-            process::exit(1);
-        }
-    };
-
-    let mut entrypoints = BTreeSet::<u64>::new();
-
-    entrypoints.extend(pe.functions());
-
-    entrypoints.extend(function_symbols.keys());
-
-    let mut cfg = Graph::new(machine, config.clone());
-
-    disassembler.disassemble_controlflow(entrypoints, &mut cfg)
         .unwrap_or_else(|error| {
             eprintln!("{}", error);
             process::exit(1);
         });
 
-    let cfg = cfg;
-
-    let mut instructions = Vec::<LZ4String>::new();
-
-    if args.enable_instructions {
-        instructions = cfg.instructions()
-            .iter()
-            .map(|entry| *entry.key())
-            .collect::<Vec<u64>>()
-            .par_iter()
-            .filter_map(|address| Instruction::new(*address, &cfg).ok())
-            .filter_map(|instruction| instruction.json_with_attributes(attributes.clone()).ok())
-            .map(|js| LZ4String::new(&js))
-            .collect();
-    }
-
-    let blocks: Vec<LZ4String> = cfg.blocks.valid()
-        .iter()
-        .map(|entry| *entry)
-        .collect::<Vec<u64>>()
-        .par_iter()
-        .filter_map(|address| Block::new(*address, &cfg).ok())
-        .filter_map(|block| block.json_with_attributes(attributes.clone()).ok())
-        .map(|js| LZ4String::new(&js))
-        .collect();
-
-    let functions: Vec<LZ4String> = cfg.functions.valid()
-        .iter()
-        .map(|entry| *entry)
-        .collect::<Vec<u64>>()
-        .par_iter()
-        .filter_map(|address| Function::new(*address, &cfg).ok())
-        .filter_map(|function| {
-            let mut function_attributes = attributes.clone();
-            let symbol= function_symbols.get(&function.address);
-            if symbol.is_some() {
-                function_attributes.push(symbol.unwrap().attribute());
-            }
-            function.json_with_attributes(function_attributes).ok()
-        })
-        .map(|js| LZ4String::new(&js))
-        .collect();
-
-    if args.output.is_none() {
-
-        if args.enable_instructions {
-            instructions.iter().for_each(|result| {
-                Stdout::print(result);
+    if args.mode.is_none() {
+        let format = Format::from_file(args.input.clone())
+            .unwrap_or_else(|error| {
+                eprintln!("{}", error);
+                process::exit(1);
             });
-        }
+        match format {
+            Format::PE => {
 
-        blocks.iter().for_each(|result| {
-            Stdout::print(result);
-        });
+                let mut attributes = Attributes::new();
 
-        functions.iter().for_each(|result| {
-            Stdout::print(result);
-        });
-    }
+                let pe = match PE::new(args.input, config.clone()) {
+                    Ok(pe) => pe,
+                    Err(error) => {
+                        eprintln!("{}", error);
+                        process::exit(1);
+                    }
+                };
 
-     if let Some(output_file) = args.output {
-        let mut file = match File::create(output_file) {
-            Ok(file) => file,
-            Err(error) => {
-                eprintln!("{}", error);
-                std::process::exit(1);
-            }
-        };
-
-        if args.enable_instructions {
-            for instruction in instructions {
-                if let Err(error) = writeln!(file, "{}", instruction) {
-                    eprintln!("{}", error);
-                    std::process::exit(1);
+                match pe.architecture() {
+                    Architecture::UNKNOWN => {
+                        eprintln!("unsupported pe architecture");
+                        process::exit(1);
+                    },
+                    _ => {}
                 }
+
+                if !config.general.minimal {
+                    let file_attribute = pe.file.attribute();
+                    if args.tags.is_some() {
+                        for tag in args.tags.unwrap() {
+                            attributes.push(Tag::new(tag).attribute());
+                        }
+                    }
+                    attributes.push(file_attribute);
+                }
+
+                let function_symbols = get_pe_function_symbols(&pe);
+
+                let mapped_file = pe.image()
+                    .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
+
+                let image = mapped_file
+                    .mmap()
+                    .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
+
+                let executable_address_ranges = pe.executable_virtual_address_ranges();
+
+                let mut entrypoints = BTreeSet::<u64>::new();
+
+                entrypoints.extend(pe.functions());
+
+                entrypoints.extend(function_symbols.keys());
+
+                let mut cfg = Graph::new(pe.architecture(), config.clone());
+
+                let disassembler = match Disassembler::new(pe.architecture(), &image, executable_address_ranges.clone()) {
+                    Ok(disassembler) => disassembler,
+                    Err(error) => {
+                        eprintln!("{}", error);
+                        process::exit(1);
+                    }
+                };
+
+                disassembler.disassemble_controlflow(entrypoints, &mut cfg)
+                    .unwrap_or_else(|error| {
+                        eprintln!("{}", error);
+                        process::exit(1);
+                    });
+
+                process_output(args.output, args.enable_instructions, &cfg, &attributes, &function_symbols);
+            },
+            _ => {
+                eprintln!("unable to identify file format");
+                process::exit(1);
             }
         }
-
-        for block in blocks {
-            if let Err(error) = writeln!(file, "{}", block) {
-                eprintln!("{}", error);
-                std::process::exit(1);
-            }
-        }
-
-        for function in functions {
-            if let Err(error) = writeln!(file, "{}", function) {
-                eprintln!("{}", error);
-                std::process::exit(1);
-            }
-        }
-
     }
 
     process::exit(0);
