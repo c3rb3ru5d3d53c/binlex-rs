@@ -1,7 +1,7 @@
 use std::process;
 use clap::Parser;
-use binlex::config::AUTHOR;
-use binlex::config::VERSION;
+use binlex::AUTHOR;
+use binlex::VERSION;
 use clap::ValueEnum;
 use std::fmt;
 use binlex::Config;

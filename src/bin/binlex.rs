@@ -19,9 +19,9 @@ use binlex::terminal::io::Stdout;
 use binlex::terminal::io::JSON;
 use binlex::controlflow::Symbol;
 use clap::Parser;
-use binlex::config::Config;
-use binlex::config::VERSION;
-use binlex::config::AUTHOR;
+use binlex::Config;
+use binlex::VERSION;
+use binlex::AUTHOR;
 use binlex::controlflow::Attributes;
 use binlex::controlflow::Tag;
 use binlex::Format;
@@ -243,6 +243,71 @@ fn process_output(output: Option<String>, enable_instructions: bool, cfg: &Graph
     }
 }
 
+fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: Option<String>, enable_instructions: bool) {
+    let mut attributes = Attributes::new();
+
+    let pe = match PE::new(input, config.clone()) {
+        Ok(pe) => pe,
+        Err(error) => {
+            eprintln!("{}", error);
+            process::exit(1);
+        }
+    };
+
+    match pe.architecture() {
+        Architecture::UNKNOWN => {
+            eprintln!("unsupported pe architecture");
+            process::exit(1);
+        },
+        _ => {}
+    }
+
+    if !config.general.minimal {
+        let file_attribute = pe.file.attribute();
+        if tags.is_some() {
+            for tag in tags.unwrap() {
+                attributes.push(Tag::new(tag).attribute());
+            }
+        }
+        attributes.push(file_attribute);
+    }
+
+    let function_symbols = get_pe_function_symbols(&pe);
+
+    let mapped_file = pe.image()
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
+
+    let image = mapped_file
+        .mmap()
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
+
+    let executable_address_ranges = pe.executable_virtual_address_ranges();
+
+    let mut entrypoints = BTreeSet::<u64>::new();
+
+    entrypoints.extend(pe.functions());
+
+    entrypoints.extend(function_symbols.keys());
+
+    let mut cfg = Graph::new(pe.architecture(), config.clone());
+
+    let disassembler = match Disassembler::new(pe.architecture(), &image, executable_address_ranges.clone()) {
+        Ok(disassembler) => disassembler,
+        Err(error) => {
+            eprintln!("{}", error);
+            process::exit(1);
+        }
+    };
+
+    disassembler.disassemble_controlflow(entrypoints, &mut cfg)
+        .unwrap_or_else(|error| {
+            eprintln!("{}", error);
+            process::exit(1);
+        });
+
+    process_output(output, enable_instructions, &cfg, &attributes, &function_symbols);
+}
+
 fn main() {
 
     let args = Args::parse();
@@ -318,69 +383,7 @@ fn main() {
             });
         match format {
             Format::PE => {
-
-                let mut attributes = Attributes::new();
-
-                let pe = match PE::new(args.input, config.clone()) {
-                    Ok(pe) => pe,
-                    Err(error) => {
-                        eprintln!("{}", error);
-                        process::exit(1);
-                    }
-                };
-
-                match pe.architecture() {
-                    Architecture::UNKNOWN => {
-                        eprintln!("unsupported pe architecture");
-                        process::exit(1);
-                    },
-                    _ => {}
-                }
-
-                if !config.general.minimal {
-                    let file_attribute = pe.file.attribute();
-                    if args.tags.is_some() {
-                        for tag in args.tags.unwrap() {
-                            attributes.push(Tag::new(tag).attribute());
-                        }
-                    }
-                    attributes.push(file_attribute);
-                }
-
-                let function_symbols = get_pe_function_symbols(&pe);
-
-                let mapped_file = pe.image()
-                    .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
-
-                let image = mapped_file
-                    .mmap()
-                    .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
-
-                let executable_address_ranges = pe.executable_virtual_address_ranges();
-
-                let mut entrypoints = BTreeSet::<u64>::new();
-
-                entrypoints.extend(pe.functions());
-
-                entrypoints.extend(function_symbols.keys());
-
-                let mut cfg = Graph::new(pe.architecture(), config.clone());
-
-                let disassembler = match Disassembler::new(pe.architecture(), &image, executable_address_ranges.clone()) {
-                    Ok(disassembler) => disassembler,
-                    Err(error) => {
-                        eprintln!("{}", error);
-                        process::exit(1);
-                    }
-                };
-
-                disassembler.disassemble_controlflow(entrypoints, &mut cfg)
-                    .unwrap_or_else(|error| {
-                        eprintln!("{}", error);
-                        process::exit(1);
-                    });
-
-                process_output(args.output, args.enable_instructions, &cfg, &attributes, &function_symbols);
+                process_pe(args.input, config, args.tags, args.output, args.enable_instructions);
             },
             _ => {
                 eprintln!("unable to identify file format");

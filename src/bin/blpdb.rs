@@ -6,8 +6,8 @@ use std::fs::File;
 use binlex::terminal::io::Stdin;
 use binlex::terminal::io::Stdout;
 use binlex::controlflow::Symbol;
-use binlex::config::AUTHOR;
-use binlex::config::VERSION;
+use binlex::AUTHOR;
+use binlex::VERSION;
 
 #[derive(Parser, Debug)]
 #[command(

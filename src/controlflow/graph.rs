@@ -4,7 +4,7 @@ use crate::controlflow::Instruction;
 use crossbeam::queue::SegQueue;
 use crossbeam_skiplist::SkipMap;
 use crossbeam_skiplist::SkipSet;
-use crate::config::Config;
+use crate::Config;
 
 /// Queue structure used within `Graph` for managing addresses in processing stages.
 pub struct GraphQueue {

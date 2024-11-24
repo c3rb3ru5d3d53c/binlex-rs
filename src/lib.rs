@@ -1,14 +1,16 @@
 pub mod formats;
 pub mod types;
-pub mod config;
 pub mod hashing;
 pub mod controlflow;
 pub mod terminal;
 pub mod disassemblers;
 pub mod binary;
+pub mod global;
 
-pub use config::Config;
+pub use global::Config;
 pub use binary::Binary;
-pub use config::Architecture;
-pub use config::Format;
-pub use config::Mode;
+pub use global::Architecture;
+pub use global::Format;
+pub use global::Mode;
+pub use global::AUTHOR;
+pub use global::VERSION;
