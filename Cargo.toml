@@ -22,6 +22,7 @@ pdb = "0.8.0"
 memmap2 = "0.9.5"
 dirs = "5.0.1"
 toml = "0.8.19"
+glob = "0.3.1"
 
 [workspace]
 members = [
