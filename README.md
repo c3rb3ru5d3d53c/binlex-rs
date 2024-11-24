@@ -389,6 +389,25 @@ rule example {
         1 of them
 ```
 
+### Using Ghidra with Binlex
+
+To use **binlex** with ghidra use the `blghidra/blghidra.py` script in the scripts directory.
+
+To leverage function names and virtual addresses from your `Ghidra` projects and provide them to **binlex** use the `analyzeHeadless` script in your `Ghidra` install directory.
+
+```bash
+./analyzeHeadless \
+  <project-directory> \
+  <project-name> \
+  -process sample.dll \
+  -noanalysis \
+  -postscript blghidra.py 2>/dev/null |  grep -P "^{\"type" | binlex -i sample.dll
+```
+
+Please note that `analyzeHeadless` prints log messages to `stdout` and other log output to `stderr` that is of no use interoperability with other command-line utilities.
+
+As such, to collect the output of the script it must be filtered with `2>/dev/null |  grep -P "^{\"type"`.
+
 ### Using Rizin with Binlex
 
 To leverage the power of Rizin function detection and function naming in **binlex**, run `rizin` on your project using `aflj` to list the functions in JSON format.
