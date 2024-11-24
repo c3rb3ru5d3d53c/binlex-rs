@@ -1,4 +1,5 @@
 use binlex::Architecture;
+use binlex::Mode;
 use rayon::ThreadPoolBuilder;
 use binlex::formats::pe::PE;
 use binlex::disassemblers::capstone::Disassembler;
@@ -25,6 +26,8 @@ use binlex::AUTHOR;
 use binlex::controlflow::Attributes;
 use binlex::controlflow::Tag;
 use binlex::Format;
+use binlex::formats::File as BLFile;
+use binlex::global::mode::Modes;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -38,8 +41,8 @@ pub struct Args {
     pub input: String,
     #[arg(short, long)]
     pub output: Option<String>,
-    #[arg(short, long)]
-    pub mode: Option<String>,
+    #[arg(short, long, help = format!("[{}]", Modes::list()))]
+    pub mode: Option<Modes>,
     #[arg(short, long)]
     pub config: Option<String>,
     #[arg(short, long)]
@@ -308,6 +311,45 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
     process_output(output, enable_instructions, &cfg, &attributes, &function_symbols);
 }
 
+fn process_code(input: String, config: Config, mode: Mode, output: Option<String>, enable_instructions: bool) {
+    let mut attributes = Attributes::new();
+
+    let mut file = BLFile::new(input, config.clone());
+    file.read()
+        .unwrap_or_else(|error| {
+            eprintln!("{}", error);
+            process::exit(1);
+        });
+
+    let mut cfg = Graph::new(mode.architecture(), config.clone());
+
+    let mut executable_address_ranges = BTreeMap::<u64, u64>::new();
+    executable_address_ranges.insert(0, file.size());
+
+    let disassembler = match Disassembler::new(mode.architecture(), &file.data, executable_address_ranges.clone()) {
+        Ok(disassembler) => disassembler,
+        Err(error) => {
+            eprintln!("{}", error);
+            process::exit(1);
+        }
+    };
+
+    let mut entrypoints = BTreeSet::<u64>::new();
+    entrypoints.insert(0x00);
+
+    disassembler.disassemble_controlflow(entrypoints, &mut cfg)
+    .unwrap_or_else(|error| {
+        eprintln!("{}", error);
+        process::exit(1);
+    });
+
+    attributes.push(file.attribute());
+
+    let function_symbols = BTreeMap::<u64, Symbol>::new();
+
+    process_output(output, enable_instructions, &cfg, &attributes, &function_symbols);
+}
+
 fn main() {
 
     let args = Args::parse();
@@ -387,6 +429,31 @@ fn main() {
             },
             _ => {
                 eprintln!("unable to identify file format");
+                process::exit(1);
+            }
+        }
+    } else {
+        let mode = Mode::new(args.mode.unwrap().to_string()).unwrap_or_else(|error| {
+            eprintln!("{}", error);
+            process::exit(1);
+        });
+        match mode.format() {
+            Format::CODE => {
+                match mode.architecture() {
+                    Architecture::AMD64 => {
+                        process_code(args.input, config, mode, args.output, args.enable_instructions);
+                    },
+                    Architecture::I386 => {
+                        process_code(args.input, config, mode, args.output, args.enable_instructions);
+                    },
+                    _ => {
+                        eprintln!("unable to identify architecture");
+                        process::exit(1);
+                    }
+                }
+            },
+            _ => {
+                eprintln!("unable to identify format");
                 process::exit(1);
             }
         }
