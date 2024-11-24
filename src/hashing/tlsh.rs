@@ -38,10 +38,8 @@ impl <'tlsh> TLSH <'tlsh> {
     /// # Returns
     ///
     /// Returns a `Result<u32, Error>` where the `u32` is the similarity score and `Error` if compare fails.
-    pub fn compare(&self, lhs: String, rhs: String) -> Result<f64, Error> {
-        const MAX_DIFF: f64 = 2473.0; // The maximum possible value from tlsh::compare
+    pub fn compare(lhs: String, rhs: String) -> Result<u32, Error> {
         tlsh::compare(&lhs, &rhs)
-            .map(|value| 1.0 - (value as f64 / MAX_DIFF))
             .map_err(|e| Error::new(ErrorKind::Other, e))
     }
 

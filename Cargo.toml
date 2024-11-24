@@ -60,3 +60,7 @@ path = "src/bin/blimage.rs"
 [[bin]]
 name = "blhash"
 path = "src/bin/blhash.rs"
+
+[[bin]]
+name = "blcompare"
+path = "src/bin/blcompare.rs"
