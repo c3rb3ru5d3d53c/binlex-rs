@@ -33,14 +33,16 @@ impl <'tlsh> TLSH <'tlsh> {
     }
 
 
-    /// Comparse two TLSH hexdigests
+    /// Compares two hexdigests and get the simialrity score between 0 and 1 where 0 is not similar and 1 is the same.
     ///
     /// # Returns
     ///
     /// Returns a `Result<u32, Error>` where the `u32` is the similarity score and `Error` if compare fails.
-    pub fn compare(&self, lhs: String, rhs: String) -> Result<u32, Error> {
+    pub fn compare(&self, lhs: String, rhs: String) -> Result<f64, Error> {
+        const MAX_DIFF: f64 = 2473.0; // The maximum possible value from tlsh::compare
         tlsh::compare(&lhs, &rhs)
-            .map_err(|error| Error::new(ErrorKind::Other, error))
+            .map(|value| 1.0 - (value as f64 / MAX_DIFF))
+            .map_err(|e| Error::new(ErrorKind::Other, e))
     }
 
     /// Computes the TLSH hash of the byte slice if it meets the minimum size requirement.
