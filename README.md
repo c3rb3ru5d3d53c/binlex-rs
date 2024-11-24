@@ -426,6 +426,8 @@ rizin -c 'aaa;aflj;' -q sample.dll | \
   jq 'select(.type == "function") | .address' | wc -l
 ```
 
+**NOTE**: At this time `blrizin` is also compatiable with the output from `radare2` using `blrizin`.
+
 ### Collecting Machine Learning Features
 
 If you are would like to do some machine learning, you can get features representing the nibbles without memory addressing from binlex like this.
