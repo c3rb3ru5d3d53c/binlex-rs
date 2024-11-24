@@ -2,10 +2,10 @@ pub mod formats;
 pub mod types;
 pub mod hashing;
 pub mod controlflow;
-pub mod terminal;
 pub mod disassemblers;
 pub mod binary;
 pub mod global;
+pub mod io;
 
 pub use global::Config;
 pub use binary::Binary;

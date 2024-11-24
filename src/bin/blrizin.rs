@@ -7,8 +7,8 @@ use std::process;
 use binlex::types::LZ4String;
 use binlex::AUTHOR;
 use binlex::VERSION;
-use binlex::terminal::io::Stdout;
-use binlex::terminal::io::JSON;
+use binlex::io::Stdout;
+use binlex::io::JSON;
 use binlex::controlflow::SymbolIoJson;
 
 #[derive(Parser, Debug)]

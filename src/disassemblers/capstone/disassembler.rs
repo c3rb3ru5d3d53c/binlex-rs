@@ -23,7 +23,7 @@ use crate::controlflow::instruction::Instruction;
 use crate::controlflow::graph::Graph;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rayon::ThreadPoolBuilder;
-use crate::terminal::io::Stderr;
+use crate::io::Stderr;
 
 pub struct Disassembler<'disassembler> {
     cs: Capstone,

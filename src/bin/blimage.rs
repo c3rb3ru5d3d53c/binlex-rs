@@ -6,7 +6,7 @@ use binlex::AUTHOR;
 use binlex::VERSION;
 use clap::ValueEnum;
 use std::fmt;
-use binlex::terminal::io::Stdout;
+use binlex::io::Stdout;
 use std::collections::BTreeMap;
 use binlex::hashing::SHA256;
 

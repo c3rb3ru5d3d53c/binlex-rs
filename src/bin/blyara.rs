@@ -5,7 +5,7 @@ use std::io::{self, BufRead, Write};
 use std::process;
 use binlex::AUTHOR;
 use binlex::VERSION;
-use binlex::terminal::io::Stdout;
+use binlex::io::Stdout;
 
 #[derive(Parser, Debug)]
 #[command(

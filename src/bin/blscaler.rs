@@ -9,8 +9,8 @@ use rayon::ThreadPoolBuilder;
 use binlex::types::LZ4String;
 use binlex::AUTHOR;
 use binlex::VERSION;
-use binlex::terminal::io::Stdout;
-use binlex::terminal::io::JSON;
+use binlex::io::Stdout;
+use binlex::io::JSON;
 
 #[derive(Parser, Debug)]
 #[command(
