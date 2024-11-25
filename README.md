@@ -17,7 +17,7 @@ The simple **command-line interface** allows malware researchers and analysts to
 
 The **Rust API** and **Python bindings** let developers create their own detection solutions without **license limitations**. 🔓
 
-To help combat malware, we **commit** our work to the **public domain** for the greater good. 🌍
+To help combat malware, we provide our work the greater good. 🌍
 
 No installation needed—just **download the binaries** from the **release page**! 📥
 
