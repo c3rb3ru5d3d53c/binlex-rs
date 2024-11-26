@@ -12,8 +12,10 @@ pub enum Format {
     CODE = 0x00,
     /// Portable Executable
     PE = 0x01,
+    /// ELF Executable
+    ELF = 0x02,
     /// Unknown formats
-    UNKNOWN = 0x02,
+    UNKNOWN = 0x03,
 }
 
 impl Format {
@@ -34,6 +36,12 @@ impl Format {
                 return Ok(Format::PE);
             }
         }
+        let mut buffer = [0u8; 3];
+        file.seek(SeekFrom::Start(0x01))?;
+        file.read_exact(&mut buffer)?;
+        if buffer == [0x45, 0x4c, 0x46] {
+            return Ok(Format::ELF);
+        }
         return Ok(Format::UNKNOWN);
     }
 }
@@ -43,6 +51,7 @@ impl fmt::Display for Format {
         let format: &str = match self {
             Format::CODE => "code",
             Format::PE => "pe",
+            Format::ELF => "elf",
             Format::UNKNOWN => "unknown",
         };
         write!(f, "{}", format)
@@ -55,6 +64,7 @@ impl FromStr for Format {
         match s {
             "code" => Ok(Format::CODE),
             "pe" => Ok(Format::PE),
+            "elf" => Ok(Format::ELF),
             "unknown" => Ok(Format::UNKNOWN),
             _ => Err(format!("invalid format")),
         }

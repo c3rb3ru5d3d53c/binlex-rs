@@ -28,6 +28,7 @@ use binlex::controlflow::Tag;
 use binlex::Format;
 use binlex::formats::File as BLFile;
 use binlex::global::mode::Modes;
+use binlex::formats::ELF;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -311,6 +312,69 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
     process_output(output, enable_instructions, &cfg, &attributes, &function_symbols);
 }
 
+fn process_elf(input: String, config: Config, tags: Option<Vec<String>>, output: Option<String>, enable_instructions: bool) {
+    let mut attributes = Attributes::new();
+
+    let elf = ELF::new(input, config.clone()).unwrap_or_else(|error| {
+        eprintln!("{}", error);
+        process::exit(1);
+    });
+
+    match elf.architecture() {
+        Architecture::UNKNOWN => {
+            eprintln!("unsupported pe architecture");
+            process::exit(1);
+        },
+        _ => {}
+    }
+
+    if !config.general.minimal {
+        let file_attribute = elf.file.attribute();
+        if tags.is_some() {
+            for tag in tags.unwrap() {
+                attributes.push(Tag::new(tag).attribute());
+            }
+        }
+        attributes.push(file_attribute);
+    }
+
+    //let function_symbols = get_pe_function_symbols(&pe);
+    let function_symbols = BTreeMap::<u64, Symbol>::new();
+
+    let mapped_file = elf.image()
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
+
+    let image = mapped_file
+        .mmap()
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
+
+    let executable_address_ranges = elf.executable_virtual_address_ranges();
+
+    let mut entrypoints = BTreeSet::<u64>::new();
+
+    entrypoints.extend(elf.entrypoints());
+
+    //entrypoints.extend(function_symbols.keys());
+
+    let mut cfg = Graph::new(elf.architecture(), config.clone());
+
+    let disassembler = match Disassembler::new(elf.architecture(), &image, executable_address_ranges.clone()) {
+        Ok(disassembler) => disassembler,
+        Err(error) => {
+            eprintln!("{}", error);
+            process::exit(1);
+        }
+    };
+
+    disassembler.disassemble_controlflow(entrypoints, &mut cfg)
+        .unwrap_or_else(|error| {
+            eprintln!("{}", error);
+            process::exit(1);
+        });
+
+    process_output(output, enable_instructions, &cfg, &attributes, &function_symbols);
+}
+
 fn process_code(input: String, config: Config, mode: Mode, output: Option<String>, enable_instructions: bool) {
     let mut attributes = Attributes::new();
 
@@ -430,6 +494,9 @@ fn main() {
             Format::PE => {
                 process_pe(args.input, config, args.tags, args.output, args.enable_instructions);
             },
+            Format::ELF => {
+                process_elf(args.input, config, args.tags, args.output, args.enable_instructions);
+            }
             _ => {
                 eprintln!("unable to identify file format");
                 process::exit(1);

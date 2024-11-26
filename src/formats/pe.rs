@@ -1,4 +1,3 @@
-//use lief::generic::Binary;
 use lief::Binary;
 use lief::pe::section::Characteristics;
 use std::io::{Cursor, Error, ErrorKind};
