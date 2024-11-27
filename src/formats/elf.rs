@@ -10,6 +10,8 @@ use std::collections::BTreeMap;
 use crate::types::MemoryMappedFile;
 use lief::elf::section::Flags;
 use crate::Config;
+use lief::elf::symbol::Type as ElfSymbolType;
+use crate::controlflow::Symbol as BlSymbol;
 
 pub const DEFAULT_IMAGEBASE: u64 = 0x100000;
 
@@ -98,6 +100,26 @@ impl ELF {
             result.insert(self.imagebase() + symbol.value());
         }
         result
+    }
+
+    pub fn symbols(&self) -> BTreeMap<u64, BlSymbol> {
+        self.elf
+        .dynamic_symbols()
+        .chain(self.elf.exported_symbols())
+        .chain(self.elf.imported_symbols())
+        .chain(self.elf.symtab_symbols())
+        .filter(|symbol| symbol.get_type() == ElfSymbolType::FUNC)
+        .map(|symbol| {
+            (
+                (self.imagebase() + symbol.value()) as u64,
+                BlSymbol {
+                    symbol_type: "function".to_string(),
+                    name: symbol.name(),
+                    address: self.imagebase() + symbol.value(),
+                },
+            )
+        })
+        .collect()
     }
 
     pub fn image(&self) -> Result<MemoryMappedFile, Error> {

@@ -338,8 +338,7 @@ fn process_elf(input: String, config: Config, tags: Option<Vec<String>>, output:
         attributes.push(file_attribute);
     }
 
-    //let function_symbols = get_pe_function_symbols(&pe);
-    let function_symbols = BTreeMap::<u64, Symbol>::new();
+    let function_symbols = elf.symbols();
 
     let mapped_file = elf.image()
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
@@ -354,7 +353,7 @@ fn process_elf(input: String, config: Config, tags: Option<Vec<String>>, output:
 
     entrypoints.extend(elf.entrypoints());
 
-    //entrypoints.extend(function_symbols.keys());
+    entrypoints.extend(function_symbols.keys());
 
     let mut cfg = Graph::new(elf.architecture(), config.clone());
 
