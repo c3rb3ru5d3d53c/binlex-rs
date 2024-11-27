@@ -230,6 +230,7 @@ impl<'block> Block<'block> {
         if self.terminator.is_block_start {
             return Some(self.terminator.address);
         }
+        if !self.terminator.is_conditional { return None; }
         self.terminator.next()
     }
 
