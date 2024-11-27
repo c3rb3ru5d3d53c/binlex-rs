@@ -94,6 +94,10 @@ impl ELF {
         DEFAULT_IMAGEBASE
     }
 
+    pub fn size(&self) -> u64 {
+        self.file.size()
+    }
+
     pub fn exports(&self) -> BTreeSet<u64> {
         let mut result = BTreeSet::<u64>::new();
         for symbol in self.elf.exported_symbols() {
@@ -163,6 +167,14 @@ impl ELF {
         }
 
         Ok(tempmap)
+    }
+
+    pub fn tlsh(&self) -> Option<String> {
+        self.file.tlsh()
+    }
+
+    pub fn sha256(&self) -> Option<String> {
+        self.file.sha256()
     }
 
     pub fn entrypoints(&self) -> BTreeSet<u64> {

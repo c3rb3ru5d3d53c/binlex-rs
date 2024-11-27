@@ -604,6 +604,7 @@ To disassemble a PE memory mapped image use the following example.
 
 ```python
 from binlex.formats import PE
+from binlex.formats import ELF
 from binlex.disassemblers.capstone import Disassembler
 from binlex.controlflow import Graph
 from binlex import Config
@@ -618,10 +619,13 @@ config = Config()
 config.general.threads = 16
 
 # Open the PE File
-pe = PE('./sample.dll', config)
+f = PE('./sample.dll', config)
+
+# Or Open ELF File
+f = ELF('./sample.so', config)
 
 # Get the Memory Mapped File
-mapped_file = pe.image()
+mapped_file = f.image()
 
 # Get the Memory Map
 image = mapped_file.as_memoryview()
