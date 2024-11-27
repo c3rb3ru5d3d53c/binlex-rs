@@ -169,6 +169,7 @@ impl ELF {
         let mut entrypoints = BTreeSet::<u64>::new();
         entrypoints.insert(self.entrypoint());
         entrypoints.extend(self.exports());
+        entrypoints.extend(self.symbols().keys());
         entrypoints
     }
 

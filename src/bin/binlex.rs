@@ -289,7 +289,7 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
 
     let mut entrypoints = BTreeSet::<u64>::new();
 
-    entrypoints.extend(pe.functions());
+    entrypoints.extend(pe.entrypoints());
 
     entrypoints.extend(function_symbols.keys());
 
@@ -352,8 +352,6 @@ fn process_elf(input: String, config: Config, tags: Option<Vec<String>>, output:
     let mut entrypoints = BTreeSet::<u64>::new();
 
     entrypoints.extend(elf.entrypoints());
-
-    entrypoints.extend(function_symbols.keys());
 
     let mut cfg = Graph::new(elf.architecture(), config.clone());
 

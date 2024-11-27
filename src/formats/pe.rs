@@ -145,7 +145,7 @@ impl PE {
     /// # Returns
     /// A `BTreeSet` of function addresses in the PE file.
     #[allow(dead_code)]
-    pub fn functions(&self) -> BTreeSet<u64> {
+    pub fn entrypoints(&self) -> BTreeSet<u64> {
         let mut addresses = BTreeSet::<u64>::new();
         addresses.insert(self.entrypoint());
         addresses.extend(self.exports());

@@ -633,7 +633,7 @@ disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_addr
 cfg = Graph(pe.architecture(), config)
 
 # Disassemble the PE Image Entrypoints Recursively
-disassembler.disassemble_controlflow(pe.functions(), cfg)
+disassembler.disassemble_controlflow(pe.entrypoints(), cfg)
 
 # Iterate Valid Instructions
 for address in cfg.instruction_addresses():
@@ -655,7 +655,6 @@ for address in cfg.functions.valid_addresses():
   function = Function(address, cfg)
   # Print Function from Control Flow
   function.print()
-
 ```
 
 Please note that although the Python bindings also take advantage of Rust multi-threading.

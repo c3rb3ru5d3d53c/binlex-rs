@@ -68,8 +68,8 @@ impl PE {
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn functions(&self) -> BTreeSet<u64> {
-        self.inner.lock().unwrap().functions()
+    pub fn entrypoints(&self) -> BTreeSet<u64> {
+        self.inner.lock().unwrap().entrypoints()
     }
 
     #[pyo3(text_signature = "($self)")]
