@@ -607,6 +607,7 @@ To disassemble a PE memory mapped image use the following example.
 ```python
 from binlex.formats import PE
 from binlex.formats import ELF
+from binlex.formats import MACHO
 from binlex.disassemblers.capstone import Disassembler
 from binlex.controlflow import Graph
 from binlex import Config
@@ -621,10 +622,14 @@ config = Config()
 config.general.threads = 16
 
 # Open the PE File
-f = PE('./sample.dll', config)
+#f = PE('./sample.dll', config)
 
 # Or Open ELF File
-f = ELF('./sample.so', config)
+# f = ELF('./sample.so', config)
+
+# Or Open MachO File
+# f = MACHO('./sample.macho', config)
+# NOTE: MachO requires binary slice argument for most methods
 
 # Get the Memory Mapped File
 mapped_file = f.image()
@@ -633,13 +638,13 @@ mapped_file = f.image()
 image = mapped_file.as_memoryview()
 
 # Create Disassembler on Mapped PE Image and PE Architecture
-disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges())
+disassembler = Disassembler(f.architecture(), image, f.executable_virtual_address_ranges())
 
 # Create the Controlflow Graph
-cfg = Graph(pe.architecture(), config)
+cfg = Graph(f.architecture(), config)
 
 # Disassemble the PE Image Entrypoints Recursively
-disassembler.disassemble_controlflow(pe.entrypoints(), cfg)
+disassembler.disassemble_controlflow(f.entrypoints(), cfg)
 
 # Iterate Valid Instructions
 for address in cfg.instruction_addresses():
