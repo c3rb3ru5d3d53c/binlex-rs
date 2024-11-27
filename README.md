@@ -45,8 +45,8 @@ No installation needed—just **download the binaries** from the **release page*
   - 🔐 SHA256
 
 - 🧩 **Function Symbols**
-  - Pass function symbols to **binlex** as standard input using ***blpdb**
-  - Pass function symbols to ***binlex** using JSON from your favorite tools
+  - Pass function symbols to **binlex** as standard input using **blpdb**
+  - Pass function symbols to **binlex** using JSON from your favorite tools
 
 - 🏷️ **Tagging for Easy Organization**
 
@@ -74,7 +74,7 @@ No installation needed—just **download the binaries** from the **release page*
 
 #### ❓ Why This Change?
 While disassembling virtual images provides several key benefits:
-- **⚡ Improved Speed and Accuracy**: By abstracting the disassembler from specific binary formats, binlex operates more efficiently, offering better performance and accuracy.
+- **⚡ Improved Speed and Accuracy**: By abstracting the disassembler from specific binary formats, **binlex** operates more efficiently, offering better performance and accuracy.
 - **🔄 Enhanced Flexibility**: This method allows binlex to handle various binary formats seamlessly.
 
 #### 💾 Managing RAM Usage
@@ -88,15 +88,15 @@ By caching virtual images, **binlex** is able to perform at increased speeds, ma
 
 ## Why Rust?
 
-🚀✨ I've decided to move the entire binlex project to Rust—it's the perfect mix of performance and safety! 🦀💪
+🚀✨ I've decided to move the entire **binlex** project to Rust—it's the perfect mix of performance and safety! 🦀💪
 
-When working with malware 🕵️, safety-first tech is a must, and Rust totally delivers. Plus, Rust embodies the core principles of binlex: simplicity, safety, and speed! ⚡🔥
+When working with malware 🕵️, safety-first tech is a must, and Rust totally delivers. Plus, Rust embodies the core principles of **binlex**: simplicity, safety, and speed! ⚡🔥
 
-Not to mention, Rust makes cross-platform compatibility a breeze 🌍, so you can now use binlex on a variety of systems! 🎉
+Not to mention, Rust makes cross-platform compatibility a breeze 🌍, so you can now use **binlex** on a variety of systems! 🎉
 
 ## Building
 
-To build binlex you will need Rust.
+To build **binlex** you will need Rust.
 
 ### Binaries
 ```bash
@@ -532,11 +532,11 @@ To save yourself time if you choose this option, make the mounting of the `btrfs
 
 ## Binlex API
 
-The philophsy of the binlex project is focused on security, simplicity, speed and extendability.
+The philophsy of the **binlex** project is focused on security, simplicity, speed and extendability.
 
 Part of this is providing an API for developers to write their own detection and hunting logic.
 
-At this time, binlex provides both Rust and Python bindings.
+At this time, **binlex** provides both Rust and Python bindings.
 
 ### Rust API
 
