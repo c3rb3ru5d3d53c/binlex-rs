@@ -37,7 +37,7 @@ pub struct SymbolJson {
 }
 
 /// Represents a structure containing metadata about a function symbol.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Symbol {
     /// Names associated with the function symbol.
     pub name: String,
