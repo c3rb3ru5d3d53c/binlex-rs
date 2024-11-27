@@ -17,7 +17,7 @@ The simple **command-line interface** allows malware researchers and analysts to
 
 The **Rust API** and **Python bindings** let developers create their own detection solutions without **license limitations**. 🔓
 
-To help combat malware, we provide our work the greater good. 🌍
+To help combat malware, we provide our work for the greater good. 🌍
 
 No installation needed—just **download the binaries** from the **release page**! 📥
 
@@ -73,17 +73,17 @@ No installation needed—just **download the binaries** from the **release page*
 ### 🚀 Feature: Binlex Now Disassembles Binaries Using Virtual Images
 
 #### ❓ Why This Change?
-While disassembling virtual images may use more RAM, it provides key benefits:
+While disassembling virtual images provides several key benefits:
 - **⚡ Improved Speed and Accuracy**: By abstracting the disassembler from specific binary formats, binlex operates more efficiently, offering better performance and accuracy.
 - **🔄 Enhanced Flexibility**: This method allows binlex to handle various binary formats seamlessly.
 
 #### 💾 Managing RAM Usage
-To offset the increased RAM usage, binlex includes a **file mapping feature**:
+To prevent increased RAM usage, **binlex** includes a **file mapping feature**:
 - **📂 Cache on Disk**: You can cache mapped images directly on disk, reducing the need for RAM.
 - **💽 Optimized Storage Solutions**: Using a ZFS or BTRFS pool can help you efficiently manage storage when caching images.
-- **🚀 Improved Performance with Caching**: Cached runs often achieve **up to twice the performance** by leveraging a write-once, read-many approach.
+- **🚀 Improved Performance with Caching**: Cached runs often achieve better repeat performance leveraging a write-once, read-many approach.
 
-By caching virtual images, binlex maintains high performance while conserving RAM, making repeat runs faster and more efficient.
+By caching virtual images, **binlex** is able to perform at increased speeds, making repeat runs faster and more efficient.
 
 
 ## Why Rust?
@@ -129,7 +129,7 @@ cargo doc --open
 
 ## JSON Trait Format
 
-In the JSON format, binlex treats addresses as virtual addresses, and provides various properties to help you make decisions on your detection and hunting strategy.
+In the JSON format, **binlex** treats addresses as virtual addresses, and provides various properties to help you make decisions on your detection and hunting strategy.
 
 ```JSON
 {
@@ -218,6 +218,8 @@ A simple example of using the command-line is provided below.
 ```bash
 binlex -i sample.dll --threads 16 | jq
 ```
+
+Please note that **binlex** will detect the file format fort you and currently supports `PE`, `ELF` and `MACHO` binary formats.
 
 ### Configuration
 
