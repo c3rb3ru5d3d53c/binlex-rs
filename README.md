@@ -2,7 +2,7 @@
   <tr>
     <td style="border: none;"><img src="./assets/binlex.png" alt="Binlex logo" width="100"></td>
     <td style="border: none; vertical-align: middle; padding-left: 10px;">
-      <h1 style="font-weight: bold; margin: 0;">Binlex - A Binary Trait Lexer Framework</h1>
+      <h1 style="font-weight: bold; margin: 0;">Binlex - A Binary Genetic Trait Lexer Framework</h1>
     </td>
   </tr>
 </table>
