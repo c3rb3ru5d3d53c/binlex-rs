@@ -589,6 +589,7 @@ impl<'disassembler> Disassembler<'disassembler> {
                     if mem.index() != RegId(0) { continue; }
                     let address: u64 = (instruction.address() as i64 + mem.disp() + instruction.bytes().len() as i64) as u64;
                     if !self.is_executable_address(address) { continue; }
+                    if self.disassemble_instructions(address, 1).is_err() { continue; }
                     return Some(address);
                 }
             }

@@ -89,6 +89,10 @@ impl<'block> Block<'block> {
             return Err(Error::new(ErrorKind::Other, format!("Block -> 0x{:x}: is not valid", address)));
         }
 
+        if !cfg.is_instruction_address(address) {
+            return Err(Error::new(ErrorKind::Other, format!("Instruction -> 0x{:x}: is not valid", address)));
+        }
+
         let mut terminator: Option<Instruction> = None;
 
         let previous_address: Option<u64> = None;
@@ -223,6 +227,7 @@ impl<'block> Block<'block> {
     /// Returns `Some(u64)` containing the address of the next block if it is
     /// conditional or has specific ending conditions. Returns `None` otherwise.
     pub fn next(&self) -> Option<u64> {
+        if !self.terminator.is_conditional { return None; }
         if self.terminator.address == self.address { return None; }
         if self.terminator.is_block_start { return Some(self.terminator.address); }
         if self.terminator.is_return { return None; }
@@ -230,7 +235,6 @@ impl<'block> Block<'block> {
         if self.terminator.is_block_start {
             return Some(self.terminator.address);
         }
-        if !self.terminator.is_conditional { return None; }
         self.terminator.next()
     }
 

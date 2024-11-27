@@ -1,4 +1,4 @@
-use lief::generic::Symbol;
+use lief::generic::{Section, Symbol};
 use lief::Binary;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{Cursor, Error, ErrorKind};
@@ -10,6 +10,7 @@ use crate::controlflow::Symbol as BlSymbol;
 use crate::types::MemoryMappedFile;
 use std::path::PathBuf;
 use lief::macho::commands::{Command, LoadCommandTypes};
+use lief::macho::section::Flags as SectionFlags;
 
 pub const N_STAB: u8 = 0xE0;
 pub const N_TYPE: u8 = 0x0E;
@@ -206,9 +207,21 @@ impl MACHO {
         if binding.is_none() { return result; }
         for segment in binding.unwrap().segments() {
             if !MACHO::is_segment_flags_executable(segment.init_protection()) { continue; }
-            let start = segment.virtual_address();
-            let end = start + segment.file_size();
-            result.insert(start, end);
+            for section in segment.sections() {
+                if [
+                    "__cstring",
+                    "__const",
+                    "__info_plist",
+                    "__unwind_info",
+                    "__eh_frame",
+                    "__stubs",
+                    "__stub_helper"].contains(&section.name().as_str()) { continue; }
+                if !section.flags().contains(SectionFlags::PURE_INSTRUCTIONS) { continue; }
+                if !section.flags().contains(SectionFlags::SOME_INSTRUCTIONS) { continue; }
+                let start = section.virtual_address();
+                let end = start + section.size();
+                result.insert(start, end);
+            }
         }
         result
     }
