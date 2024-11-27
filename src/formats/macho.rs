@@ -205,8 +205,8 @@ impl MACHO {
         let binding = self.macho.iter().nth(slice);
         if binding.is_none() { return result; }
         for segment in binding.unwrap().segments() {
-            if !MACHO::is_segment_flags_executable(segment.flags()) { continue; }
-            let start = self.imagebase(slice).unwrap() + segment.virtual_address();
+            if !MACHO::is_segment_flags_executable(segment.init_protection()) { continue; }
+            let start = segment.virtual_address();
             let end = start + segment.file_size();
             result.insert(start, end);
         }
@@ -251,7 +251,6 @@ impl MACHO {
 
         for segment in binary.segments() {
             let segment_virtual_address = segment.virtual_address();
-            println!("segment_virtual_address: 0x{:x}", segment_virtual_address);
             if segment_virtual_address > tempmap.size()? as u64 {
                 let padding_length = segment_virtual_address - tempmap.size()? as u64;
                 tempmap.write_padding(padding_length as usize)?;

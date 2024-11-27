@@ -29,6 +29,7 @@ use binlex::Format;
 use binlex::formats::File as BLFile;
 use binlex::global::mode::Modes;
 use binlex::formats::ELF;
+use binlex::formats::MACHO;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -414,6 +415,67 @@ fn process_code(input: String, config: Config, mode: Mode, output: Option<String
     process_output(output, enable_instructions, &cfg, &attributes, &function_symbols);
 }
 
+fn process_macho(input: String, config: Config, tags: Option<Vec<String>>, output: Option<String>, enable_instructions: bool) {
+    let mut attributes = Attributes::new();
+
+    let macho = MACHO::new(input, config.clone()).unwrap_or_else(|error| {
+        eprintln!("{}", error);
+        process::exit(1);
+    });
+
+    for slice in 0..macho.number_of_slices() {
+        let architecture = macho.architecture(slice);
+        if architecture.is_none() { continue; }
+        let architecture = architecture.unwrap();
+        if architecture == Architecture::UNKNOWN { continue; }
+
+        let tags = tags.clone();
+
+        if !config.general.minimal {
+            let file_attribute = macho.file.attribute();
+            if tags.is_some() {
+                for tag in tags.unwrap() {
+                    attributes.push(Tag::new(tag).attribute());
+                }
+            }
+            attributes.push(file_attribute);
+        }
+
+        let function_symbols = macho.symbols(slice);
+
+        let mapped_file = macho.image(slice)
+        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
+
+        let image = mapped_file
+            .mmap()
+            .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
+
+        let executable_address_ranges = macho.executable_virtual_address_ranges(slice);
+
+        let mut entrypoints = BTreeSet::<u64>::new();
+
+        entrypoints.extend(macho.entrypoints(slice));
+
+        let mut cfg = Graph::new(architecture, config.clone());
+
+        let disassembler = match Disassembler::new(architecture, &image, executable_address_ranges.clone()) {
+            Ok(disassembler) => disassembler,
+            Err(error) => {
+                eprintln!("{}", error);
+                process::exit(1);
+            }
+        };
+
+        disassembler.disassemble_controlflow(entrypoints, &mut cfg)
+        .unwrap_or_else(|error| {
+            eprintln!("{}", error);
+            process::exit(1);
+        });
+
+        process_output(output.clone(), enable_instructions, &cfg, &attributes, &function_symbols);
+    }
+}
+
 fn main() {
 
     let args = Args::parse();
@@ -493,6 +555,9 @@ fn main() {
             },
             Format::ELF => {
                 process_elf(args.input, config, args.tags, args.output, args.enable_instructions);
+            },
+            Format::MACHO => {
+                process_macho(args.input, config, args.tags, args.output, args.enable_instructions);
             }
             _ => {
                 eprintln!("unable to identify file format");

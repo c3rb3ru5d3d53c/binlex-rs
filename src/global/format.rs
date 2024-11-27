@@ -14,13 +14,16 @@ pub enum Format {
     PE = 0x01,
     /// ELF Executable
     ELF = 0x02,
+    /// MachO Executable
+    MACHO = 0x03,
     /// Unknown formats
-    UNKNOWN = 0x03,
+    UNKNOWN = 0x04,
 }
 
 impl Format {
     pub fn from_file(path: String) -> Result<Format, Error> {
         let mut file = File::open(path)?;
+
         let mut buffer = [0u8; 2];
         file.seek(SeekFrom::Start(0x00))?;
         file.read_exact(&mut buffer)?;
@@ -42,6 +45,14 @@ impl Format {
         if buffer == [0x45, 0x4c, 0x46] {
             return Ok(Format::ELF);
         }
+
+        let mut buffer = [0u8; 4];
+        file.seek(SeekFrom::Start(0x00))?;
+        file.read_exact(&mut buffer)?;
+        if buffer == [0xCE, 0xFA, 0xED, 0xFE] || buffer == [0xCF, 0xFA, 0xED, 0xFE] || buffer == [0xBE, 0xBA, 0xFE, 0xCA] {
+            return Ok(Format::MACHO);
+        }
+
         return Ok(Format::UNKNOWN);
     }
 }
@@ -52,6 +63,7 @@ impl fmt::Display for Format {
             Format::CODE => "code",
             Format::PE => "pe",
             Format::ELF => "elf",
+            Format::MACHO => "macho",
             Format::UNKNOWN => "unknown",
         };
         write!(f, "{}", format)
@@ -65,6 +77,7 @@ impl FromStr for Format {
             "code" => Ok(Format::CODE),
             "pe" => Ok(Format::PE),
             "elf" => Ok(Format::ELF),
+            "macho" => Ok(Format::MACHO),
             "unknown" => Ok(Format::UNKNOWN),
             _ => Err(format!("invalid format")),
         }

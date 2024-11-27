@@ -6,3 +6,4 @@ pub mod macho;
 pub use pe::PE;
 pub use file::File;
 pub use elf::ELF;
+pub use macho::MACHO;
