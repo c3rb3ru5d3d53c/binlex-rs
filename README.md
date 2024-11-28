@@ -622,7 +622,7 @@ config = Config()
 config.general.threads = 16
 
 # Open the PE File
-#f = PE('./sample.dll', config)
+f = PE('./sample.dll', config)
 
 # Or Open ELF File
 # f = ELF('./sample.so', config)

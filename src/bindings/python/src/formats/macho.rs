@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 use std::io::Error;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use pyo3::types::PyType;
 use binlex::formats::MACHO as InnerMACHO;
 use crate::Architecture;
 use crate::types::memorymappedfile::MemoryMappedFile;
@@ -24,6 +25,24 @@ impl MACHO {
         Ok(Self{
             inner: Arc::new(Mutex::new(inner)),
         })
+    }
+
+    #[classmethod]
+    #[pyo3(text_signature = "(bytes, config)")]
+    pub fn from_bytes(_: &Bound<'_, PyType>, py: Python, bytes: Vec<u8>, config: Py<Config>) -> PyResult<Self> {
+        let inner_config = config.borrow(py).inner.lock().unwrap().clone();
+        let inner = InnerMACHO::from_bytes(bytes, inner_config)?;
+        Ok(Self { inner: Arc::new(Mutex::new(inner)) })
+    }
+
+    #[pyo3(text_signature = "($self, relative_virtual_address, slice)")]
+    pub fn relative_virtual_address_to_virtual_address(&self, relative_virtual_address: u64, slice: usize) -> Option<u64> {
+        self.inner.lock().unwrap().relative_virtual_address_to_virtual_address(relative_virtual_address, slice)
+    }
+
+    #[pyo3(text_signature = "($self, file_offset, slice)")]
+    pub fn file_offset_to_virtual_address(&self, file_offset: u64, slice: usize) -> Option<u64> {
+        self.inner.lock().unwrap().file_offset_to_virtual_address(file_offset, slice)
     }
 
     #[pyo3(text_signature = "($self)")]

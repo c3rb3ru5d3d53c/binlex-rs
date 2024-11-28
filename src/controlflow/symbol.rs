@@ -19,6 +19,8 @@ pub struct SymbolIoJson {
     pub relative_virtual_address: Option<u64>,
     /// The virtual address of the function symbol, if available.
     pub virtual_address: Option<u64>,
+    /// The slice associated with the function symbol, MachO format only
+    pub slice: Option<usize>,
 }
 
 /// Represents a JSON-serializable structure containing metadata about a function symbol.

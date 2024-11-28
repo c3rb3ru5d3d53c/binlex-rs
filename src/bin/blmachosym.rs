@@ -45,6 +45,7 @@ fn main() -> pdb::Result<()> {
                 file_offset: None,
                 relative_virtual_address: None,
                 virtual_address: Some(symbol.address),
+                slice: Some(slice),
             };
             if let Ok(string) = serde_json::to_string(&symbol) {
                 symbols.push(LZ4String::new(&string));

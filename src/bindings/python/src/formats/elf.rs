@@ -45,6 +45,15 @@ impl ELF {
         self.inner.lock().unwrap().executable_virtual_address_ranges()
     }
 
+    #[pyo3(text_signature = "($self, relative_virtual_address)")]
+    pub fn relative_virtual_address_to_virtual_address(&self, relative_virtual_address: u64) -> u64 {
+        self.inner.lock().unwrap().relative_virtual_address_to_virtual_address(relative_virtual_address)
+    }
+
+    #[pyo3(text_signature = "($self, file_offset)")]
+    pub fn file_offset_to_virtual_address(&self, file_offset: u64) -> Option<u64> {
+        self.inner.lock().unwrap().file_offset_to_virtual_address(file_offset)
+    }
 
     #[pyo3(text_signature = "($self)")]
     pub fn entrypoints(&self) -> BTreeSet<u64> {

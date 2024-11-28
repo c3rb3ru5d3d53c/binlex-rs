@@ -71,6 +71,23 @@ impl MACHO {
         return Err(Error::new(ErrorKind::InvalidInput, "invalid macho file"));
     }
 
+    pub fn relative_virtual_address_to_virtual_address(&self, relative_virtual_address: u64, slice: usize) -> Option<u64> {
+        Some(self.imagebase(slice)? + relative_virtual_address)
+    }
+
+    pub fn file_offset_to_virtual_address(&self, file_offset: u64, slice: usize) -> Option<u64> {
+        let binding = self.macho.iter().nth(slice);
+        if binding.is_none() { return None; }
+        for segment in binding.unwrap().segments() {
+            let start = segment.file_offset();
+            let end = start + segment.file_size();
+            if file_offset >= start && file_offset < end {
+                return Some(segment.virtual_address() + (file_offset - start));
+            }
+        }
+        None
+    }
+
     /// Returns the number of binaries contained in the MachO binary.
     ///
     /// # Returns

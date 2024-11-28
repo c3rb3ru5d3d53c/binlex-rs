@@ -51,6 +51,7 @@ fn main() -> pdb::Result<()> {
                     file_offset: None,
                     relative_virtual_address: Some(rva.0 as u64),
                     virtual_address: None,
+                    slice: None,
                 });
             }
             _ => {}

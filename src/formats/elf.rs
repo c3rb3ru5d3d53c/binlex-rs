@@ -126,6 +126,22 @@ impl ELF {
         .collect()
     }
 
+    pub fn relative_virtual_address_to_virtual_address(&self, relative_virtual_address: u64) -> u64 {
+        self.imagebase() + relative_virtual_address
+    }
+
+    pub fn file_offset_to_virtual_address(&self, file_offset: u64) -> Option<u64> {
+        for segment in self.elf.segments() {
+            let start = segment.file_offset();
+            let end = start + segment.physical_size();
+            if file_offset >= start && file_offset < end {
+                let segment_virtual_address = self.imagebase() + segment.virtual_address();
+                return Some(segment_virtual_address + (file_offset - start))
+            }
+        }
+        None
+    }
+
     pub fn image(&self) -> Result<MemoryMappedFile, Error> {
         let pathbuf = PathBuf::from(self.config.mmap.directory.clone())
             .join(self.file.sha256_no_config().unwrap());

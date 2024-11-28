@@ -35,6 +35,7 @@ fn process_value(parsed: &Value) -> Result<LZ4String, Error> {
         file_offset: None,
         relative_virtual_address: None,
         virtual_address: Some(virtual_address),
+        slice: None,
     };
     let result = serde_json::to_string(&symbol)?;
     Ok(LZ4String::new(&result))

@@ -83,6 +83,155 @@ fn validate_args(args: &Args) {
 
 }
 
+fn get_elf_function_symbols(elf: &ELF) -> BTreeMap<u64, Symbol> {
+    let mut symbols = BTreeMap::<u64, Symbol>::new();
+
+    let json = JSON::from_stdin_with_filter(|value| {
+        let obj = match value.as_object_mut() {
+            Some(obj) => obj,
+            None => return false,
+        };
+
+        let obj_type = obj.get("type").and_then(|v| v.as_str()).map(String::from);
+        let symbol_type = obj.get("symbol_type").and_then(|v| v.as_str()).map(String::from);
+        let file_offset = obj.get("file_offset").and_then(|v| v.as_u64());
+        let relative_virtual_address = obj.get("relative_virtual_address").and_then(|v| v.as_u64());
+        let mut virtual_address = obj.get("virtual_address").and_then(|v| v.as_u64());
+
+        if obj_type.as_deref() != Some("symbol") {
+            return false;
+        }
+
+        if symbol_type.is_none() {
+            return false;
+        }
+
+        if file_offset.is_none() && relative_virtual_address.is_none() && virtual_address.is_none() {
+            return false;
+        }
+
+        if virtual_address.is_some() {
+            return true;
+        }
+
+        if virtual_address.is_none() {
+            if let Some(rva) = relative_virtual_address {
+                virtual_address = Some(elf.relative_virtual_address_to_virtual_address(rva));
+            }
+            if let Some(offset) = file_offset {
+                if let Some(va) = elf.file_offset_to_virtual_address(offset) {
+                    virtual_address = Some(va);
+                }
+            }
+
+            if let Some(va) = virtual_address {
+                obj.insert("virtual_address".to_string(), json!(va));
+                return true;
+            }
+        }
+
+        false
+
+    });
+
+    if json.is_ok() {
+        for value in json.unwrap().values() {
+            let address = value.get("virtual_address").and_then(|v| v.as_u64());
+            let name = value.get("name").and_then(|v| v.as_str());
+            let symbol_type = value.get("symbol_type").and_then(|v| v.as_str());
+            if address.is_none() { continue; }
+            if name.is_none() { continue; }
+            if symbol_type.is_none() { continue; }
+            let symbol = Symbol::new(
+                address.unwrap(),
+                symbol_type.unwrap().to_string(),
+                name.unwrap().to_string());
+            symbols.insert(address.unwrap(),symbol);
+        }
+    }
+
+    return symbols;
+}
+
+fn get_macho_function_symbols(macho: &MACHO) -> BTreeMap<u64, Symbol> {
+    let mut symbols = BTreeMap::<u64, Symbol>::new();
+
+    let json = JSON::from_stdin_with_filter(|value| {
+        let obj = match value.as_object_mut() {
+            Some(obj) => obj,
+            None => return false,
+        };
+
+        let obj_type = obj.get("type").and_then(|v| v.as_str()).map(String::from);
+        let symbol_type = obj.get("symbol_type").and_then(|v| v.as_str()).map(String::from);
+        let file_offset = obj.get("file_offset").and_then(|v| v.as_u64());
+        let relative_virtual_address = obj.get("relative_virtual_address").and_then(|v| v.as_u64());
+        let mut virtual_address = obj.get("virtual_address").and_then(|v| v.as_u64());
+        let slice = obj.get("slice").and_then(|v| v.as_u64());
+
+        if slice.is_none() {
+            return false;
+        }
+
+        let slice = slice.unwrap() as usize;
+
+        if obj_type.as_deref() != Some("symbol") {
+            return false;
+        }
+
+        if symbol_type.is_none() {
+            return false;
+        }
+
+        if file_offset.is_none() && relative_virtual_address.is_none() && virtual_address.is_none() {
+            return false;
+        }
+
+        if virtual_address.is_some() {
+            return true;
+        }
+
+        if virtual_address.is_none() {
+            if let Some(rva) = relative_virtual_address {
+                let va = macho.relative_virtual_address_to_virtual_address(rva, slice);
+                if va.is_none() { return false; }
+                virtual_address = Some(va.unwrap());
+            }
+            if let Some(offset) = file_offset {
+                if let Some(va) = macho.file_offset_to_virtual_address(offset, slice) {
+                    virtual_address = Some(va);
+                }
+            }
+
+            if let Some(va) = virtual_address {
+                obj.insert("virtual_address".to_string(), json!(va));
+                return true;
+            }
+        }
+
+        false
+
+    });
+
+    if json.is_ok() {
+        for value in json.unwrap().values() {
+            let address = value.get("virtual_address").and_then(|v| v.as_u64());
+            let name = value.get("name").and_then(|v| v.as_str());
+            let symbol_type = value.get("symbol_type").and_then(|v| v.as_str());
+            if address.is_none() { continue; }
+            if name.is_none() { continue; }
+            if symbol_type.is_none() { continue; }
+            let symbol = Symbol::new(
+                address.unwrap(),
+                symbol_type.unwrap().to_string(),
+                name.unwrap().to_string());
+            symbols.insert(address.unwrap(),symbol);
+        }
+    }
+
+    return symbols;
+}
+
 fn get_pe_function_symbols(pe: &PE) -> BTreeMap<u64, Symbol> {
     let mut symbols = BTreeMap::<u64, Symbol>::new();
 
@@ -339,7 +488,7 @@ fn process_elf(input: String, config: Config, tags: Option<Vec<String>>, output:
         attributes.push(file_attribute);
     }
 
-    let function_symbols = elf.symbols();
+    let function_symbols = get_elf_function_symbols(&elf);
 
     let mapped_file = elf.image()
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
@@ -441,7 +590,7 @@ fn process_macho(input: String, config: Config, tags: Option<Vec<String>>, outpu
             attributes.push(file_attribute);
         }
 
-        let function_symbols = macho.symbols(slice);
+        let function_symbols = get_macho_function_symbols(&macho);
 
         let mapped_file = macho.image(slice)
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
