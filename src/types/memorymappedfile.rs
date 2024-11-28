@@ -56,6 +56,36 @@ impl MemoryMappedFile {
         })
     }
 
+    /// Creates a new `MemoryMappedFile` instance.
+    ///
+    /// This function opens a file at the specified path, in readonly mode.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - The `PathBuf` specifying the file's location.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the `MemoryMappedFile` on success, or an `Error` if file creation fails.
+    pub fn new_readonly(path: PathBuf) -> Result<Self, Error> {
+        let mut options = OpenOptions::new();
+
+        options
+            .read(true)
+            .write(false)
+            .create(false)
+            .append(false);
+
+        let handle = options.open(&path)?;
+
+        Ok(Self {
+            path: path.to_string_lossy().into_owned(),
+            handle: handle,
+            is_cached: false,
+            cache: false,
+        })
+    }
+
     /// Checks if the file is cached (exists on disk).
     ///
     /// # Returns
