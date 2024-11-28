@@ -65,3 +65,12 @@ path = "src/bin/blhash.rs"
 [[bin]]
 name = "blcompare"
 path = "src/bin/blcompare.rs"
+
+[[bin]]
+name = "blelfsym"
+path = "src/bin/blelfsym.rs"
+
+
+[[bin]]
+name = "blmachosym"
+path = "src/bin/blmachosym.rs"
