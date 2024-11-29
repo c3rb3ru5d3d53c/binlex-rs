@@ -2,9 +2,14 @@ use std::error::Error;
 use std::path::PathBuf;
 use crate::types::MemoryMappedFile;
 use std::io::Error as IoError;
-use rand::rngs::ThreadRng;
+use rand::rngs::StdRng;
 use rand::Rng;
+use rand::SeedableRng;
 use std::fmt;
+use crate::hashing::SHA256;
+use std::collections::HashSet;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
@@ -24,15 +29,33 @@ struct AllelePair {
 #[derive(Debug)]
 struct Genome {
     genome: Vec<AllelePair>,
-    rng: ThreadRng,
+    rng: Arc<Mutex<StdRng>>,
+    states: HashSet<String>,
 }
 
 impl Genome {
     #[allow(dead_code)]
-    pub fn new(genome: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn new(genome: &str, seed: u64) -> Result<Self, Box<dyn Error>> {
         let parsed = Self::parse(genome)?;
-        let rng = rand::thread_rng();
-        Ok(Self { genome: parsed, rng: rng})
+        let rng = StdRng::seed_from_u64(seed);
+        Ok(Self { genome: parsed, rng: Arc::new(Mutex::new(rng)), states: HashSet::<String>::new() })
+    }
+
+    pub fn sha256(&self) -> Option<String> {
+        SHA256::new(self.to_string().as_bytes()).hexdigest()
+    }
+
+    #[allow(dead_code)]
+    pub fn save(&mut self) {
+        if let Some(sha256) = self.sha256() {
+            self.states.insert(sha256);
+        }
+    }
+
+    pub fn is_previous_state(&mut self) -> bool {
+        let sha256 = self.sha256();
+        if sha256.is_none() { return false }
+        self.states.contains(&sha256.unwrap())
     }
 
     #[allow(dead_code)]
@@ -61,6 +84,41 @@ impl Genome {
     }
 
     #[allow(dead_code)]
+    pub fn number_of_mutations(&self) -> usize {
+        self.states.len()
+    }
+
+    #[allow(dead_code)]
+    pub fn is_permissive(&mut self) -> bool {
+        if self.is_previous_state() {
+            return false;
+        } else { self.save(); }
+        if self.wildcard_ratio() > 0.5 {
+            self.save();
+            return false;
+        }
+        return true;
+    }
+
+    #[allow(dead_code)]
+    pub fn wildcard_ratio(&self) -> f64 {
+        let total_genes = self.genome.len() * 2;
+        if total_genes == 0 {
+            return 0.0;
+        }
+        let wildcard_count = self.genome.iter().fold(0, |acc, pair| {
+            acc + match pair.high {
+                Gene::Wildcard => 1,
+                _ => 0,
+            } + match pair.low {
+                Gene::Wildcard => 1,
+                _ => 0,
+            }
+        });
+        wildcard_count as f64 / total_genes as f64
+    }
+
+    #[allow(dead_code)]
     fn parse_gene(c: char) -> Result<Gene, Box<dyn Error>> {
         match c {
             '?' => Ok(Gene::Wildcard),
@@ -74,25 +132,16 @@ impl Genome {
 
     #[allow(dead_code)]
     pub fn create_mutated_gene(&mut self) -> u8 {
-        self.rng.gen_range(0..=15) as u8
+        self.rng.lock().unwrap().gen_range(0..=15) as u8
     }
 
     #[allow(dead_code)]
     pub fn mutate_add_gene(&mut self) {
         let new_allele = AllelePair {
-            high: if self.rng.gen_bool(0.5) {
-                Gene::Wildcard
-            } else {
-                Gene::Value(self.create_mutated_gene())
-            },
-            low: if self.rng.gen_bool(0.5) {
-                Gene::Wildcard
-            } else {
-                Gene::Value(self.create_mutated_gene())
-            },
+            high: Gene::Value(self.create_mutated_gene()),
+            low: Gene::Value(self.create_mutated_gene()),
         };
-
-        if self.rng.gen_bool(0.5) {
+        if self.rng.lock().unwrap().gen_bool(0.5) {
             self.genome.insert(0, new_allele);
         } else {
             self.genome.push(new_allele);
@@ -100,30 +149,18 @@ impl Genome {
     }
 
     #[allow(dead_code)]
-    pub fn mutate_replace_with_wildcards(&mut self) {
-        if self.genome.is_empty() { return; }
-        let index = self.rng.gen_range(0..self.genome.len());
-        let allele = &mut self.genome[index];
-        if self.rng.gen_bool(0.5) {
-            allele.high = Gene::Wildcard;
-        } else {
-            allele.low = Gene::Wildcard;
-        }
-    }
-
-
-    #[allow(dead_code)]
-    pub fn mutate_wildcards(&mut self) {
+    pub fn mutate_wildcard(&mut self) {
         let genome_len = self.genome.len();
-        if genome_len == 0 { return; }
-        let index = self.rng.gen_range(0..genome_len);
-        if self.rng.gen_bool(0.5) {
+        if genome_len <= 2 {
+            return;
+        }
+        let index = self.rng.lock().unwrap().gen_range(1..(genome_len - 1));
+        if self.rng.lock().unwrap().gen_bool(0.5) {
             self.genome[index].high = Gene::Wildcard;
         } else {
             self.genome[index].low = Gene::Wildcard;
         }
     }
-
 
     #[allow(dead_code)]
     pub fn matches_buffer(&self, data: &[u8]) -> bool {
