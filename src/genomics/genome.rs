@@ -10,24 +10,12 @@ use crate::hashing::SHA256;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::Mutex;
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy)]
-enum Gene {
-    Wildcard,
-    Value(u8),
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy)]
-struct AllelePair {
-    high: Gene,
-    low: Gene,
-}
+use crate::genomics::AllelePair;
+use crate::genomics::Gene;
 
 #[allow(dead_code)]
 #[derive(Debug)]
-struct Genome {
+pub struct Genome {
     genome: Vec<AllelePair>,
     rng: Arc<Mutex<StdRng>>,
     states: HashSet<String>,
@@ -73,14 +61,6 @@ impl Genome {
         }
 
         Ok(parsed)
-    }
-
-    #[allow(dead_code)]
-    fn gene_to_char(gene: Gene) -> String {
-        match gene {
-            Gene::Wildcard => "?".to_string(),
-            Gene::Value(v) => format!("{:X}", v),
-        }
     }
 
     #[allow(dead_code)]
@@ -209,8 +189,8 @@ impl fmt::Display for Genome {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut genome_string = String::new();
         for allele_pair in &self.genome {
-            genome_string.push_str(&Self::gene_to_char(allele_pair.high));
-            genome_string.push_str(&Self::gene_to_char(allele_pair.low));
+            genome_string.push_str(&allele_pair.high.to_char());
+            genome_string.push_str(&allele_pair.low.to_char());
         }
         write!(f, "{}", genome_string)
     }
