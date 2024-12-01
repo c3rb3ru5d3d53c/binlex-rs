@@ -9,6 +9,8 @@ pub enum Architecture {
     AMD64 = 0x00,
     /// 32-bit Intel architecture.
     I386 = 0x01,
+    /// CIL
+    CIL = 0x02,
     /// Unknown architecture.
     UNKNOWN= 0x03,
 }
@@ -19,6 +21,7 @@ impl fmt::Display for Architecture {
         let architecture = match self {
             Architecture::AMD64 => "amd64",
             Architecture::I386 => "i386",
+            Architecture::CIL => "cil",
             Architecture::UNKNOWN => "unknown",
         };
         write!(f, "{}", architecture)
@@ -31,6 +34,7 @@ impl FromStr for Architecture {
         match s {
             "amd64" => Ok(Architecture::AMD64),
             "i386" => Ok(Architecture::I386),
+            "cil" => Ok(Architecture::CIL),
             _ => Err(format!("invalid architecutre")),
         }
     }

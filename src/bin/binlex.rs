@@ -413,6 +413,10 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
             eprintln!("unsupported pe architecture");
             process::exit(1);
         },
+        Architecture::CIL => {
+            eprintln!("unsupported pe architecture");
+            process::exit(1);
+        },
         _ => {}
     }
 

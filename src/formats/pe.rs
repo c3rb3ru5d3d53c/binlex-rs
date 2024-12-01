@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use lief::pe::debug::Entries;
 use crate::types::MemoryMappedFile;
 use crate::Config;
+use lief::pe::data_directory::Type as DATA_DIRECTORY;
 
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
 pub struct PE {
@@ -45,6 +46,25 @@ impl PE {
         return Err(Error::new(ErrorKind::InvalidInput, "invalid pe file"));
     }
 
+
+    /// Checks if the PE file is a .NET assembly.
+    ///
+    /// This function inspects the imports of the PE file to identify whether it is a .NET application.
+    /// It does so by looking for the presence of specific .NET-related DLLs (`mscorelib.dll` and `mscoree.dll`)
+    /// in the import table and confirming the existence of a CLR runtime header.
+    ///
+    /// # Returns
+    ///
+    /// - `true` if the PE file is a .NET assembly.
+    /// - `false` otherwise.
+    #[allow(dead_code)]
+    fn is_dotnet(&self) -> bool {
+        self.pe.imports().any(|import| {
+            matches!(import.name().to_lowercase().as_str(), "mscorelib.dll" | "mscoree.dll")
+                && self.pe.data_directory_by_type(DATA_DIRECTORY::CLR_RUNTIME_HEADER).is_some()
+        })
+    }
+
     /// Creates a new `PE` instance from a byte vector containing PE file data.
     ///
     /// # Parameters
@@ -69,15 +89,15 @@ impl PE {
     /// Returns the architecture of the PE file based on its machine type.
     ///
     /// # Returns
-    /// The `BinaryArchitecture` enum value corresponding to the PE machine type (e.g., AMD64, I386, or UNKNOWN).
+    /// The `BinaryArchitecture` enum value corresponding to the PE machine type (e.g., AMD64, I386, CIL or UNKNOWN).
     #[allow(dead_code)]
     pub fn architecture(&self) -> Architecture {
-        let machine = match self.pe.header().machine() {
-            MachineType::AMD64 => Architecture::AMD64,
+        match self.pe.header().machine() {
+            MachineType::I386 if self.is_dotnet() => Architecture::CIL,
             MachineType::I386 => Architecture::I386,
+            MachineType::AMD64 => Architecture::AMD64,
             _ => Architecture::UNKNOWN,
-        };
-        return machine;
+        }
     }
 
     /// Returns the ranges of executable memory addresses within the PE file.
