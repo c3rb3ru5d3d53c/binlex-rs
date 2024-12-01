@@ -1,3 +1,4 @@
+use lief::generic::Section;
 use lief::Binary;
 use lief::pe::section::Characteristics;
 use std::io::{Cursor, Error, ErrorKind};
@@ -12,6 +13,126 @@ use lief::pe::debug::Entries;
 use crate::types::MemoryMappedFile;
 use crate::Config;
 use lief::pe::data_directory::Type as DATA_DIRECTORY;
+use std::mem;
+
+#[repr(C)]
+pub struct ImageDataDirectory {
+    pub virtual_address: u32,
+    pub size: u32,
+}
+
+#[repr(C)]
+pub union ImageCor20Header0 {
+    pub entry_point_token: u32,
+    pub entry_point_rva: u32,
+}
+
+#[repr(C)]
+pub struct ImageCor20Header {
+    pub cb: u32,
+    pub major_runtime_version: u16,
+    pub minor_runtime_version: u16,
+    pub meta_data: ImageDataDirectory,
+    pub flags: u32,
+    pub anonymous: ImageCor20Header0,
+    pub resources: ImageDataDirectory,
+    pub strong_name_signature: ImageDataDirectory,
+    pub code_manager_table: ImageDataDirectory,
+    pub vtable_fixups: ImageDataDirectory,
+    pub export_address_table_jumps: ImageDataDirectory,
+    pub managed_native_header: ImageDataDirectory,
+}
+
+impl ImageCor20Header {
+    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
+        if bytes.len() != mem::size_of::<Self>() {
+            return None;
+        }
+        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
+            return None;
+        }
+        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
+    }
+}
+
+#[repr(C)]
+pub struct Cor20StorageSignature {
+    pub signature: u32,
+    pub major_version: u16,
+    pub minor_version: u16,
+    pub extra_data: u32,
+    pub version_string_size: u32,
+    pub version_string: u32,
+}
+
+impl Cor20StorageSignature {
+    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
+        if bytes.len() != mem::size_of::<Self>() {
+            return None;
+        }
+        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
+            return None;
+        }
+        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
+    }
+}
+
+#[repr(C)]
+pub struct Cor20StorageHeader {
+    pub flags: u8,
+    pub pad: u8,
+    pub number_of_streams: u16,
+}
+
+impl Cor20StorageHeader {
+    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
+        if bytes.len() != mem::size_of::<Self>() {
+            return None;
+        }
+        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
+            return None;
+        }
+        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
+    }
+}
+
+#[repr(C)]
+pub struct Cor20StreamHeader {
+    pub offset: u32,
+    pub size: u32,
+}
+
+impl Cor20StreamHeader {
+    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
+        if bytes.len() < mem::size_of::<Cor20StreamHeader>() {
+            return None;
+        }
+        Some(unsafe { &*(bytes.as_ptr() as *const Cor20StreamHeader) })
+    }
+
+    pub fn name(&self) -> &[u8] {
+        let header_size = mem::size_of::<Cor20StreamHeader>();
+        let base_ptr = self as *const Self as *const u8;
+
+        unsafe {
+            let name_ptr = base_ptr.add(header_size);
+
+            let mut len = 0;
+            while *name_ptr.add(len) != 0 {
+                len += 1;
+            }
+
+            let padded_len = (len + 4) & !3;
+
+            std::slice::from_raw_parts(name_ptr, padded_len)
+        }
+    }
+
+    pub fn header_size(&self) -> usize {
+        let header_size = mem::size_of::<Cor20StreamHeader>();
+        header_size + self.name().len()
+    }
+}
 
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
 pub struct PE {
@@ -46,6 +167,97 @@ impl PE {
         return Err(Error::new(ErrorKind::InvalidInput, "invalid pe file"));
     }
 
+    /// Converts a relative virtual address to a file offset
+    ///
+    /// # Returns
+    /// The file offset as a `Option<u64>`.
+    pub fn relative_virtual_address_to_file_offset(&self, rva: u64) -> Option<u64> {
+        for section in self.pe.sections() {
+            let section_start_rva = section.virtual_address() as u64;
+            let section_end_rva = section_start_rva + section.virtual_size() as u64;
+            if rva >= section_start_rva && rva < section_end_rva {
+                let section_offset = rva - section_start_rva;
+                let file_offset = section.pointerto_raw_data() as u64 + section_offset;
+                return Some(file_offset);
+            }
+        }
+        None
+    }
+
+    fn parse_image_cor20_header(&self) -> Option<(u64, &ImageCor20Header)> {
+        if !self.is_dotnet() { return None; }
+        if let Some(clr_runtime_header) = self.pe.data_directory_by_type(DATA_DIRECTORY::CLR_RUNTIME_HEADER) {
+            if let Some(start) = self.relative_virtual_address_to_file_offset(clr_runtime_header.rva() as u64) {
+                let end = start + clr_runtime_header.size() as u64;
+                let data = &self.file.data[start as usize..end as usize];
+                let header = ImageCor20Header::from_bytes(&data)?;
+                return Some((start, header));
+            }
+        }
+        None
+    }
+
+    pub fn image_cor20_heder(&self) -> Option<&ImageCor20Header> {
+        Some(self.parse_image_cor20_header()?.1)
+    }
+
+    fn parse_cor20_storage_signature_header(&self) -> Option<(u64, &Cor20StorageSignature)> {
+        if !self.is_dotnet() { return None; }
+        let (_, image_cor20_header) = self.parse_image_cor20_header()?;
+        let rva = image_cor20_header.meta_data.virtual_address as u64;
+        let start = self.relative_virtual_address_to_file_offset(rva)? as usize;
+        let end = start + mem::size_of::<Cor20StorageSignature>() as usize;
+        let data = &self.file.data[start..end];
+        let header = Cor20StorageSignature::from_bytes(&data)?;
+        Some((start as u64, header))
+    }
+
+    pub fn cor20_storage_signature_header(&self) -> Option<&Cor20StorageSignature> {
+        Some(self.parse_cor20_storage_signature_header()?.1)
+    }
+
+    fn parse_cor20_storage_header(&self) -> Option<(u64, &Cor20StorageHeader)> {
+        if !self.is_dotnet() { return None; };
+        let (mut start, cor20_storage_signaure_header) = self.parse_cor20_storage_signature_header()?;
+        start += mem::size_of::<Cor20StorageSignature>() as u64;
+        start += cor20_storage_signaure_header.version_string_size as u64;
+        start -= mem::size_of::<u32>() as u64;
+        let end = start as usize + mem::size_of::<Cor20StorageHeader>() as usize;
+        let data = &self.file.data[start as usize..end];
+        let header = Cor20StorageHeader::from_bytes(data)?;
+        Some((start, header))
+    }
+
+    pub fn cor20_storage_header(&self) -> Option<&Cor20StorageHeader> {
+        Some(self.parse_cor20_storage_header()?.1)
+    }
+
+    fn parse_cor20_stream_headers(&self) -> Option<BTreeMap<u64, &Cor20StreamHeader>> {
+        if !self.is_dotnet() { return None; }
+        let (cor20_storage_header_offset, cor20_storage_header) = self.parse_cor20_storage_header()?;
+        let mut offset = cor20_storage_header_offset as usize + mem::size_of::<Cor20StorageHeader>();
+        let mut result = BTreeMap::<u64, &Cor20StreamHeader>::new();
+        for _ in 0.. cor20_storage_header.number_of_streams {
+            let data = &self.file.data[offset..offset + mem::size_of::<Cor20StreamHeader>()];
+            let header = Cor20StreamHeader::from_bytes(data)?;
+            result.insert(offset as u64, header);
+            offset += header.header_size();
+        }
+        if result.len() <= 0 {
+            return None;
+        }
+        Some(result)
+    }
+
+    pub fn cor20_stream_headers(&self) -> Vec<&Cor20StreamHeader> {
+        let mut result = Vec::<&Cor20StreamHeader>::new();
+        let headers = self.parse_cor20_stream_headers();
+        if headers.is_none() { return result; }
+        for (_, header) in headers.unwrap() {
+            result.push(header);
+        }
+        result
+    }
 
     /// Checks if the PE file is a .NET assembly.
     ///
@@ -58,7 +270,7 @@ impl PE {
     /// - `true` if the PE file is a .NET assembly.
     /// - `false` otherwise.
     #[allow(dead_code)]
-    fn is_dotnet(&self) -> bool {
+    pub fn is_dotnet(&self) -> bool {
         self.pe.imports().any(|import| {
             matches!(import.name().to_lowercase().as_str(), "mscorelib.dll" | "mscoree.dll")
                 && self.pe.data_directory_by_type(DATA_DIRECTORY::CLR_RUNTIME_HEADER).is_some()
