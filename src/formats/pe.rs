@@ -15,6 +15,63 @@ use crate::Config;
 use lief::pe::data_directory::Type as DATA_DIRECTORY;
 use std::mem;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MetadataToken {
+    Module = 0,
+    TypeRef = 1,
+    TypeDef = 2,
+    FieldPtr = 3,
+    Field = 4,
+    MethodPtr = 5,
+    MethodDef = 6,
+    ParamPtr = 7,
+    Param = 8,
+    InterfaceImpl = 9,
+    MemberRef = 10,
+    Constant = 11,
+    CustomAttribute = 12,
+    FieldMarshal = 13,
+    DeclSecurity = 14,
+    ClassLayout = 15,
+    FieldLayout = 16,
+    StandAloneSig = 17,
+    EventMap = 18,
+    EventPtr = 19,
+    Event = 20,
+    PropertyMap = 21,
+    PropertyPtr = 22,
+    Property = 23,
+    MethodSemantics = 24,
+    MethodImpl = 25,
+    ModuleRef = 26,
+    TypeSpec = 27,
+    ImplMap = 28,
+    FieldRva = 29,
+    EncLog = 30,
+    EncMap = 31,
+    Assembly = 32,
+    AssemblyProcessor = 33,
+    AssemblyOs = 34,
+    AssemblyRef = 35,
+    AssemblyRefProcessor = 36,
+    AssemblyRefOs = 37,
+    File = 38,
+    ExportedType = 39,
+    ManifestResource = 40,
+    NestedClass = 41,
+    GenericParam = 42,
+    MethodSpec = 43,
+    GenericParamConstraint = 44,
+    Document = 48,
+    MethodDebugInformation = 49,
+    LocalScope = 50,
+    LocalVariable = 51,
+    LocalConstant = 52,
+    ImportScope = 53,
+    StateMachineMethod = 54,
+    CustomDebugInformation = 55,
+}
+
 #[repr(C)]
 pub struct ImageDataDirectory {
     pub virtual_address: u32,
@@ -131,6 +188,29 @@ impl Cor20StreamHeader {
     pub fn header_size(&self) -> usize {
         let header_size = mem::size_of::<Cor20StreamHeader>();
         header_size + self.name().len()
+    }
+}
+
+#[repr(C)]
+pub struct Cor20MetadataTable {
+        pub reserved: u32,
+        pub major_version: u8,
+        pub minor_version: u8,
+        pub heap_sizes: u8,
+        pub rid: u8,
+        pub mask_valid: u64,
+        pub mask_sorted: u64,
+}
+
+impl Cor20MetadataTable {
+    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
+        if bytes.len() != mem::size_of::<Self>() {
+            return None;
+        }
+        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
+            return None;
+        }
+        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
     }
 }
 
@@ -257,6 +337,22 @@ impl PE {
             result.push(header);
         }
         result
+    }
+
+    fn parse_cor20_metadata_table(&self) -> Option<(u64, &Cor20MetadataTable)> {
+        if !self.is_dotnet() { return None; }
+        let (mut start, _) = self.parse_cor20_storage_signature_header()?;
+        for (_, header) in self.parse_cor20_stream_headers()? {
+            if header.name() == vec![0x23, 0x7e, 0x00, 0x00] {
+                start += header.offset as u64;
+            }
+        }
+        let data = &self.file.data[start as usize..start as usize + mem::size_of::<Cor20MetadataTable>()];
+        Some((start, Cor20MetadataTable::from_bytes(data)?))
+    }
+
+    pub fn cor20_metadata_table(&self) -> Option<&Cor20MetadataTable> {
+        Some(self.parse_cor20_metadata_table()?.1)
     }
 
     /// Checks if the PE file is a .NET assembly.
