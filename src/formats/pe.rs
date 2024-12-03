@@ -214,6 +214,363 @@ impl Cor20MetadataTable {
     }
 }
 
+#[repr(C)]
+pub struct ModuleEntry {
+    pub generation: u16,
+    pub name: StringHeapIndex,
+    pub mv_id: GuidHeapIndex,
+    pub enc_id: GuidHeapIndex,
+    pub enc_base_id: GuidHeapIndex,
+}
+
+impl ModuleEntry {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        if bytes.len() < 2 { return None; }
+        let generation = u16::from_le_bytes(bytes[0..2].try_into().unwrap());
+        let mut offset: usize = mem::size_of::<u16>();
+        let name = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += name.size();
+        let mv_id = GuidHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += mv_id.size();
+        let enc_id = GuidHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += enc_id.size();
+        let enc_base_id = GuidHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        Some(Self {
+            generation,
+            name,
+            mv_id,
+            enc_id,
+            enc_base_id,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        let mut size: usize = mem::size_of::<u16>();
+        size += self.name.size();
+        size += self.mv_id.size();
+        size += self.enc_id.size();
+        size += self.enc_base_id.size();
+        size
+    }
+}
+
+#[repr(C)]
+pub struct TypeRefEntry {
+    pub resolution_scope: ResolutionScopeIndex,
+    pub name: StringHeapIndex,
+    pub namespace: StringHeapIndex,
+}
+
+impl TypeRefEntry {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        let mut offset: usize = 0;
+        let resolution_scope = ResolutionScopeIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += resolution_scope.size();
+        let name = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += name.size();
+        let namespace = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        Some(Self {
+            resolution_scope,
+            name,
+            namespace,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        let mut size = self.resolution_scope.size();
+        size += self.name.size();
+        size += self.namespace.size();
+        size
+    }
+}
+
+#[repr(C)]
+pub struct TypeDefEntry {
+    pub flags: u32,
+    pub name: StringHeapIndex,
+    pub namespace: StringHeapIndex,
+    pub extends: TypeDefOrRefIndex,
+    pub field_list: SimpleTableIndex,
+    pub method_list: SimpleTableIndex,
+}
+
+impl TypeDefEntry {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        if bytes.len() < 4 { return None; }
+        let flags = u32::from_le_bytes(bytes[0..4].try_into().unwrap());
+        let mut offset: usize = mem::size_of::<u32>();
+        let name = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += name.size();
+        let namespace = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += namespace.size();
+        let extends = TypeDefOrRefIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += extends.size();
+        let field_list = SimpleTableIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += field_list.size();
+        let method_list = SimpleTableIndex::from_bytes(&bytes[offset..], heap_size)?;
+        Some(Self {
+            flags,
+            name,
+            namespace,
+            extends,
+            field_list,
+            method_list,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        let mut size: usize = mem::size_of::<u32>();
+        size += self.name.size();
+        size += self.namespace.size();
+        size += self.extends.size();
+        size += self.field_list.size();
+        size += self.method_list.size();
+        size
+    }
+}
+
+#[repr(C)]
+pub struct FieldEntry {
+    pub flags: u16,
+    pub name: StringHeapIndex,
+    pub signature: BlobHeapIndex,
+}
+
+impl FieldEntry {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        if bytes.len() < 2 { return None; }
+        let flags = u16::from_le_bytes(bytes[0..2].try_into().unwrap());
+        let mut offset: usize = mem::size_of::<u16>();
+        let name: StringHeapIndex = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += name.size();
+        let signature = BlobHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        Some(Self {
+            flags,
+            name,
+            signature,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        let mut size: usize = mem::size_of::<u16>();
+        size += self.name.size();
+        size += self.signature.size();
+        size
+    }
+}
+
+#[repr(C)]
+pub struct MethodDefEntry {
+    pub rva: u32,
+    pub impl_flags: u16,
+    pub flags: u16,
+    pub name: StringHeapIndex,
+    pub signature: BlobHeapIndex,
+    pub param_list: SimpleTableIndex,
+}
+
+impl MethodDefEntry {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        let rva = u32::from_le_bytes(bytes[0..4].try_into().unwrap());
+        let impl_flags = u16::from_le_bytes(bytes[4..6].try_into().unwrap());
+        let flags = u16::from_le_bytes(bytes[6..8].try_into().unwrap());
+        let mut offset: usize = 8;
+        let name = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += name.size();
+        let signature = BlobHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
+        offset += signature.size();
+        let param_list = SimpleTableIndex::from_bytes(&bytes[offset..], heap_size)?;
+        Some(Self{
+            rva,
+            impl_flags,
+            flags,
+            name,
+            signature,
+            param_list,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        let mut size: usize = 8;
+        size += self.name.size();
+        size += self.signature.size();
+        size += self.param_list.size();
+        size
+    }
+}
+
+#[repr(C)]
+pub struct SimpleTableIndex {
+    pub offset: u32,
+    pub size: u32,
+}
+
+impl SimpleTableIndex {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        let size = if heap_size & 1 != 0 { 4 } else { 2 };
+
+        let offset = match size {
+            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
+            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
+            _ => return None,
+        };
+
+        Some(Self {
+            offset,
+            size,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        self.size as usize
+    }
+}
+
+
+#[derive(Debug)]
+pub struct StringHeapIndex {
+    pub offset: u32,
+    pub size: u32,
+}
+
+impl StringHeapIndex {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        let size = if heap_size & 1 != 0 { 4 } else { 2 };
+
+        let offset = match size {
+            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
+            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
+            _ => return None,
+        };
+
+        Some(Self {
+            offset,
+            size,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        self.size as usize
+    }
+}
+
+#[derive(Debug)]
+pub struct GuidHeapIndex {
+    pub offset: u32,
+    pub size: u32,
+}
+
+impl GuidHeapIndex {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        let size = if heap_size & 2 != 0 { 4 } else { 2 };
+
+        let offset = match size {
+            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
+            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
+            _ => return None,
+        };
+
+        Some(Self {
+            offset,
+            size,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        self.size as usize
+    }
+}
+
+#[repr(C)]
+pub struct ResolutionScopeIndex {
+    pub offset: u32,
+    pub size: u32,
+}
+
+impl ResolutionScopeIndex {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        let size = if heap_size & 2 != 0 { 4 } else { 2 };
+
+        let offset = match size {
+            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
+            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
+            _ => return None,
+        };
+
+        Some(Self {
+            offset,
+            size,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        self.size as usize
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct TypeDefOrRefIndex {
+    pub offset: u32,
+    pub size: u32,
+}
+
+impl TypeDefOrRefIndex {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        let size = if heap_size & 2 != 0 { 4 } else { 2 };
+
+        let offset = match size {
+            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
+            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
+            _ => return None,
+        };
+
+        Some(Self {
+            offset,
+            size,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        self.size as usize
+    }
+}
+
+#[repr(C)]
+pub struct BlobHeapIndex {
+    pub offset: u32,
+    pub size: u32,
+}
+
+impl BlobHeapIndex {
+    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
+        let size = if heap_size & 2 != 0 { 4 } else { 2 };
+
+        let offset = match size {
+            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
+            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
+            _ => return None,
+        };
+
+        Some(Self {
+            offset,
+            size,
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        self.size as usize
+    }
+}
+
+pub enum Entry {
+    Module(ModuleEntry),
+    TypeRef(TypeRefEntry),
+    TypeDef(TypeDefEntry),
+    Field(FieldEntry),
+    MethodDef(MethodDefEntry),
+}
+
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
 pub struct PE {
     pub pe: lief::pe::Binary,
@@ -277,7 +634,7 @@ impl PE {
         None
     }
 
-    pub fn image_cor20_heder(&self) -> Option<&ImageCor20Header> {
+    pub fn image_cor20_header(&self) -> Option<&ImageCor20Header> {
         Some(self.parse_image_cor20_header()?.1)
     }
 
@@ -353,6 +710,92 @@ impl PE {
 
     pub fn cor20_metadata_table(&self) -> Option<&Cor20MetadataTable> {
         Some(self.parse_cor20_metadata_table()?.1)
+    }
+
+    pub fn cor20_metadata_table_entries(&self) -> Option<Vec<Entry>> {
+        if !self.is_dotnet() { return None; }
+
+        let (cor20_metadata_table_offset, cor20_metadata_table) = self.parse_cor20_metadata_table()?;
+
+        let mut offset: usize = cor20_metadata_table_offset as usize
+            + mem::size_of::<Cor20MetadataTable>()
+            + cor20_metadata_table.mask_valid.count_ones() as usize * 4;
+
+        let mut valid_index: usize = 0;
+
+        let mut entries = Vec::<Entry>::new();
+
+        for i in 0..64 as usize {
+
+            let entry_offset = cor20_metadata_table_offset as usize
+                + mem::size_of::<Cor20MetadataTable>()
+                + (valid_index * 4);
+
+            if entry_offset + 4 > self.file.data.len() {
+                return None;
+            }
+
+            let entry_count = u32::from_le_bytes(
+                self.file.data[entry_offset..entry_offset + 4].try_into().unwrap(),
+            ) as usize;
+
+            match i {
+                x if x == MetadataToken::Module as usize => {
+                    for _ in 0..entry_count {
+                        let entry = ModuleEntry::from_bytes(
+                            &self.file.data[offset..],
+                            cor20_metadata_table.heap_sizes)?;
+                        offset += entry.size();
+                        entries.push(Entry::Module(entry));
+                    }
+                    valid_index += 1;
+                }
+                x if x == MetadataToken::TypeRef as usize => {
+                    for _ in 0..entry_count {
+                        let entry = TypeRefEntry::from_bytes(
+                            &self.file.data[offset..],
+                            cor20_metadata_table.heap_sizes)?;
+                        offset += entry.size();
+                        entries.push(Entry::TypeRef(entry));
+                    }
+                    valid_index += 1;
+                }
+                x if x == MetadataToken::TypeDef as usize => {
+                    for _ in 0..entry_count {
+                        let entry = TypeDefEntry::from_bytes(
+                            &self.file.data[offset..],
+                            cor20_metadata_table.heap_sizes,
+                        )?;
+                        offset += entry.size();
+                        entries.push(Entry::TypeDef(entry));
+                    }
+                    valid_index += 1;
+                }
+                x if x == MetadataToken::Field as usize => {
+                    for _ in 0..entry_count {
+                        let entry = FieldEntry::from_bytes(
+                            &self.file.data[offset..],
+                            cor20_metadata_table.heap_sizes,
+                        )?;
+                        offset += entry.size();
+                        entries.push(Entry::Field(entry));
+                    }
+                    valid_index += 1;
+                }
+                x if x == MetadataToken::MethodDef as usize => {
+                    for _ in 0..entry_count {
+                        let entry = MethodDefEntry::from_bytes(
+                            &self.file.data[offset..],
+                            cor20_metadata_table.heap_sizes)?;
+                        offset += entry.size();
+                        entries.push(Entry::MethodDef(entry));
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Some(entries)
     }
 
     /// Checks if the PE file is a .NET assembly.

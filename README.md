@@ -675,3 +675,22 @@ There are limitations in Python that will affect speed and memory performance du
 Mainly, this is due to requiring additional locking and unlocking in Python for thread safety.
 
 As such, if you need lightening fast performance consider using the Rust API instead.
+
+## Citation
+
+If you are using **binlex** in a journal publication, or an open-source AI model use the following citation.
+
+```bibtex
+@misc{binlex,
+  author = {c3rb3ru5d3d53c},
+  title = {binlex: A Binary Genetic Trait Lexer Framework},
+  year = {2024},
+  note = {Available at \url{https://github.com/c3rb3ru5d3d53c/binlex-rs}}
+}
+```
+
+If the use of **binlex** is for corporate, personal purposes, or for generating outputs that are not open-source AI models, no citation is needed.
+
+For example, if you use **binlex** to create YARA rules, no citation is needed.
+
+This ensures that **binlex** stays relevant but also ensures permissive corporate and personal use.
