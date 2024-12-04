@@ -2,6 +2,9 @@
 name = "binlex"
 version = "1.0.0"
 edition = "2021"
+license = "LGPL"
+description = "A Binary Genetic Trait Lexer Framework"
+authors = ["c3rb3ru5d3d53c"]
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }

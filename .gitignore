@@ -8,3 +8,7 @@ samples/
 *.dll
 *.so
 *.svg
+pkg/
+*.tar
+*.tar.gz
+*.pkg.tar.zst

@@ -7,7 +7,7 @@
   </tr>
 </table>
 
-The purpose of **binlex** is to extract basic blocks and functions as traits from binaries for **malware research**, **hunting**, and **detection**. 🦠🔍
+The purpose of **binlex** is to extract basic blocks and functions as **genomes** from binaries for **malware research**, **hunting**, and **detection**. 🦠🔍
 
 Most projects attempting this use pure Python to generate traits, but it’s often **slow** 🐢.
 
@@ -15,7 +15,7 @@ The design philosophy behind **binlex** is to keep it **simple** and **extendabl
 
 The simple **command-line interface** allows malware researchers and analysts to hunt for traits across **hundreds** or **thousands** of potentially similar malware samples, saving **time** ⏳ and **money** 💰 in production environments.
 
-The **Rust API** and **Python bindings** let developers create their own detection solutions without **license limitations**. 🔓
+The **Rust API** and **Python bindings** let developers create their own detection solutions with minimal **license limitations**. 🔓
 
 To help combat malware, we provide our work for the greater good. 🌍
 
@@ -23,111 +23,25 @@ No installation needed—just **download the binaries** from the **release page*
 
 ## 🚀 Features
 
-- 🌐 **Multi-Platform Support**
-  - 🪟 Windows
-  - 🍏 MacOS
-  - 🐧 Linux
+The latest version of **binlex** provides the following amazing features!
 
-- 🧵 **Multi-Threading**
-  - 🔒 Thread-Safe Disassembler Queuing
-  - 🚄 Multi-Threaded Tooling for Maximum Efficiency
-
-- ⚙️ **Customizable Performance**
-  - Toggle features on/off to optimize for your use case
-
-- 📉 **JSON String Compression**
-  - Save memory with efficient JSON compression
-
-- 🧩 **Similarity Hashing**
-
-  - 🔍 Minhash
-  - 🔒 TLSH
-  - 🔐 SHA256
-
-- 🧩 **Function Symbols**
-  - Pass function symbols to **binlex** as standard input using **blpdb**
-  - Pass function symbols to **binlex** using JSON from your favorite tools
-
-- 🏷️ **Tagging for Easy Organization**
-
-- 🎯 **Nibble Resolution Wildcarding**
-  - Perfect for generating YARA rules!
-
-- 🐍 **Python API** & 🦀 **Rust API**
-
-- 🤖 **Machine Learning Features**
-  - 📊 Normalized Features for Consistency
-  - 📏 Feature Scaler Utility
-  - 🔍 Trait Filtering
-  - 📚 Onnx Sample Training
-  - 🧠 Sample Classification
-
-- 📂 **Virtual Image Memory Mapped File Cache**
-  - Efficient mapping cache for virtual images
-  - 🗄️ Compatible with ZFS / BTRFS
-  - Speeds up repetitive tasks and filtering
-  - Lightening speed ⚡
-
-## Important Changes
-
-### 🚀 Feature: Binlex Now Disassembles Binaries Using Virtual Images
-
-#### ❓ Why This Change?
-While disassembling virtual images provides several key benefits:
-- **⚡ Improved Speed and Accuracy**: By abstracting the disassembler from specific binary formats, **binlex** operates more efficiently, offering better performance and accuracy.
-- **🔄 Enhanced Flexibility**: This method allows binlex to handle various binary formats seamlessly.
-
-#### 💾 Managing RAM Usage
-To prevent increased RAM usage, **binlex** includes a **file mapping feature**:
-- **📂 Cache on Disk**: You can cache mapped images directly on disk, reducing the need for RAM.
-- **💽 Optimized Storage Solutions**: Using a ZFS or BTRFS pool can help you efficiently manage storage when caching images.
-- **🚀 Improved Performance with Caching**: Cached runs often achieve better repeat performance leveraging a write-once, read-many approach.
+| Feature                         | Description                                                                                     |
+|---------------------------------|-------------------------------------------------------------------------------------------------|
+| 🌐 **Platforms**   | - Windows 🪟<br>- MacOS 🍏<br>- Linux 🐧                                                    |
+| 🌐 **Formats**   | - PE <br>- MachO <br>- ELF                                                  |
+| 🌐 **Architectures**   | - AMD64 <br>- I386                                                  |
+| 🧵 **Multi-Threading**          | - 🔒 Thread-Safe Disassembler Queuing<br>- 🚄 Multi-Threaded Tooling for Maximum Efficiency      |
+| ⚙️ **Customizable Performance** | Toggle features on/off to optimize for your use case                                           |
+| 📉 **JSON String Compression**  | Save memory with JSON compression                                                    |
+| 🧩 **Similarity Hashing**       | - 🔍 Minhash<br>- 🔒 TLSH<br>- 🔐 SHA256                                                        |
+| 🧩 **Function Symbols**         | - Pass function symbols to **binlex** as standard input using **blpdb**, **blelfsym** or **blmachosym** or your own tooling                        |
+| 🏷️ **Tagging**                  | Tagging for easy organization                                                                  |
+| 🎯 **Wildcarding** | Perfect for generating YARA rules and now at a resolution of nibbles!                                                     |
+| **API** | - 🦀 Rust API<br>-Python API                                                         |
+| 🤖 **Machine Learning Features** | - 📊 Normalized Features for Consistency<br>- 📏 Feature Scaler Utility<br>- 🔍 Trait Filtering<br>- 📚 Onnx Sample Training<br>- 🧠 Sample Classification |
+| 📂 **Virtual Imaging** | - Efficient mapping cache for virtual images<br>- 🗄️ Compatible with ZFS / BTRFS<br>- Speeds up repetitive tasks and filtering<br>- Lightening speed ⚡ |
 
 By caching virtual images, **binlex** is able to perform at increased speeds, making repeat runs faster and more efficient.
-
-
-## Why Rust?
-
-🚀✨ I've decided to move the entire **binlex** project to Rust—it's the perfect mix of performance and safety! 🦀💪
-
-When working with malware 🕵️, safety-first tech is a must, and Rust totally delivers. Plus, Rust embodies the core principles of **binlex**: simplicity, safety, and speed! ⚡🔥
-
-Not to mention, Rust makes cross-platform compatibility a breeze 🌍, so you can now use **binlex** on a variety of systems! 🎉
-
-## Terminology
-
-In **binlex**, a hierarchy of genetic-inspired terms is used to describe and symbolize the structure and traits of binary code. This terminology reflects the relationships between different components and their genetic analogies:
-
-- **Genome**: Represents the entire dataset or object being analyzed, such as a function or block. It encapsulates all the information, including metadata, chromosomes, and other attributes.
-
-- **Chromosome**: Represents the core patterns or sequences extracted from a block or function. A chromosome acts as the blueprint for identifying key characteristics of the binary.
-
-- **Allelepair**: A unit within the chromosome, consisting of **two genes**. Allepairs are the building blocks of the chromosome, combining genes into meaningful pairs.
-
-- **Gene**: The smallest unit of genetic information, representing a single nibble of data (half a byte).
-
-### Hierarchical Structure
-
-The relationship between these components can be visualized as follows:
-
-```text
-Genome (instruction / block / function)
- └── Chromosome (pattern / sequence)
-      └── Allelepair (two genes / single byte / two nibbles)
-           └── Gene (single nibble)
-```
-
-### Example
-
-For a given function, the breakdown might look like this:
-- **Genome**: The JSON object describing the function, including its metadata, chromosome, and attributes.
-- **Chromosome**: `"48895c24??48897424??574883ec??4883cbff488bf933f6"`
-- **Allelepair**: `"48"` or `"95"`
-- **Gene**: `"4"` or `"8"`
-
-Using the **binlex** API it is possible to mutate these chromosomes, their allelepairs and genes to facilitate genetic programming.
-
-This means you can use this to find novel samples or to create more reliable detection signatures.
 
 ## Building
 
@@ -150,6 +64,18 @@ python
 >> import binlex
 ```
 
+### Packaging
+
+To build packages for various platforms use the `Makefile`.
+
+```bash
+make zst   # Make Arch Linux Package
+make deb   # Make Debian Package
+make wheel # Make Python Wheel
+```
+
+The resulting packages will be in the `target/` directory.
+
 ### Documentation
 
 ```bash
@@ -164,7 +90,7 @@ cargo doc --open
 
 ## Binary Genomes, Chromosomes, Allele Pairs and Genes
 
-In **binlex**, a hierarchy of genetic-inspired terms is used to describe and symbolize the structure and traits of binary code. This terminology reflects the relationships between different components and their genetic analogies:
+In **binlex**, a hierarchy of genetic-inspired terms is used to describe and symbolize the structure and traits of binary code. This terminology reflects the relationships between different abstractions and their genetic analogies:
 
 - **Genome**: Represents the each object being analyzed, such as a function or block. It encapsulates all the information, including metadata, chromosomes, and other attributes.
 
@@ -174,19 +100,16 @@ In **binlex**, a hierarchy of genetic-inspired terms is used to describe and sym
 
 - **Gene**: The smallest unit of genetic information, representing a single nibble of data (half a byte).
 
-### Hierarchical Structure
-
-The relationship between these components can be visualized as follows:
+The relationship between these abstractions can be visualized as follows:
 
 ```text
 Genome (function / block)
  └── Chromosome (pattern / sequence)
-      └── Allelepair (two genes / single byte / two nibbles)
+      └── AllelePair (two genes / single byte / two nibbles)
            └── Gene (single nibble)
 ```
 
 ### Genome Example
-
 
 ```JSON
 {
@@ -305,7 +228,7 @@ The default configuration name `binlex.toml` for **binlex** is provided below.
 
 ```toml
 [general]
-threads = 16
+threads = 1
 minimal = false
 debug = false
 
@@ -326,7 +249,7 @@ seed = 0
 [formats.file.heuristics.features]
 enabled = true
 
-[formats.file.heuristics.normalization]
+[formats.file.heuristics.normalized]
 enabled = false
 
 [formats.file.heuristics.entropy]
@@ -349,7 +272,7 @@ seed = 0
 [blocks.heuristics.features]
 enabled = true
 
-[blocks.heuristics.normalization]
+[blocks.heuristics.normalized]
 enabled = false
 
 [blocks.heuristics.entropy]
@@ -372,33 +295,33 @@ seed = 0
 [functions.heuristics.features]
 enabled = true
 
-[functions.heuristics.normalization]
+[functions.heuristics.normalized]
 enabled = false
 
 [functions.heuristics.entropy]
 enabled = true
 
-[signatures.hashing.sha256]
+[chromosomes.hashing.sha256]
 enabled = true
 
-[signatures.hashing.tlsh]
+[chromosomes.hashing.tlsh]
 enabled = true
 minimum_byte_size = 50
 
-[signatures.hashing.minhash]
+[chromosomes.hashing.minhash]
 enabled = true
 number_of_hashes = 64
 shingle_size = 4
 maximum_byte_size = 50
 seed = 0
 
-[signatures.heuristics.features]
+[chromosomes.heuristics.features]
 enabled = true
 
-[signatures.heuristics.normalization]
+[chromosomes.heuristics.normalized]
 enabled = false
 
-[signatures.heuristics.entropy]
+[chromosomes.heuristics.entropy]
 enabled = true
 
 [mmap]
