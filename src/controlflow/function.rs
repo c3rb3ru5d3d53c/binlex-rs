@@ -10,8 +10,8 @@ use crate::binary::Binary;
 use crate::controlflow::Graph;
 use crate::controlflow::GraphQueue;
 use crate::controlflow::Block;
-use crate::controlflow::Signature;
-use crate::controlflow::SignatureJson;
+use crate::controlflow::Chromosome;
+use crate::controlflow::ChromosomeJson;
 use crate::controlflow::Attributes;
 use crate::hashing::SHA256;
 use crate::hashing::TLSH;
@@ -32,8 +32,8 @@ pub struct FunctionJson {
     pub edges: usize,
     /// Indicates whether this function starts with a prologue.
     pub prologue: bool,
-    /// The signature of the function in JSON format.
-    pub signature: Option<SignatureJson>,
+    /// The chromosome of the function in JSON format.
+    pub chromosome: Option<ChromosomeJson>,
     /// The size of the function in bytes, if available.
     pub size: usize,
     /// The raw bytes of the function in hexadecimal format, if available.
@@ -156,7 +156,7 @@ impl<'function> Function<'function> {
             type_: "function".to_string(),
             edges: self.edges(),
             prologue: self.is_prologue(),
-            signature: self.signature(),
+            chromosome: self.chromosome(),
             bytes: self.bytes_to_hex(),
             size: self.size(),
             functions: self.functions(),
@@ -215,16 +215,33 @@ impl<'function> Function<'function> {
         Ok(result)
     }
 
-    /// Generates the function's signature if the function is contiguous.
+    /// Generates the function's chromosome if the function is contiguous.
     ///
     /// # Returns
     ///
-    /// Returns `Some(SignatureJson)` if the function is contiguous; otherwise, `None`.
-    pub fn signature(&self) -> Option<SignatureJson> {
+    /// Returns `Some(ChromosomeJson)` if the function is contiguous; otherwise, `None`.
+    pub fn chromosome(&self) -> Option<ChromosomeJson> {
         if !self.is_contiguous() { return None; }
         let bytes = self.bytes();
         if bytes.is_none() { return None; }
-        return Some(Signature::new(self.address, self.address + bytes.unwrap().len() as u64, &self.cfg).process());
+        let pattern = self.pattern()?;
+        let chromosome = Chromosome::new(pattern, self.cfg.config.clone()).ok()?;
+        return Some(chromosome.process());
+    }
+
+    /// Retrieves the pattern string representation of the chromosome.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Option<String>` containing the pattern representation of the chromosome.
+    fn pattern(&self) -> Option<String> {
+        if !self.is_contiguous() { return None; }
+        let mut result = String::new();
+        for entry in self.cfg.instructions.range(self.address..self.address + self.size() as u64) {
+            let instruction = entry.value();
+            result += instruction.pattern.as_str();
+        }
+        return Some(result);
     }
 
     /// Retrieves the total number of instructions in the function.

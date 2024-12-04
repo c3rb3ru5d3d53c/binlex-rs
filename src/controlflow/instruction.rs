@@ -78,7 +78,7 @@ pub struct InstructionJson {
     /// The size of the instruction in bytes.
     pub size: usize,
     /// The signature pattern of the instruction.
-    pub signature: String,
+    pub pattern: String,
     /// A set of functions that this instruction may belong to.
     pub functions: BTreeSet<u64>,
     /// A set of addresses for the blocks this instruction may branch to.
@@ -182,7 +182,7 @@ impl Instruction {
             is_block_start: self.is_block_start,
             bytes: Binary::to_hex(&self.bytes),
             size: self.size(),
-            signature: self.pattern.clone(),
+            pattern: self.pattern.clone(),
             is_return: self.is_return,
             is_trap: self.is_trap,
             is_call: self.is_call,

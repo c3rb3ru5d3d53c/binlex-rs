@@ -10,7 +10,7 @@ impl Gene {
     pub fn to_char(self) -> String {
         match self {
             Gene::Wildcard => "?".to_string(),
-            Gene::Value(v) => format!("{:X}", v),
+            Gene::Value(v) => format!("{:x}", v),
         }
     }
 }

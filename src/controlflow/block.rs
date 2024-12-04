@@ -9,8 +9,8 @@ use std::io::Error;
 use std::io::ErrorKind;
 use crate::binary::Binary;
 use crate::controlflow::graph::Graph;
-use crate::controlflow::signature::Signature;
-use crate::controlflow::signature::SignatureJson;
+use crate::controlflow::Chromosome;
+use crate::controlflow::ChromosomeJson;
 use crate::hashing::SHA256;
 use crate::hashing::TLSH;
 use crate::hashing::MinHash32;
@@ -36,8 +36,8 @@ pub struct BlockJson {
     pub prologue: bool,
     /// Indicates whether this block contains a conditional instruction.
     pub conditional: bool,
-    /// The signature of the block in JSON format.
-    pub signature: SignatureJson,
+    /// The chromosome of the block in JSON format.
+    pub chromosome: ChromosomeJson,
     /// The size of the block in bytes.
     pub size: usize,
     /// The raw bytes of the block in hexadecimal format.
@@ -172,7 +172,7 @@ impl<'block> Block<'block> {
             next: self.next(),
             to: self.terminator.to(),
             edges: self.edges(),
-            signature: self.signature(),
+            chromosome: self.chromosome(),
             prologue: self.is_prologue(),
             conditional: self.terminator.is_conditional,
             size: self.size(),
@@ -260,8 +260,22 @@ impl<'block> Block<'block> {
     /// # Returns
     ///
     /// Returns a `SignatureJson` representing the block's signature.
-    pub fn signature(&self) -> SignatureJson {
-        Signature::new(self.address, self.address + self.size() as u64, &self.cfg).process()
+    pub fn chromosome(&self) -> ChromosomeJson {
+        Chromosome::new(self.pattern(), self.cfg.config.clone()).unwrap().process()
+    }
+
+    /// Retrieves the pattern string representation of the chromosome.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Option<String>` containing the pattern representation of the chromosome.
+    fn pattern(&self) -> String {
+        let mut result = String::new();
+        for entry in self.cfg.instructions.range(self.address..self.address + self.size() as u64) {
+            let instruction = entry.value();
+            result += instruction.pattern.as_str();
+        }
+        return result;
     }
 
     /// Retrieves the function addresses associated with this block.

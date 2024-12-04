@@ -6,7 +6,6 @@ pub mod disassemblers;
 pub mod binary;
 pub mod global;
 pub mod io;
-pub mod genomics;
 
 pub use global::Config;
 pub use binary::Binary;
