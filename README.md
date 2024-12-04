@@ -111,7 +111,7 @@ In **binlex**, a hierarchy of genetic-inspired terms is used to describe and sym
 The relationship between these components can be visualized as follows:
 
 ```text
-Genome (function / block)
+Genome (instruction / block / function)
  └── Chromosome (pattern / sequence)
       └── Allelepair (two genes / single byte / two nibbles)
            └── Gene (single nibble)
