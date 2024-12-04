@@ -18,7 +18,7 @@ pub struct ConfigBlocks {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ConfigSignatures {
+pub struct ConfigChromosomes {
     pub hashing: ConfigHashing,
     pub heuristics: ConfigHeuristics,
 }
@@ -46,7 +46,7 @@ pub struct Config {
     pub formats: ConfigFormats,
     pub blocks: ConfigBlocks,
     pub functions: ConfigFunctions,
-    pub signatures: ConfigSignatures,
+    pub chromosomes: ConfigChromosomes,
     pub mmap: ConfigMmap,
     pub disassembler: ConfigDisassembler,
 }
@@ -232,7 +232,7 @@ impl Config {
                     }
                 }
             },
-            signatures: ConfigSignatures {
+            chromosomes: ConfigChromosomes {
                 hashing: ConfigHashing {
                     sha256: ConfigSHA256 {
                         enabled: true,
@@ -284,14 +284,14 @@ impl Config {
     pub fn disable_hashing(&mut self) {
         self.disable_block_hashing();
         self.disable_function_hashing();
-        self.disable_signature_hashing();
+        self.disable_chromosome_hashing();
         self.disable_file_hashing();
     }
 
-    pub fn disable_signature_heuristics(&mut self) {
-        self.signatures.heuristics.entropy.enabled = false;
-        self.signatures.heuristics.features.enabled = false;
-        self.signatures.heuristics.normalized.enabled = false;
+    pub fn disable_chromosome_heuristics(&mut self) {
+        self.chromosomes.heuristics.entropy.enabled = false;
+        self.chromosomes.heuristics.features.enabled = false;
+        self.chromosomes.heuristics.normalized.enabled = false;
     }
 
     pub fn disable_block_hashing(&mut self){
@@ -315,14 +315,14 @@ impl Config {
     pub fn disable_heuristics(&mut self) {
         self.disable_block_heuristics();
         self.disable_function_heuristics();
-        self.disable_signature_heuristics();
+        self.disable_chromosome_heuristics();
         self.disable_file_heuristics();
     }
 
-    pub fn disable_signature_hashing(&mut self) {
-        self.signatures.hashing.sha256.enabled = false;
-        self.signatures.hashing.tlsh.enabled = false;
-        self.signatures.hashing.minhash.enabled = false;
+    pub fn disable_chromosome_hashing(&mut self) {
+        self.chromosomes.hashing.sha256.enabled = false;
+        self.chromosomes.hashing.tlsh.enabled = false;
+        self.chromosomes.hashing.minhash.enabled = false;
     }
 
     pub fn disable_function_hashing(&mut self) {

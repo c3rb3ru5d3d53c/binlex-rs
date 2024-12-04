@@ -29,78 +29,48 @@ impl Architecture {
 }
 
 #[pyclass]
-pub struct ConfigSignatures {
+pub struct ConfigChromosomes {
     inner: Arc<Mutex<InnerConfig>>,
 }
 
 #[pymethods]
-impl  ConfigSignatures {
+impl  ConfigChromosomes {
     #[getter]
-    pub fn get_hashing(&self) -> ConfigSignaturesHashing {
-        ConfigSignaturesHashing {
+    pub fn get_hashing(&self) -> ConfigChromosomesHashing {
+        ConfigChromosomesHashing {
             inner: Arc::clone(&self.inner)
         }
     }
     #[getter]
-    pub fn get_heuristics(&self) -> ConfigSignaturesHeuristics {
-        ConfigSignaturesHeuristics {
+    pub fn get_heuristics(&self) -> ConfigChromosomesHeuristics {
+        ConfigChromosomesHeuristics {
             inner: Arc::clone(&self.inner)
         }
     }
 }
 
 #[pyclass]
-pub struct ConfigSignaturesHeuristics {
+pub struct ConfigChromosomesHeuristics {
     pub inner: Arc<Mutex<InnerConfig>>,
 }
 
 #[pymethods]
-impl ConfigSignaturesHeuristics {
+impl ConfigChromosomesHeuristics {
     #[getter]
-    pub fn get_features(&self) -> ConfigSignaturesHeuristicsFeatures {
-        ConfigSignaturesHeuristicsFeatures {
+    pub fn get_features(&self) -> ConfigChromosomesHeuristicsFeatures {
+        ConfigChromosomesHeuristicsFeatures {
             inner: Arc::clone(&self.inner)
         }
     }
     #[getter]
-    pub fn get_normalized(&self) -> ConfigSignaturesHeuristicsNormalization {
-        ConfigSignaturesHeuristicsNormalization {
+    pub fn get_normalized(&self) -> ConfigChromosomesHeuristicsNormalization {
+        ConfigChromosomesHeuristicsNormalization {
             inner: Arc::clone(&self.inner)
         }
     }
     #[getter]
-    pub fn get_entropy(&self) -> ConfigSignaturesHeuristicsEntropy {
-        ConfigSignaturesHeuristicsEntropy {
-            inner: Arc::clone(&self.inner)
-        }
-    }
-}
-
-
-#[pyclass]
-pub struct ConfigSignaturesHashing {
-    pub inner: Arc<Mutex<InnerConfig>>,
-}
-
-#[pymethods]
-impl ConfigSignaturesHashing {
-    #[getter]
-    pub fn get_sha256(&self) -> ConfigSignaturesHashingSHA256 {
-        ConfigSignaturesHashingSHA256 {
-            inner: Arc::clone(&self.inner)
-        }
-    }
-
-    #[getter]
-    pub fn get_tlsh(&self) -> ConfigSignaturesHashingTLSH {
-        ConfigSignaturesHashingTLSH {
-            inner: Arc::clone(&self.inner)
-        }
-    }
-
-    #[getter]
-    pub fn get_minhash(&self) -> ConfigSignaturesHashingMinhash {
-        ConfigSignaturesHashingMinhash {
+    pub fn get_entropy(&self) -> ConfigChromosomesHeuristicsEntropy {
+        ConfigChromosomesHeuristicsEntropy {
             inner: Arc::clone(&self.inner)
         }
     }
@@ -108,182 +78,212 @@ impl ConfigSignaturesHashing {
 
 
 #[pyclass]
-pub struct ConfigSignaturesHeuristicsEntropy {
+pub struct ConfigChromosomesHashing {
     pub inner: Arc<Mutex<InnerConfig>>,
 }
 
 #[pymethods]
-impl ConfigSignaturesHeuristicsEntropy {
+impl ConfigChromosomesHashing {
+    #[getter]
+    pub fn get_sha256(&self) -> ConfigChromosomesHashingSHA256 {
+        ConfigChromosomesHashingSHA256 {
+            inner: Arc::clone(&self.inner)
+        }
+    }
+
+    #[getter]
+    pub fn get_tlsh(&self) -> ConfigChromosomesHashingTLSH {
+        ConfigChromosomesHashingTLSH {
+            inner: Arc::clone(&self.inner)
+        }
+    }
+
+    #[getter]
+    pub fn get_minhash(&self) -> ConfigChromosomesHashingMinhash {
+        ConfigChromosomesHashingMinhash {
+            inner: Arc::clone(&self.inner)
+        }
+    }
+}
+
+
+#[pyclass]
+pub struct ConfigChromosomesHeuristicsEntropy {
+    pub inner: Arc<Mutex<InnerConfig>>,
+}
+
+#[pymethods]
+impl ConfigChromosomesHeuristicsEntropy {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.heuristics.entropy.enabled
+        inner.chromosomes.heuristics.entropy.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.heuristics.entropy.enabled = value;
+        inner.chromosomes.heuristics.entropy.enabled = value;
     }
 }
 
 #[pyclass]
-pub struct ConfigSignaturesHeuristicsNormalization {
+pub struct ConfigChromosomesHeuristicsNormalization {
     pub inner: Arc<Mutex<InnerConfig>>,
 }
 
 #[pymethods]
-impl ConfigSignaturesHeuristicsNormalization {
+impl ConfigChromosomesHeuristicsNormalization {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.heuristics.normalized.enabled
+        inner.chromosomes.heuristics.normalized.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.heuristics.normalized.enabled = value;
+        inner.chromosomes.heuristics.normalized.enabled = value;
     }
 }
 
 #[pyclass]
-pub struct ConfigSignaturesHeuristicsFeatures {
+pub struct ConfigChromosomesHeuristicsFeatures {
     pub inner: Arc<Mutex<InnerConfig>>,
 }
 
 #[pymethods]
-impl ConfigSignaturesHeuristicsFeatures {
+impl ConfigChromosomesHeuristicsFeatures {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.heuristics.features.enabled
+        inner.chromosomes.heuristics.features.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.heuristics.features.enabled = value;
+        inner.chromosomes.heuristics.features.enabled = value;
     }
 }
 
 #[pyclass]
-pub struct ConfigSignaturesHashingSHA256 {
+pub struct ConfigChromosomesHashingSHA256 {
     pub inner: Arc<Mutex<InnerConfig>>,
 }
 
 #[pymethods]
-impl ConfigSignaturesHashingSHA256 {
+impl ConfigChromosomesHashingSHA256 {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.sha256.enabled
+        inner.chromosomes.hashing.sha256.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.sha256.enabled = value;
+        inner.chromosomes.hashing.sha256.enabled = value;
     }
 }
 
 #[pyclass]
-pub struct ConfigSignaturesHashingTLSH {
+pub struct ConfigChromosomesHashingTLSH {
     pub inner: Arc<Mutex<InnerConfig>>,
 }
 
 #[pymethods]
-impl ConfigSignaturesHashingTLSH {
+impl ConfigChromosomesHashingTLSH {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.tlsh.enabled
+        inner.chromosomes.hashing.tlsh.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.tlsh.enabled = value;
+        inner.chromosomes.hashing.tlsh.enabled = value;
     }
 
     #[getter]
     pub fn get_minimum_byte_size(&self) -> usize {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.tlsh.minimum_byte_size
+        inner.chromosomes.hashing.tlsh.minimum_byte_size
     }
 
     #[setter]
     pub fn set_minimum_byte_size(&mut self, value: usize) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.tlsh.minimum_byte_size = value;
+        inner.chromosomes.hashing.tlsh.minimum_byte_size = value;
     }
 }
 
 
 #[pyclass]
-pub struct ConfigSignaturesHashingMinhash {
+pub struct ConfigChromosomesHashingMinhash {
     pub inner: Arc<Mutex<InnerConfig>>,
 }
 
 #[pymethods]
-impl ConfigSignaturesHashingMinhash {
+impl ConfigChromosomesHashingMinhash {
     #[getter]
     pub fn get_enabled(&self) -> bool {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.enabled
+        inner.chromosomes.hashing.minhash.enabled
     }
 
     #[setter]
     pub fn set_enabled(&mut self, value: bool) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.enabled = value;
+        inner.chromosomes.hashing.minhash.enabled = value;
     }
 
     #[getter]
     pub fn get_number_of_hashes(&self) -> usize {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.number_of_hashes
+        inner.chromosomes.hashing.minhash.number_of_hashes
     }
 
     #[setter]
     pub fn set_number_of_hashes(&mut self, value: usize) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.number_of_hashes = value;
+        inner.chromosomes.hashing.minhash.number_of_hashes = value;
     }
 
     #[getter]
     pub fn get_shingle_size(&self) -> usize {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.shingle_size
+        inner.chromosomes.hashing.minhash.shingle_size
     }
 
     #[setter]
     pub fn set_shingle_size(&mut self, value: usize) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.shingle_size = value;
+        inner.chromosomes.hashing.minhash.shingle_size = value;
     }
 
     #[getter]
     pub fn get_maximum_byte_size(&self) -> usize {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.maximum_byte_size
+        inner.chromosomes.hashing.minhash.maximum_byte_size
     }
 
     #[setter]
     pub fn set_maximum_byte_size(&mut self, value: usize) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.maximum_byte_size = value;
+        inner.chromosomes.hashing.minhash.maximum_byte_size = value;
     }
     #[getter]
     pub fn get_seed(&self) -> u64 {
         let inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.seed
+        inner.chromosomes.hashing.minhash.seed
     }
 
     #[setter]
     pub fn set_seed(&mut self, value: u64) {
         let mut inner = self.inner.lock().unwrap();
-        inner.signatures.hashing.minhash.seed = value;
+        inner.chromosomes.hashing.minhash.seed = value;
     }
 }
 
@@ -1128,8 +1128,8 @@ impl Config {
     }
 
     #[getter]
-    pub fn get_signatures(&self) -> PyResult<ConfigSignatures> {
-        Ok(ConfigSignatures {
+    pub fn get_chromosomes(&self) -> PyResult<ConfigChromosomes> {
+        Ok(ConfigChromosomes {
             inner: Arc::clone(&self.inner),
         })
     }
@@ -1160,12 +1160,12 @@ impl Config {
         self.inner.lock().unwrap().disable_heuristics();
     }
 
-    pub fn disable_signature_heuristics(&mut self) {
-        self.inner.lock().unwrap().disable_signature_heuristics();
+    pub fn disable_chromosome_heuristics(&mut self) {
+        self.inner.lock().unwrap().disable_chromosome_heuristics();
     }
 
-    pub fn disable_signature_hashing(&mut self) {
-        self.inner.lock().unwrap().disable_signature_hashing();
+    pub fn disable_chromosome_hashing(&mut self) {
+        self.inner.lock().unwrap().disable_chromosome_hashing();
     }
 
     pub fn disable_block_hashing(&mut self) {
