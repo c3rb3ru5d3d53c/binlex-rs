@@ -38,14 +38,12 @@ impl Chromosome {
     ///
     /// # Arguments
     ///
-    /// * `start_address` - The starting address of the chromosome.
-    /// * `end_address` - The ending address of the chromosome.
-    /// * `cfg` - A reference to the control flow graph the chromosome belongs to.
-    /// * `options` - Graph options containing chromosome-related settings.
+    /// * `pattern` - The chromosome pattern string.
+    /// * `config` - The configuraiton.
     ///
     /// # Returns
     ///
-    /// Returns a new `Chromosome` instance.
+    /// Returns `Result<Chromosome, Error>`.
     pub fn new(pattern: String, config: Config) -> Result<Self, Error> {
         let pairs = Self::parse_pairs(pattern)?;
         Ok(Self {
