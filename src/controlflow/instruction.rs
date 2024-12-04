@@ -1,12 +1,15 @@
 use std::{collections::BTreeSet, io::Error};
 use crate::binary::Binary;
-use crate::Architecture;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
 use std::io::ErrorKind;
 use crate::controlflow::Graph;
 use crate::controlflow::Attributes;
+use crate::controlflow::Chromosome;
+use crate::controlflow::ChromosomeJson;
+use crate::Config;
+use crate::Architecture;
 
 /// Represents a single instruction in disassembled binary code.
 ///
@@ -14,9 +17,10 @@ use crate::controlflow::Attributes;
 /// such as its address, type, and relationships with other instructions.
 #[derive(Clone)]
 pub struct Instruction {
-    /// The binary architecture
-    #[allow(dead_code)]
+    // The instruction architecture
     pub architecture: Architecture,
+    /// The configuration
+    pub config: Config,
     /// The address of the instruction in memory.
     pub address: u64,
     /// Indicates whether this instruction is part of a function prologue.
@@ -53,6 +57,8 @@ pub struct InstructionJson {
     /// The type of this entity, always `"instruction"`.
     #[serde(rename = "type")]
     pub type_: String,
+    // The architecture of the instruction.
+    pub architecture: String,
     /// The address of the instruction in memory.
     pub address: u64,
     /// Indicates whether this instruction is part of a function prologue.
@@ -77,8 +83,8 @@ pub struct InstructionJson {
     pub bytes: String,
     /// The size of the instruction in bytes.
     pub size: usize,
-    /// The signature pattern of the instruction.
-    pub pattern: String,
+    /// The chromosome
+    pub chromosome: ChromosomeJson,
     /// A set of functions that this instruction may belong to.
     pub functions: BTreeSet<u64>,
     /// A set of addresses for the blocks this instruction may branch to.
@@ -102,7 +108,7 @@ impl Instruction {
     ///
     /// Returns a new `Instruction` with default values for its properties.
     #[allow(dead_code)]
-    pub fn create(address: u64, architecture: Architecture) -> Self {
+    pub fn create(address: u64, architecture: Architecture, config: Config) -> Self {
         Self {
             address: address,
             is_prologue: false,
@@ -119,6 +125,7 @@ impl Instruction {
             edges: 0,
             is_trap: false,
             architecture: architecture,
+            config: config,
         }
     }
 
@@ -178,11 +185,12 @@ impl Instruction {
     pub fn process(&self) -> InstructionJson {
         InstructionJson {
             type_: "instruction".to_string(),
+            architecture: self.architecture.to_string(),
             address: self.address,
             is_block_start: self.is_block_start,
             bytes: Binary::to_hex(&self.bytes),
             size: self.size(),
-            pattern: self.pattern.clone(),
+            chromosome: self.chromosome(),
             is_return: self.is_return,
             is_trap: self.is_trap,
             is_call: self.is_call,
@@ -197,6 +205,15 @@ impl Instruction {
             next: self.next(),
             attributes: None,
         }
+    }
+
+    /// Generates a signature for the block using its address range and control flow graph.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `SignatureJson` representing the block's signature.
+    pub fn chromosome(&self) -> ChromosomeJson {
+        Chromosome::new(self.pattern.clone(), self.config.clone()).unwrap().process()
     }
 
     /// Retrieves the set of addresses this instruction may jump or branch to.
