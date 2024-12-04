@@ -94,6 +94,41 @@ When working with malware 🕵️, safety-first tech is a must, and Rust totally
 
 Not to mention, Rust makes cross-platform compatibility a breeze 🌍, so you can now use **binlex** on a variety of systems! 🎉
 
+## Terminology
+
+In **binlex**, a hierarchy of genetic-inspired terms is used to describe and symbolize the structure and traits of binary code. This terminology reflects the relationships between different components and their genetic analogies:
+
+- **Genome**: Represents the entire dataset or object being analyzed, such as a function or block. It encapsulates all the information, including metadata, chromosomes, and other attributes.
+
+- **Chromosome**: Represents the core patterns or sequences extracted from a block or function. A chromosome acts as the blueprint for identifying key characteristics of the binary.
+
+- **Allelepair**: A unit within the chromosome, consisting of **two genes**. Allepairs are the building blocks of the chromosome, combining genes into meaningful pairs.
+
+- **Gene**: The smallest unit of genetic information, representing a single nibble of data (half a byte).
+
+### Hierarchical Structure
+
+The relationship between these components can be visualized as follows:
+
+```text
+Genome (function / block)
+ └── Chromosome (pattern / sequence)
+      └── Allelepair (two genes / single byte / two nibbles)
+           └── Gene (single nibble)
+```
+
+### Example
+
+For a given function, the breakdown might look like this:
+- **Genome**: The JSON object describing the function, including its metadata, chromosome, and attributes.
+- **Chromosome**: `"48895c24??48897424??574883ec??4883cbff488bf933f6"`
+- **Allelepair**: `"48"` or `"95"`
+- **Gene**: `"4"` or `"8"`
+
+Using the **binlex** API it is possible to mutate these chromosomes, their allelepairs and genes to facilitate genetic programming.
+
+This means you can use this to find novel samples or to create more reliable detection signatures.
+
 ## Building
 
 To build **binlex** you will need Rust.
@@ -127,36 +162,57 @@ You can also open the docs.
 cargo doc --open
 ```
 
-## JSON Trait Format
+## Binary Genomes, Chromosomes, Allele Pairs and Genes
 
-In the JSON format, **binlex** treats addresses as virtual addresses, and provides various properties to help you make decisions on your detection and hunting strategy.
+In **binlex**, a hierarchy of genetic-inspired terms is used to describe and symbolize the structure and traits of binary code. This terminology reflects the relationships between different components and their genetic analogies:
+
+- **Genome**: Represents the entire dataset or object being analyzed, such as a function or block. It encapsulates all the information, including metadata, chromosomes, and other attributes.
+
+- **Chromosome**: Represents the core patterns or sequences extracted from a block or function. A chromosome acts as the blueprint for identifying key characteristics of the binary.
+
+- **AllelePair**: A unit within the chromosome, consisting of **two genes**. Allepairs are the building blocks of the chromosome, combining genes into meaningful pairs.
+
+- **Gene**: The smallest unit of genetic information, representing a single nibble of data (half a byte).
+
+### Hierarchical Structure
+
+The relationship between these components can be visualized as follows:
+
+```text
+Genome (function / block)
+ └── Chromosome (pattern / sequence)
+      └── Allelepair (two genes / single byte / two nibbles)
+           └── Gene (single nibble)
+```
+
+### Genome Example
+
 
 ```JSON
 {
   "type": "block",
   "architecture": "amd64",
-  "address": 6442934602,
-  "next": 6442934632,
+  "address": 6442934577,
+  "next": null,
   "to": [],
   "edges": 0,
   "prologue": false,
   "conditional": false,
-  "signature": {
-    "pattern": "65488b0c25600000??33d2488b49??ff156949????65488b0c25600000??",
-    "normalized": null,
-    "feature": [6,5,4,8,8,11,0,12,2,5,6,0,0,0,0,0,3,3,13,2,4,8,8,11,4,9,15,15,1,5,6,9,4,9,6,5,4,8,8,11,0,12,2,5,6,0,0,0,0,0],
-    "entropy": 3.543465189601647,
-    "sha256": "e5d06d2e33a547ba7066f5071a27f95bc2a7f81b2993632562ae076f2dc33742",
-    "minhash": "023278a7001650a502d32a9a02e69cae1642097d0a21b92f45ab9d2c0b02c7c3057fa72e1009f8ad186cfa5102207bd10a3c742f0a2e370b05e88a9302d5d80601e8b0b206af5b6d04492a8c03d825eb1cdee52014ae84860f547c730729431d02fd7ed50703a26d01f5df8c0bafb45c183f517903714c862b82be950136b7c30a8403a725fc41b8173cc1451b5816b80078f0ee014d858a01872d711071c3083b8f9c5a0032300c127b6545114884050a0bbe8d07150a780c0115591c33f6a201ab50440d4b91ce18ba5f830a5d8afa136f319d0f27d41326b05ed51681ab120d3684dc0cecc3a107bea11b0f42016923dcf7a11b64dc90134d973a01ab5daf",
+  "chromosome": {
+    "pattern": "4c8b47??498bc0",
+    "feature": [4,12,8,11,4,7,4,9,8,11,12,0],
+    "entropy": 2.2516291673878226,
+    "sha256": "1f227bf409b0d9fbc576e747de70139a48e42edec60a18fe1e6efdacb598f551",
+    "minhash": "09b8b1ad1142924519f601854444c6c904a3063942cda4da445721dd0703f290208f3e32451bf5d52741e381a13f12f9142b5de21828a00b2cf90cf77948aac4138443c60bf77ec31199247042694ebb2e4e14a41369eddc7d9f84351be34bcf61458425383a03a55f80cbad420bb6e638550c15876fd0c6208da7b50816847e62d72b2c13a896f4849aa6a36188be1d4a5333865eab570e3939fab1359cbd16758f36fa290164d0259f83c07333df535b2e38f148298db255ac05612cae04d60bb0dd810a91b80a7df9615381e9dc242969dd052691d044287ac2992f9092fa0a75d970100d48362f62b58f7f1d9ec594babdf52f58180c30f4cfca142e76bf",
     "tlsh": null
   },
-  "size": 30,
-  "bytes": "65488b0c256000000033d2488b4930ff156949000065488b0c2560000000",
+  "size": 7,
+  "bytes": "4c8b4708498bc0",
   "functions": {},
-  "instructions": 5,
-  "entropy": 3.456564762130954,
-  "sha256": "e63b2063e25bed1410239a0dde6f5e602c924f72558951f88b5e1399ac53b389",
-  "minhash": "023278a7001650a502d32a9a0677c3c1013ad35d0a21b92f019369ee0b02c7c312155efc1009f8ad186cfa5103d4eecd0a3c742f0a2e370b11656de102d5d80601e8b0b206af5b6d04492a8c10a874370073c9d400777e901400e2b10729431d02fd7ed50703a26d01f5df8c12b4f6420a66234103714c86373828360136b7c30a8403a7100f871e03ffccb70b8a413407c210da014d858a0188a2810b86791a050e3dfa00443f2007bf538902e6e1310a0bbe8d07150a781ea4b6950f44416a01ab50440d4b91ce06109acb0a5d8afa136f319d1b3b5b2f08e91ae71681ab120ee750e30cecc3a106d06a070f42016923dcf7a1015681c40f88621e02be8883",
+  "number_of_instructions": 3,
+  "entropy": 2.5216406363433186,
+  "sha256": "84d4485bfd833565fdf41be46c1a499c859f0a5f04c8c99ea9c34404729fd999",
+  "minhash": "20c995de6a15c8a524fa7e325a6e42b217b636ab03b00812732f877f4739eeee41d7dde92ceac73525e541f9091d8dc928f6425b84a6f44b3f01d17912ec6e8c6f913a760229f685088d2528447e40c768c06d680afe63cb219a1b77a097f679122804dd5a1b9d990aa2579e75f8ef201eeb20d5650da5660efa3a281983a37f28004f9f2a57af8f81728c7d1b02949609c7ad5a30125ff836d8cc3106f2531f306e679a11cabf992556802a3cb2a75a7fe3773e37e3d5ab107a23bf22754aee15a5f41056859b06120f86cb5d39071425855ec90628687741aa0402030d73e04bc60adb0bd2430560442c4309ae258517fc1605438c95485ac4c8621026a1bb",
   "tlsh": null,
   "contiguous": true,
   "attributes": [
@@ -169,7 +225,7 @@ In the JSON format, **binlex** treats addresses as virtual addresses, and provid
       "value": "malware:lummastealer"
     },
     {
-      "entropy": 6.550615506443111,
+      "entropy": 6.55061550644311,
       "sha256": "ec1426109420445df8e9799ac21a4c13364dc12229fb16197e428803bece1140",
       "size": 725696,
       "tlsh": "T17AF48C12AF990595E9BBC23DD1974637FAB2B445232047CF426489BD0E1BBE4B73E381",
@@ -178,6 +234,18 @@ In the JSON format, **binlex** treats addresses as virtual addresses, and provid
   ]
 }
 ```
+
+Given this JSON genome example.
+- **Genome**: The JSON object describing the block, including its metadata, chromosome, and attributes.
+- **Chromosome**: as described by the pattern `"4c8b47??498bc0"`
+- **AllelePair**: `"4c"` or `"8b"`
+- **Gene**: `"4"` or `"c"`
+
+Using the **binlex** API it is possible to mutate these chromosomes, their allelepairs and genes to facilitate genetic programming.
+
+Genetic programming in this context can have several benifits including but not limited to:
+- Hunting for novel samples given a dataset
+- YARA rule generation
 
 ## Command-Line
 
