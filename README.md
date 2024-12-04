@@ -170,7 +170,7 @@ In **binlex**, a hierarchy of genetic-inspired terms is used to describe and sym
 
 - **Chromosome**: Represents the core patterns or sequences extracted from a block or function. A chromosome acts as the blueprint for identifying key characteristics of the binary without memory addressing as indicated by wildcards like `?`, where a single wildcard represents a single gene.
 
-- **AllelePair**: A unit within the chromosome, consisting of **two genes**. Allele pairs are the building blocks of the chromosome, combining genes into meaningful pairs.
+- **AllelePair**: A unit within the chromosome consisting of **two genes**. Allele pairs are the building blocks of the chromosome, combining genes into meaningful pairs.
 
 - **Gene**: The smallest unit of genetic information, representing a single nibble of data (half a byte).
 
