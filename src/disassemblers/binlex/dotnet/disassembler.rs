@@ -1,5 +1,10 @@
 use std::io::Error;
 use std::io::ErrorKind;
+use crate::Architecture;
+use std::collections::BTreeMap;
+use crate::controlflow::Graph;
+use crate::controlflow::Instruction as CFGInstruction;
+use crate::Binary;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mnemonic {
@@ -690,16 +695,195 @@ impl Mnemonic {
 
         Err(Error::new(ErrorKind::NotFound, "no matching mnemonic found"))
     }
+
 }
 
-// pub struct Instruction {
-//     pub mnemonic: Mnemonic,
-//     pub operand: Vec<u8>,
-// }
+pub struct Instruction <'instruction> {
+    pub mnemonic: Mnemonic,
+    bytes: &'instruction [u8],
+    pub address: u64,
+}
 
-// impl Instruction {
-//     pub fn new(bytes: &[u8]) -> Result<Self, Error> {
-//         let mnemonic = Mnemonic::from_bytes(bytes)?;
-//         Ok(Self { mnemonic: mnemonic, operand: () })
-//     }
-// }
+impl <'instruction> Instruction <'instruction> {
+    pub fn new(bytes: &'instruction [u8], address: u64) -> Result<Self, Error> {
+        let mnemonic = Mnemonic::from_bytes(bytes)?;
+        Ok(Self {mnemonic, bytes, address})
+    }
+
+    pub fn pattern(&self) -> String {
+        let mut pattern = Binary::to_hex(&self.mnemonic_bytes());
+        pattern.push_str(&"??".repeat(self.operand_size()));
+        pattern
+    }
+
+    pub fn mnemonic_bytes(&self) -> Vec<u8> {
+        let mut result = Vec::<u8>::new();
+        for byte in &self.bytes[..self.mnemonic_size()] {
+            result.push(*byte);
+        }
+        result
+    }
+
+    pub fn bytes(&self) -> Vec<u8> {
+        let mut result = Vec::<u8>::new();
+        for byte in &self.bytes[..self.mnemonic_size() + self.operand_size()] {
+            result.push(*byte);
+        }
+        result
+    }
+
+    pub fn operand_bytes(&self) -> Vec<u8> {
+        let mut result = Vec::<u8>::new();
+        for byte in &self.bytes[..self.mnemonic_size() + self.operand_size()] {
+            result.push(*byte);
+        }
+        result
+    }
+
+    pub fn size(&self) -> usize {
+        self.mnemonic_size() + self.operand_size()
+    }
+
+    pub fn operand_size(&self) -> usize {
+        self.mnemonic.operand_size() / 8
+    }
+
+    pub fn mnemonic_size(&self) -> usize {
+        if self.mnemonic as u16 >> 8 == 0xfe {
+            return 2;
+        }
+        return 1;
+    }
+}
+
+pub struct Disassembler <'disassembler> {
+    pub architecture: Architecture,
+    pub executable_address_ranges: BTreeMap<u64, u64>,
+    pub image: &'disassembler [u8]
+}
+
+impl <'disassembler> Disassembler <'disassembler> {
+    pub fn new(architecture: Architecture, image: &'disassembler[u8], executable_address_rannges: BTreeMap<u64, u64>) -> Result<Self, Error> {
+        match architecture {
+            Architecture::CIL => {},
+            _ => {
+                return Err(Error::new(ErrorKind::Other, "unsupported architecture"));
+            }
+        }
+        Ok(Self {
+            architecture: architecture,
+            executable_address_ranges: executable_address_rannges,
+            image: image
+        })
+    }
+
+    pub fn is_executable_address(&self, address: u64) -> bool {
+        self.executable_address_ranges
+            .iter()
+            .any(|(start, end)| address >= *start && address <= *end)
+    }
+
+    pub fn disassemble_instruction(&self, address: u64, cfg: &mut Graph) -> Result<u64, Error> {
+        if self.is_executable_address(address) == false {
+            return Err(Error::new(ErrorKind::InvalidData, "instruction address is not executable"));
+        }
+        let instruction = Instruction::new(&self.image[address as usize..], address)?;
+        let mut cfginstruction = CFGInstruction::create(address, self.architecture, cfg.config.clone());
+        cfginstruction.bytes = instruction.bytes();
+        cfginstruction.is_call = Disassembler::is_call_instruction(&instruction);
+        cfginstruction.is_jump = Disassembler::is_jump_instruction(&instruction);
+        cfginstruction.is_conditional = Disassembler::is_conditional_jump_instruction(&instruction);
+        cfginstruction.is_return = Disassembler::is_return_instruction(&instruction);
+        cfginstruction.is_trap = false;
+        cfginstruction.pattern = instruction.pattern();
+        cfginstruction.edges = Disassembler::get_instruction_edges(&instruction);
+        cfg.insert_instruction(cfginstruction);
+        Ok(instruction.address)
+    }
+
+    pub fn get_instruction_edges(instruction: &Instruction) -> usize {
+        if Disassembler::is_unconditional_jump_instruction(instruction) {
+            return 1;
+        }
+        if Disassembler::is_return_instruction(instruction) {
+            return 1;
+        }
+        if Disassembler::is_conditional_jump_instruction(instruction){
+            return 2;
+        }
+        return 0;
+    }
+
+    pub fn is_nop_instruction(instruction: &Instruction) -> bool {
+        match instruction.mnemonic {
+            Mnemonic::Nop => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_jump_instruction(instruction: &Instruction) -> bool {
+        Disassembler::is_conditional_jump_instruction(instruction) || Disassembler::is_unconditional_jump_instruction(instruction)
+    }
+
+    pub fn is_return_instruction(instruction: &Instruction) -> bool {
+        match instruction.mnemonic {
+            Mnemonic::Ret => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_call_instruction(instruction: &Instruction) -> bool {
+        match instruction.mnemonic {
+            Mnemonic::Call => true,
+            Mnemonic::CallI => true,
+            Mnemonic::CallVirt => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_unconditional_jump_instruction(instruction: &Instruction) -> bool {
+        match instruction.mnemonic {
+            Mnemonic::Br => true,
+            Mnemonic::Jmp => true,
+            Mnemonic::BrS => true,
+            Mnemonic::Leave => true,
+            Mnemonic::LeaveS => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_conditional_jump_instruction(instruction: &Instruction) -> bool {
+        match instruction.mnemonic {
+            Mnemonic::BrFalse => true,
+            Mnemonic::BrFalseS => true,
+            Mnemonic::BrTrue => true,
+            Mnemonic::BrTrueS => true,
+            Mnemonic::BneUn => true,
+            Mnemonic::BneUnS => true,
+            Mnemonic::Blt => true,
+            Mnemonic::BltS => true,
+            Mnemonic::BltUn => true,
+            Mnemonic::BltUnS => true,
+            Mnemonic::Beq => true,
+            Mnemonic::BeqS => true,
+            Mnemonic::Bge => true,
+            Mnemonic::BgeS => true,
+            Mnemonic::BgeUn => true,
+            Mnemonic::BgeUnS => true,
+            Mnemonic::Bgt => true,
+            Mnemonic::BgtS => true,
+            Mnemonic::BgtUn => true,
+            Mnemonic::BgtUnS => true,
+            Mnemonic::Ble => true,
+            Mnemonic::BleS => true,
+            Mnemonic::BleUn => true,
+            Mnemonic::BleUnS => true,
+            _ => false,
+        }
+    }
+
+
+}
+
+
+//pub fn new(machine: Architecture, image: &'disassembler[u8], executable_address_ranges: BTreeMap<u64, u64>) -> Result<Self, Error> {
