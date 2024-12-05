@@ -884,6 +884,3 @@ impl <'disassembler> Disassembler <'disassembler> {
 
 
 }
-
-
-//pub fn new(machine: Architecture, image: &'disassembler[u8], executable_address_ranges: BTreeMap<u64, u64>) -> Result<Self, Error> {

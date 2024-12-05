@@ -571,6 +571,69 @@ pub enum Entry {
     MethodDef(MethodDefEntry),
 }
 
+#[repr(C)]
+pub struct TinyHeader {
+    code_size: u8,
+}
+
+impl TinyHeader {
+    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
+        if bytes.len() != mem::size_of::<Self>() {
+            return None;
+        }
+        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
+            return None;
+        }
+        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
+    }
+
+    pub fn size(&self) -> usize {
+        1
+    }
+}
+
+pub enum MethodHeader {
+    Tiny(TinyHeader),
+    Fat(FatHeader),
+}
+
+impl MethodHeader {
+    pub fn size(&self) -> Option<usize> {
+        match self {
+            Self::Tiny(header) => Some(header.size()),
+            Self::Fat(header) => Some(header.size()),
+        }
+    }
+}
+
+#[repr(C)]
+pub struct FatHeader {
+    pub flags: u16,
+    pub size: u16,
+    pub max_stack: u16,
+    pub code_size: u32,
+    pub local_var_sig_token: u32,
+}
+
+impl FatHeader {
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        if bytes.len() < 12 {
+            return Err(Error::new(ErrorKind::InvalidData, "not enough bytes for FatHeader"));
+        }
+        Ok(Self {
+            flags: u16::from_le_bytes(bytes[0..2].try_into().unwrap()),
+            size: u16::from_le_bytes(bytes[2..4].try_into().unwrap()),
+            max_stack: u16::from_le_bytes(bytes[4..6].try_into().unwrap()),
+            code_size: u32::from_le_bytes(bytes[6..10].try_into().unwrap()),
+            local_var_sig_token: u32::from_le_bytes(bytes[10..12].try_into().unwrap()),
+        })
+    }
+
+    pub fn size(&self) -> usize {
+        14
+    }
+}
+
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
 pub struct PE {
     pub pe: lief::pe::Binary,
@@ -796,6 +859,35 @@ impl PE {
         }
 
         Some(entries)
+    }
+
+    pub fn virtual_address_to_relative_virtual_address(&self, address: u64) -> u64{
+        address - self.imagebase()
+    }
+
+    pub fn virtual_address_to_file_offset(&self, address: u64) -> Option<u64> {
+        let rva = self.virtual_address_to_relative_virtual_address(address);
+        self.relative_virtual_address_to_file_offset(rva)
+    }
+
+    pub fn cor20_method_header(&self, address: u64) -> Result<MethodHeader, Error> {
+
+        let offset = self.virtual_address_to_file_offset(address);
+
+        if offset.is_none() { return Err(Error::new(ErrorKind::InvalidInput, "invalid virtual address")); }
+
+        let bytes = &self.file.data[offset.unwrap() as usize..offset.unwrap() as usize + 12];
+
+        if bytes[0] & 0b11 == 0b10 {
+            let code_size = bytes[0] >> 2;
+            let tiny_header = TinyHeader { code_size };
+            return Ok(MethodHeader::Tiny(tiny_header));
+        }
+        if bytes[0] & 0b11 == 0b11 {
+            let fat_header = FatHeader::from_bytes(bytes)?;
+            return Ok(MethodHeader::Fat(fat_header));
+        }
+        return Err(Error::new(ErrorKind::InvalidData, "invalid method header"));
     }
 
     /// Checks if the PE file is a .NET assembly.
