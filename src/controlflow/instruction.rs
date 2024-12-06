@@ -161,6 +161,7 @@ impl Instruction {
     /// Returns `Some(u64)` containing the address of the next instruction, or `None`
     /// if the current instruction is a return or trap instruction.
     pub fn next(&self) -> Option<u64> {
+        if self.is_jump && !self.is_conditional { return None; }
         if self.is_return { return None; }
         if self.is_trap { return None; }
         Some(self.address + self.size() as u64)

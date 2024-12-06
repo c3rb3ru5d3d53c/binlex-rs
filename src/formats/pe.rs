@@ -604,33 +604,39 @@ impl MethodHeader {
             Self::Fat(header) => Some(header.size()),
         }
     }
+
+    pub fn code_size(&self) -> Option<usize> {
+        match self {
+            Self::Tiny(header) => Some(header.code_size as usize),
+            Self::Fat(header) => Some(header.code_size as usize),
+        }
+    }
 }
 
 #[repr(C)]
 pub struct FatHeader {
     pub flags: u16,
-    pub size: u16,
     pub max_stack: u16,
     pub code_size: u32,
     pub local_var_sig_token: u32,
 }
 
 impl FatHeader {
-    fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, std::io::Error> {
         if bytes.len() < 12 {
-            return Err(Error::new(ErrorKind::InvalidData, "not enough bytes for FatHeader"));
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Not enough bytes for FatHeader"));
         }
+
         Ok(Self {
             flags: u16::from_le_bytes(bytes[0..2].try_into().unwrap()),
-            size: u16::from_le_bytes(bytes[2..4].try_into().unwrap()),
-            max_stack: u16::from_le_bytes(bytes[4..6].try_into().unwrap()),
-            code_size: u32::from_le_bytes(bytes[6..10].try_into().unwrap()),
-            local_var_sig_token: u32::from_le_bytes(bytes[10..12].try_into().unwrap()),
+            max_stack: u16::from_le_bytes(bytes[2..4].try_into().unwrap()),
+            code_size: u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
+            local_var_sig_token: u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
         })
     }
 
     pub fn size(&self) -> usize {
-        14
+        12
     }
 }
 
@@ -952,6 +958,39 @@ impl PE {
     #[allow(dead_code)]
     pub fn executable_virtual_address_ranges(&self) -> BTreeMap<u64, u64> {
         let mut result = BTreeMap::<u64, u64>::new();
+        if self.is_dotnet() {
+            let entries = match self.cor20_metadata_table_entries() {
+                Some(entries) => entries,
+                None => return result,
+            };
+
+            for entry in entries {
+                let Entry::MethodDef(entry) = entry else { continue };
+
+                if entry.rva == 0 {
+                    continue;
+                }
+
+                let va = self.relative_virtual_address_to_virtual_address(entry.rva as u64);
+
+                let header = match self.cor20_method_header(va).ok() {
+                    Some(header) => header,
+                    None => continue,
+                };
+
+                let header_size = match header.size() {
+                    Some(size) => size,
+                    None => continue,
+                };
+
+                let code_size = match header.code_size() {
+                    Some(size) => size,
+                    None => continue,
+                };
+
+                result.insert( va + header_size as u64, va + header_size as u64 + code_size as u64);
+            }
+        }
         for section in self.pe.sections() {
             if (section.characteristics().bits() & u64::from(Characteristics::MEM_EXECUTE)) == 0 { continue; }
             if section.virtual_size() == 0 { continue; }
