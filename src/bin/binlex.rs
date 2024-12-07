@@ -30,6 +30,7 @@ use binlex::formats::File as BLFile;
 use binlex::global::mode::Modes;
 use binlex::formats::ELF;
 use binlex::formats::MACHO;
+use binlex::io::Stdin;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -85,6 +86,8 @@ fn validate_args(args: &Args) {
 
 fn get_elf_function_symbols(elf: &ELF) -> BTreeMap<u64, Symbol> {
     let mut symbols = BTreeMap::<u64, Symbol>::new();
+
+    if !Stdin::is_terminal() { return symbols; }
 
     let json = JSON::from_stdin_with_filter(|value| {
         let obj = match value.as_object_mut() {
@@ -155,6 +158,8 @@ fn get_elf_function_symbols(elf: &ELF) -> BTreeMap<u64, Symbol> {
 
 fn get_macho_function_symbols(macho: &MACHO) -> BTreeMap<u64, Symbol> {
     let mut symbols = BTreeMap::<u64, Symbol>::new();
+
+    if !Stdin::is_terminal() { return symbols; }
 
     let json = JSON::from_stdin_with_filter(|value| {
         let obj = match value.as_object_mut() {
@@ -234,6 +239,8 @@ fn get_macho_function_symbols(macho: &MACHO) -> BTreeMap<u64, Symbol> {
 
 fn get_pe_function_symbols(pe: &PE) -> BTreeMap<u64, Symbol> {
     let mut symbols = BTreeMap::<u64, Symbol>::new();
+
+    if !Stdin::is_terminal() { return symbols; }
 
     let json = JSON::from_stdin_with_filter(|value| {
         let obj = match value.as_object_mut() {
