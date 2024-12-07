@@ -13,632 +13,21 @@ use lief::pe::debug::Entries;
 use crate::types::MemoryMappedFile;
 use crate::Config;
 use lief::pe::data_directory::Type as DATA_DIRECTORY;
-use std::mem;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MetadataToken {
-    Module = 0,
-    TypeRef = 1,
-    TypeDef = 2,
-    FieldPtr = 3,
-    Field = 4,
-    MethodPtr = 5,
-    MethodDef = 6,
-    ParamPtr = 7,
-    Param = 8,
-    InterfaceImpl = 9,
-    MemberRef = 10,
-    Constant = 11,
-    CustomAttribute = 12,
-    FieldMarshal = 13,
-    DeclSecurity = 14,
-    ClassLayout = 15,
-    FieldLayout = 16,
-    StandAloneSig = 17,
-    EventMap = 18,
-    EventPtr = 19,
-    Event = 20,
-    PropertyMap = 21,
-    PropertyPtr = 22,
-    Property = 23,
-    MethodSemantics = 24,
-    MethodImpl = 25,
-    ModuleRef = 26,
-    TypeSpec = 27,
-    ImplMap = 28,
-    FieldRva = 29,
-    EncLog = 30,
-    EncMap = 31,
-    Assembly = 32,
-    AssemblyProcessor = 33,
-    AssemblyOs = 34,
-    AssemblyRef = 35,
-    AssemblyRefProcessor = 36,
-    AssemblyRefOs = 37,
-    File = 38,
-    ExportedType = 39,
-    ManifestResource = 40,
-    NestedClass = 41,
-    GenericParam = 42,
-    MethodSpec = 43,
-    GenericParamConstraint = 44,
-    Document = 48,
-    MethodDebugInformation = 49,
-    LocalScope = 50,
-    LocalVariable = 51,
-    LocalConstant = 52,
-    ImportScope = 53,
-    StateMachineMethod = 54,
-    CustomDebugInformation = 55,
-}
-
-#[repr(C)]
-pub struct ImageDataDirectory {
-    pub virtual_address: u32,
-    pub size: u32,
-}
-
-#[repr(C)]
-pub union ImageCor20Header0 {
-    pub entry_point_token: u32,
-    pub entry_point_rva: u32,
-}
-
-#[repr(C)]
-pub struct ImageCor20Header {
-    pub cb: u32,
-    pub major_runtime_version: u16,
-    pub minor_runtime_version: u16,
-    pub meta_data: ImageDataDirectory,
-    pub flags: u32,
-    pub anonymous: ImageCor20Header0,
-    pub resources: ImageDataDirectory,
-    pub strong_name_signature: ImageDataDirectory,
-    pub code_manager_table: ImageDataDirectory,
-    pub vtable_fixups: ImageDataDirectory,
-    pub export_address_table_jumps: ImageDataDirectory,
-    pub managed_native_header: ImageDataDirectory,
-}
-
-impl ImageCor20Header {
-    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
-        if bytes.len() != mem::size_of::<Self>() {
-            return None;
-        }
-        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
-            return None;
-        }
-        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
-    }
-}
-
-#[repr(C)]
-pub struct Cor20StorageSignature {
-    pub signature: u32,
-    pub major_version: u16,
-    pub minor_version: u16,
-    pub extra_data: u32,
-    pub version_string_size: u32,
-    pub version_string: u32,
-}
-
-impl Cor20StorageSignature {
-    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
-        if bytes.len() != mem::size_of::<Self>() {
-            return None;
-        }
-        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
-            return None;
-        }
-        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
-    }
-}
-
-#[repr(C)]
-pub struct Cor20StorageHeader {
-    pub flags: u8,
-    pub pad: u8,
-    pub number_of_streams: u16,
-}
-
-impl Cor20StorageHeader {
-    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
-        if bytes.len() != mem::size_of::<Self>() {
-            return None;
-        }
-        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
-            return None;
-        }
-        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
-    }
-}
-
-#[repr(C)]
-pub struct Cor20StreamHeader {
-    pub offset: u32,
-    pub size: u32,
-}
-
-impl Cor20StreamHeader {
-    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
-        if bytes.len() < mem::size_of::<Cor20StreamHeader>() {
-            return None;
-        }
-        Some(unsafe { &*(bytes.as_ptr() as *const Cor20StreamHeader) })
-    }
-
-    pub fn name(&self) -> &[u8] {
-        let header_size = mem::size_of::<Cor20StreamHeader>();
-        let base_ptr = self as *const Self as *const u8;
-
-        unsafe {
-            let name_ptr = base_ptr.add(header_size);
-
-            let mut len = 0;
-            while *name_ptr.add(len) != 0 {
-                len += 1;
-            }
-
-            let padded_len = (len + 4) & !3;
-
-            std::slice::from_raw_parts(name_ptr, padded_len)
-        }
-    }
-
-    pub fn header_size(&self) -> usize {
-        let header_size = mem::size_of::<Cor20StreamHeader>();
-        header_size + self.name().len()
-    }
-}
-
-#[repr(C)]
-pub struct Cor20MetadataTable {
-        pub reserved: u32,
-        pub major_version: u8,
-        pub minor_version: u8,
-        pub heap_sizes: u8,
-        pub rid: u8,
-        pub mask_valid: u64,
-        pub mask_sorted: u64,
-}
-
-impl Cor20MetadataTable {
-    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
-        if bytes.len() != mem::size_of::<Self>() {
-            return None;
-        }
-        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
-            return None;
-        }
-        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
-    }
-}
-
-#[repr(C)]
-pub struct ModuleEntry {
-    pub generation: u16,
-    pub name: StringHeapIndex,
-    pub mv_id: GuidHeapIndex,
-    pub enc_id: GuidHeapIndex,
-    pub enc_base_id: GuidHeapIndex,
-}
-
-impl ModuleEntry {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        if bytes.len() < 2 { return None; }
-        let generation = u16::from_le_bytes(bytes[0..2].try_into().unwrap());
-        let mut offset: usize = mem::size_of::<u16>();
-        let name = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += name.size();
-        let mv_id = GuidHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += mv_id.size();
-        let enc_id = GuidHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += enc_id.size();
-        let enc_base_id = GuidHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        Some(Self {
-            generation,
-            name,
-            mv_id,
-            enc_id,
-            enc_base_id,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        let mut size: usize = mem::size_of::<u16>();
-        size += self.name.size();
-        size += self.mv_id.size();
-        size += self.enc_id.size();
-        size += self.enc_base_id.size();
-        size
-    }
-}
-
-#[repr(C)]
-pub struct TypeRefEntry {
-    pub resolution_scope: ResolutionScopeIndex,
-    pub name: StringHeapIndex,
-    pub namespace: StringHeapIndex,
-}
-
-impl TypeRefEntry {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        let mut offset: usize = 0;
-        let resolution_scope = ResolutionScopeIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += resolution_scope.size();
-        let name = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += name.size();
-        let namespace = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        Some(Self {
-            resolution_scope,
-            name,
-            namespace,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        let mut size = self.resolution_scope.size();
-        size += self.name.size();
-        size += self.namespace.size();
-        size
-    }
-}
-
-#[repr(C)]
-pub struct TypeDefEntry {
-    pub flags: u32,
-    pub name: StringHeapIndex,
-    pub namespace: StringHeapIndex,
-    pub extends: TypeDefOrRefIndex,
-    pub field_list: SimpleTableIndex,
-    pub method_list: SimpleTableIndex,
-}
-
-impl TypeDefEntry {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        if bytes.len() < 4 { return None; }
-        let flags = u32::from_le_bytes(bytes[0..4].try_into().unwrap());
-        let mut offset: usize = mem::size_of::<u32>();
-        let name = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += name.size();
-        let namespace = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += namespace.size();
-        let extends = TypeDefOrRefIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += extends.size();
-        let field_list = SimpleTableIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += field_list.size();
-        let method_list = SimpleTableIndex::from_bytes(&bytes[offset..], heap_size)?;
-        Some(Self {
-            flags,
-            name,
-            namespace,
-            extends,
-            field_list,
-            method_list,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        let mut size: usize = mem::size_of::<u32>();
-        size += self.name.size();
-        size += self.namespace.size();
-        size += self.extends.size();
-        size += self.field_list.size();
-        size += self.method_list.size();
-        size
-    }
-}
-
-#[repr(C)]
-pub struct FieldEntry {
-    pub flags: u16,
-    pub name: StringHeapIndex,
-    pub signature: BlobHeapIndex,
-}
-
-impl FieldEntry {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        if bytes.len() < 2 { return None; }
-        let flags = u16::from_le_bytes(bytes[0..2].try_into().unwrap());
-        let mut offset: usize = mem::size_of::<u16>();
-        let name: StringHeapIndex = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += name.size();
-        let signature = BlobHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        Some(Self {
-            flags,
-            name,
-            signature,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        let mut size: usize = mem::size_of::<u16>();
-        size += self.name.size();
-        size += self.signature.size();
-        size
-    }
-}
-
-#[repr(C)]
-pub struct MethodDefEntry {
-    pub rva: u32,
-    pub impl_flags: u16,
-    pub flags: u16,
-    pub name: StringHeapIndex,
-    pub signature: BlobHeapIndex,
-    pub param_list: SimpleTableIndex,
-}
-
-impl MethodDefEntry {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        let rva = u32::from_le_bytes(bytes[0..4].try_into().unwrap());
-        let impl_flags = u16::from_le_bytes(bytes[4..6].try_into().unwrap());
-        let flags = u16::from_le_bytes(bytes[6..8].try_into().unwrap());
-        let mut offset: usize = 8;
-        let name = StringHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += name.size();
-        let signature = BlobHeapIndex::from_bytes(&bytes[offset..], heap_size)?;
-        offset += signature.size();
-        let param_list = SimpleTableIndex::from_bytes(&bytes[offset..], heap_size)?;
-        Some(Self{
-            rva,
-            impl_flags,
-            flags,
-            name,
-            signature,
-            param_list,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        let mut size: usize = 8;
-        size += self.name.size();
-        size += self.signature.size();
-        size += self.param_list.size();
-        size
-    }
-}
-
-#[repr(C)]
-pub struct SimpleTableIndex {
-    pub offset: u32,
-    pub size: u32,
-}
-
-impl SimpleTableIndex {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        let size = if heap_size & 1 != 0 { 4 } else { 2 };
-
-        let offset = match size {
-            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
-            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            _ => return None,
-        };
-
-        Some(Self {
-            offset,
-            size,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        self.size as usize
-    }
-}
-
-
-#[derive(Debug)]
-pub struct StringHeapIndex {
-    pub offset: u32,
-    pub size: u32,
-}
-
-impl StringHeapIndex {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        let size = if heap_size & 1 != 0 { 4 } else { 2 };
-
-        let offset = match size {
-            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
-            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            _ => return None,
-        };
-
-        Some(Self {
-            offset,
-            size,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        self.size as usize
-    }
-}
-
-#[derive(Debug)]
-pub struct GuidHeapIndex {
-    pub offset: u32,
-    pub size: u32,
-}
-
-impl GuidHeapIndex {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        let size = if heap_size & 2 != 0 { 4 } else { 2 };
-
-        let offset = match size {
-            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
-            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            _ => return None,
-        };
-
-        Some(Self {
-            offset,
-            size,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        self.size as usize
-    }
-}
-
-#[repr(C)]
-pub struct ResolutionScopeIndex {
-    pub offset: u32,
-    pub size: u32,
-}
-
-impl ResolutionScopeIndex {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        let size = if heap_size & 2 != 0 { 4 } else { 2 };
-
-        let offset = match size {
-            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
-            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            _ => return None,
-        };
-
-        Some(Self {
-            offset,
-            size,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        self.size as usize
-    }
-}
-
-#[repr(C)]
-#[derive(Debug)]
-pub struct TypeDefOrRefIndex {
-    pub offset: u32,
-    pub size: u32,
-}
-
-impl TypeDefOrRefIndex {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        let size = if heap_size & 2 != 0 { 4 } else { 2 };
-
-        let offset = match size {
-            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
-            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            _ => return None,
-        };
-
-        Some(Self {
-            offset,
-            size,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        self.size as usize
-    }
-}
-
-#[repr(C)]
-pub struct BlobHeapIndex {
-    pub offset: u32,
-    pub size: u32,
-}
-
-impl BlobHeapIndex {
-    pub fn from_bytes(bytes: &[u8], heap_size: u8) -> Option<Self> {
-        let size = if heap_size & 2 != 0 { 4 } else { 2 };
-
-        let offset = match size {
-            2 if bytes.len() >= 2 => u16::from_le_bytes(bytes[0..2].try_into().unwrap()) as u32,
-            4 if bytes.len() >= 4 => u32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            _ => return None,
-        };
-
-        Some(Self {
-            offset,
-            size,
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        self.size as usize
-    }
-}
-
-pub enum Entry {
-    Module(ModuleEntry),
-    TypeRef(TypeRefEntry),
-    TypeDef(TypeDefEntry),
-    Field(FieldEntry),
-    MethodDef(MethodDefEntry),
-}
-
-#[repr(C)]
-pub struct TinyHeader {
-    code_size: u8,
-}
-
-impl TinyHeader {
-    pub fn from_bytes(bytes: &[u8]) -> Option<&Self> {
-        if bytes.len() != mem::size_of::<Self>() {
-            return None;
-        }
-        if bytes.as_ptr().align_offset(mem::align_of::<Self>()) != 0 {
-            return None;
-        }
-        Some(unsafe { &*(bytes.as_ptr() as *const Self) })
-    }
-
-    pub fn size(&self) -> usize {
-        1
-    }
-}
-
-pub enum MethodHeader {
-    Tiny(TinyHeader),
-    Fat(FatHeader),
-}
-
-impl MethodHeader {
-    pub fn size(&self) -> Option<usize> {
-        match self {
-            Self::Tiny(header) => Some(header.size()),
-            Self::Fat(header) => Some(header.size()),
-        }
-    }
-
-    pub fn code_size(&self) -> Option<usize> {
-        match self {
-            Self::Tiny(header) => Some(header.code_size as usize),
-            Self::Fat(header) => Some(header.code_size as usize),
-        }
-    }
-}
-
-#[repr(C)]
-pub struct FatHeader {
-    pub flags: u16,
-    pub max_stack: u16,
-    pub code_size: u32,
-    pub local_var_sig_token: u32,
-}
-
-impl FatHeader {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, std::io::Error> {
-        if bytes.len() < 12 {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Not enough bytes for FatHeader"));
-        }
-
-        Ok(Self {
-            flags: u16::from_le_bytes(bytes[0..2].try_into().unwrap()),
-            max_stack: u16::from_le_bytes(bytes[2..4].try_into().unwrap()),
-            code_size: u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
-            local_var_sig_token: u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
-        })
-    }
-
-    pub fn size(&self) -> usize {
-        12
-    }
-}
+use crate::formats::cli::Cor20Header;
+use crate::formats::cli::StorageHeader;
+use crate::formats::cli::StorageSignature;
+use crate::formats::cli::StreamHeader;
+use crate::formats::cli::MetadataTable;
+use crate::formats::cli::Entry;
+use crate::formats::cli::MetadataToken;
+use crate::formats::cli::MethodDefEntry;
+use crate::formats::cli::MethodHeader;
+use crate::formats::cli::ModuleEntry;
+use crate::formats::cli::TypeRefEntry;
+use crate::formats::cli::FieldEntry;
+use crate::formats::cli::TinyHeader;
+use crate::formats::cli::FatHeader;
+use crate::formats::cli::TypeDefEntry;
 
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
 pub struct PE {
@@ -690,64 +79,143 @@ impl PE {
         None
     }
 
-    fn parse_image_cor20_header(&self) -> Option<(u64, &ImageCor20Header)> {
+    /// Parses the .NET Core 2.0 header from the PE file if it is a .NET executable.
+    ///
+    /// This function attempts to locate and parse the CLR runtime header by resolving its
+    /// virtual address and reading its data from the file. If successful, it returns the 
+    /// file offset of the header and a reference to the parsed `Cor20Header` structure.
+    ///
+    /// # Returns
+    /// 
+    /// * `Option<(u64, &Cor20Header)>` - A tuple containing:
+    ///   * The file offset of the header as `u64`.
+    ///   * A reference to the parsed `Cor20Header` structure.
+    /// * `None` - If the file is not a .NET executable or the header cannot be parsed.
+    fn dotnet_parse_cor20_header(&self) -> Option<(u64, &Cor20Header)> {
         if !self.is_dotnet() { return None; }
         if let Some(clr_runtime_header) = self.pe.data_directory_by_type(DATA_DIRECTORY::CLR_RUNTIME_HEADER) {
             if let Some(start) = self.relative_virtual_address_to_file_offset(clr_runtime_header.rva() as u64) {
                 let end = start + clr_runtime_header.size() as u64;
                 let data = &self.file.data[start as usize..end as usize];
-                let header = ImageCor20Header::from_bytes(&data)?;
+                let header = &Cor20Header::from_bytes(&data)?;
                 return Some((start, header));
             }
         }
         None
     }
 
-    pub fn image_cor20_header(&self) -> Option<&ImageCor20Header> {
-        Some(self.parse_image_cor20_header()?.1)
+    /// Retrieves the .NET Core 2.0 header from the PE file if it is a .NET executable.
+    ///
+    /// This function provides a simpler interface to access the `Cor20Header` directly
+    /// by internally calling `dotnet_parse_cor20_header` and returning only the header.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<&Cor20Header>` - A reference to the parsed `Cor20Header` structure.
+    /// * `None` - If the file is not a .NET executable or the header cannot be parsed.
+    pub fn dotnet_cor20_header(&self) -> Option<&Cor20Header> {
+        Some(self.dotnet_parse_cor20_header()?.1)
     }
 
-    fn parse_cor20_storage_signature_header(&self) -> Option<(u64, &Cor20StorageSignature)> {
+    /// Parses the .NET storage signature from the metadata of a PE file.
+    ///
+    /// This function attempts to locate and parse the storage signature in the 
+    /// metadata section of the PE file, based on the metadata virtual address 
+    /// specified in the `Cor20Header`.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<(u64, &StorageSignature)>` - A tuple containing:
+    ///   * The file offset of the storage signature as `u64`.
+    ///   * A reference to the parsed `StorageSignature` structure.
+    /// * `None` - If the file is not a .NET executable or the storage signature 
+    ///   cannot be parsed.
+    fn dotnet_parse_storage_signature(&self) -> Option<(u64, &StorageSignature)> {
         if !self.is_dotnet() { return None; }
-        let (_, image_cor20_header) = self.parse_image_cor20_header()?;
+        let (_, image_cor20_header) = self.dotnet_parse_cor20_header()?;
         let rva = image_cor20_header.meta_data.virtual_address as u64;
         let start = self.relative_virtual_address_to_file_offset(rva)? as usize;
-        let end = start + mem::size_of::<Cor20StorageSignature>() as usize;
+        let end = start + StorageSignature::size();
         let data = &self.file.data[start..end];
-        let header = Cor20StorageSignature::from_bytes(&data)?;
+        let header = StorageSignature::from_bytes(&data)?;
         Some((start as u64, header))
     }
 
-    pub fn cor20_storage_signature_header(&self) -> Option<&Cor20StorageSignature> {
-        Some(self.parse_cor20_storage_signature_header()?.1)
+    /// Retrieves the .NET storage signature from the metadata of a PE file.
+    ///
+    /// This function provides a simpler interface to access the `StorageSignature` directly
+    /// by internally calling `dotnet_parse_storage_signature` and returning only the signature.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<&StorageSignature>` - A reference to the parsed `StorageSignature` structure.
+    /// * `None` - If the file is not a .NET executable or the storage signature cannot be parsed.
+    pub fn dotnet_storage_signature(&self) -> Option<&StorageSignature> {
+        Some(self.dotnet_parse_storage_signature()?.1)
     }
 
-    fn parse_cor20_storage_header(&self) -> Option<(u64, &Cor20StorageHeader)> {
+    /// Parses the .NET storage header from the metadata of a PE file.
+    ///
+    /// This function attempts to locate and parse the `StorageHeader` in the metadata 
+    /// section of the PE file. It calculates the starting position based on the size of 
+    /// the `StorageSignature` and the version string, then reads and parses the 
+    /// header data.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<(u64, &StorageHeader)>` - A tuple containing:
+    ///   * The file offset of the storage header as `u64`.
+    ///   * A reference to the fparsed `StorageHeader` structure.
+    /// * `None` - If the file is not a .NET executable or the storage header cannot be parsed.
+    fn dotnet_parse_storage_header(&self) -> Option<(u64, &StorageHeader)> {
         if !self.is_dotnet() { return None; };
-        let (mut start, cor20_storage_signaure_header) = self.parse_cor20_storage_signature_header()?;
-        start += mem::size_of::<Cor20StorageSignature>() as u64;
+        let (mut start, cor20_storage_signaure_header) = self.dotnet_parse_storage_signature()?;
+        start += StorageSignature::size() as u64;
         start += cor20_storage_signaure_header.version_string_size as u64;
-        start -= mem::size_of::<u32>() as u64;
-        let end = start as usize + mem::size_of::<Cor20StorageHeader>() as usize;
+        start -= 4 as u64;
+        let end = start as usize + StorageHeader::size() as usize;
         let data = &self.file.data[start as usize..end];
-        let header = Cor20StorageHeader::from_bytes(data)?;
+        let header = StorageHeader::from_bytes(data)?;
         Some((start, header))
     }
 
-    pub fn cor20_storage_header(&self) -> Option<&Cor20StorageHeader> {
-        Some(self.parse_cor20_storage_header()?.1)
+    /// Retrieves the .NET storage header from the metadata of a PE file.
+    ///
+    /// This function provides a simpler interface to access the `StorageHeader` directly
+    /// by internally calling `dotnet_parse_storage_header` and returning only the header.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<&StorageHeader>` - A reference to the parsed `StorageHeader` structure.
+    /// * `None` - If the file is not a .NET executable or the storage header cannot be parsed.
+    pub fn dotnet_storage_header(&self) -> Option<&StorageHeader> {
+        Some(self.dotnet_parse_storage_header()?.1)
     }
 
-    fn parse_cor20_stream_headers(&self) -> Option<BTreeMap<u64, &Cor20StreamHeader>> {
+    /// Parses the .NET stream headers from the metadata of a PE file.
+    ///
+    /// This function reads and parses the stream headers defined in the metadata section
+    /// of the PE file. It calculates the starting position based on the `StorageHeader` 
+    /// and iterates through the number of streams specified, creating a `BTreeMap` of the
+    /// file offsets and their corresponding `StreamHeader` structures.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<BTreeMap<u64, &StreamHeader>>` - A map where:
+    ///   * The keys are the file offsets of the stream headers as `u64`.
+    ///   * The values are references to the parsed `StreamHeader` structures.
+    /// * `None` - If the file is not a .NET executable, the storage header cannot be parsed, 
+    ///   or no stream headers are found.
+    fn dotnet_parse_stream_headers(&self) -> Option<BTreeMap<u64, &StreamHeader>> {
         if !self.is_dotnet() { return None; }
-        let (cor20_storage_header_offset, cor20_storage_header) = self.parse_cor20_storage_header()?;
-        let mut offset = cor20_storage_header_offset as usize + mem::size_of::<Cor20StorageHeader>();
-        let mut result = BTreeMap::<u64, &Cor20StreamHeader>::new();
+        let (cor20_storage_header_offset, cor20_storage_header) = self.dotnet_parse_storage_header()?;
+        let mut offset = cor20_storage_header_offset as usize + StorageHeader::size();
+        let mut result = BTreeMap::<u64, &StreamHeader>::new();
         for _ in 0.. cor20_storage_header.number_of_streams {
-            let data = &self.file.data[offset..offset + mem::size_of::<Cor20StreamHeader>()];
-            let header = Cor20StreamHeader::from_bytes(data)?;
+            let data = &self.file.data[offset..offset + StreamHeader::size()];
+            let header = StreamHeader::from_bytes(data)?;
             result.insert(offset as u64, header);
-            offset += header.header_size();
+            offset += StreamHeader::size() + header.name().len();
         }
         if result.len() <= 0 {
             return None;
@@ -755,9 +223,20 @@ impl PE {
         Some(result)
     }
 
-    pub fn cor20_stream_headers(&self) -> Vec<&Cor20StreamHeader> {
-        let mut result = Vec::<&Cor20StreamHeader>::new();
-        let headers = self.parse_cor20_stream_headers();
+    /// Retrieves the .NET stream headers from the metadata of a PE file as a vector.
+    ///
+    /// This function provides a simpler interface to access the `StreamHeader` structures
+    /// directly by internally calling `dotnet_parse_stream_headers` and returning only the 
+    /// parsed headers in a vector.
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<&StreamHeader>` - A vector of references to the parsed `StreamHeader` structures.
+    /// * An empty vector - If the file is not a .NET executable or the stream headers cannot 
+    ///   be parsed.
+    pub fn dotnet_stream_headers(&self) -> Vec<&StreamHeader> {
+        let mut result = Vec::<&StreamHeader>::new();
+        let headers = self.dotnet_parse_stream_headers();
         if headers.is_none() { return result; }
         for (_, header) in headers.unwrap() {
             result.push(header);
@@ -765,29 +244,71 @@ impl PE {
         result
     }
 
-    fn parse_cor20_metadata_table(&self) -> Option<(u64, &Cor20MetadataTable)> {
+    /// Parses the .NET metadata table from the metadata of a PE file.
+    ///
+    /// This function locates and parses the `MetadataTable` in the metadata section of the 
+    /// PE file. It identifies the stream header with the `#~` name, calculates the correct 
+    /// offset based on its location and the storage signature, and reads the metadata table data.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<(u64, &MetadataTable)>` - A tuple containing:
+    ///   * The file offset of the metadata table as `u64`.
+    ///   * A reference to the parsed `MetadataTable` structure.
+    /// * `None` - If the file is not a .NET executable, the relevant stream header cannot 
+    ///   be found, or the metadata table cannot be parsed.
+    fn dotnet_parse_metadata_table(&self) -> Option<(u64, &MetadataTable)> {
         if !self.is_dotnet() { return None; }
-        let (mut start, _) = self.parse_cor20_storage_signature_header()?;
-        for (_, header) in self.parse_cor20_stream_headers()? {
+        let (mut start, _) = self.dotnet_parse_storage_signature()?;
+        for (_, header) in self.dotnet_parse_stream_headers()? {
             if header.name() == vec![0x23, 0x7e, 0x00, 0x00] {
                 start += header.offset as u64;
             }
         }
-        let data = &self.file.data[start as usize..start as usize + mem::size_of::<Cor20MetadataTable>()];
-        Some((start, Cor20MetadataTable::from_bytes(data)?))
+        let data = &self.file.data[start as usize..start as usize + MetadataTable::size()];
+        Some((start, MetadataTable::from_bytes(data)?))
     }
 
-    pub fn cor20_metadata_table(&self) -> Option<&Cor20MetadataTable> {
-        Some(self.parse_cor20_metadata_table()?.1)
+    /// Retrieves the .NET metadata table from the metadata of a PE file.
+    ///
+    /// This function provides a simpler interface to access the `MetadataTable` directly 
+    /// by internally calling `dotnet_parse_metadata_table` and returning only the parsed table.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<&MetadataTable>` - A reference to the parsed `MetadataTable` structure.
+    /// * `None` - If the file is not a .NET executable or the metadata table cannot be parsed.
+    pub fn dotnet_metadata_table(&self) -> Option<&MetadataTable> {
+        Some(self.dotnet_parse_metadata_table()?.1)
     }
 
-    pub fn cor20_metadata_table_entries(&self) -> Option<Vec<Entry>> {
+    /// Parses and retrieves the entries from the .NET metadata table of a PE file.
+    ///
+    /// This function iterates through the metadata table entries specified in the 
+    /// `MetadataTable` structure, reading and parsing each entry based on its type 
+    /// (e.g., `Module`, `TypeRef`, `TypeDef`, `Field`, `MethodDef`). The function calculates
+    /// the correct offsets, validates entry counts, and constructs a vector of parsed entries.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<Vec<Entry>>` - A vector containing parsed entries from the metadata table.
+    ///   Each entry is wrapped in the `Entry` enum to represent its specific type.
+    /// * `None` - If the file is not a .NET executable, the metadata table cannot be parsed, 
+    ///   or an error occurs during entry parsing.
+    ///
+    /// # Notes
+    ///
+    /// * This function uses `MetadataToken` to determine the type of each metadata table entry.
+    /// * The parsing depends on the `heap_sizes` field in the `MetadataTable` to correctly interpret 
+    ///   data sizes within entries.
+    /// * If an invalid offset or entry count is encountered, the function will return `None`.
+    pub fn dotnet_metadata_table_entries(&self) -> Option<Vec<Entry>> {
         if !self.is_dotnet() { return None; }
 
-        let (cor20_metadata_table_offset, cor20_metadata_table) = self.parse_cor20_metadata_table()?;
+        let (cor20_metadata_table_offset, cor20_metadata_table) = self.dotnet_parse_metadata_table()?;
 
         let mut offset: usize = cor20_metadata_table_offset as usize
-            + mem::size_of::<Cor20MetadataTable>()
+            + MetadataTable::size()
             + cor20_metadata_table.mask_valid.count_ones() as usize * 4;
 
         let mut valid_index: usize = 0;
@@ -797,7 +318,7 @@ impl PE {
         for i in 0..64 as usize {
 
             let entry_offset = cor20_metadata_table_offset as usize
-                + mem::size_of::<Cor20MetadataTable>()
+                + MetadataTable::size()
                 + (valid_index * 4);
 
             if entry_offset + 4 > self.file.data.len() {
@@ -867,16 +388,58 @@ impl PE {
         Some(entries)
     }
 
+    /// Converts a virtual address to a relative virtual address (RVA).
+    ///
+    /// This function computes the relative virtual address by subtracting the image base 
+    /// address of the file from the given virtual address.
+    ///
+    /// # Parameters
+    ///
+    /// * `address` - The virtual address (`u64`) to be converted.
+    ///
+    /// # Returns
+    ///
+    /// * `u64` - The relative virtual address (RVA).
     pub fn virtual_address_to_relative_virtual_address(&self, address: u64) -> u64{
         address - self.imagebase()
     }
 
+    /// Converts a virtual address to a file offset in the PE file.
+    ///
+    /// This function first converts the virtual address to a relative virtual address (RVA) 
+    /// using `virtual_address_to_relative_virtual_address` and then resolves the RVA to a 
+    /// file offset using `relative_virtual_address_to_file_offset`.
+    ///
+    /// # Parameters
+    ///
+    /// * `address` - The virtual address (`u64`) to be converted.
+    ///
+    /// # Returns
+    ///
+    /// * `Option<u64>` - The file offset corresponding to the given virtual address, or 
+    ///   `None` if the conversion fails.
     pub fn virtual_address_to_file_offset(&self, address: u64) -> Option<u64> {
         let rva = self.virtual_address_to_relative_virtual_address(address);
         self.relative_virtual_address_to_file_offset(rva)
     }
 
-    pub fn cor20_method_header(&self, address: u64) -> Result<MethodHeader, Error> {
+    /// Parses and retrieves a method header from a given virtual address in the PE file.
+    ///
+    /// This function identifies and parses the method header (either Tiny or Fat) 
+    /// associated with the given virtual address. The header type is determined based 
+    /// on specific bits in the header's first byte. If the address is invalid or the 
+    /// data does not correspond to a valid method header, an error is returned.
+    ///
+    /// # Parameters
+    ///
+    /// * `address` - The virtual address (`u64`) of the method header.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<MethodHeader, Error>` -
+    ///   * `Ok(MethodHeader)` - The parsed method header as either `Tiny` or `Fat`.
+    ///   * `Err(Error)` - If the virtual address is invalid or the data is not a valid method header.
+    pub fn dotnet_method_header(&self, address: u64) -> Result<MethodHeader, Error> {
 
         let offset = self.virtual_address_to_file_offset(address);
 
@@ -949,6 +512,55 @@ impl PE {
         }
     }
 
+    /// Retrieves the virtual address ranges of executable methods in a .NET executable.
+    ///
+    /// This function scans the .NET metadata table for `MethodDef` entries and computes 
+    /// the virtual address ranges for executable methods. It uses the relative virtual 
+    /// address (RVA) of each method to determine its virtual address and extracts the 
+    /// method's header to calculate the start and end addresses of the method's executable code.
+    ///
+    /// # Returns
+    ///
+    /// * `BTreeMap<u64, u64>` - A map where:
+    ///   * Keys represent the start of the method's executable code (virtual address).
+    ///   * Values represent the end of the method's executable code (virtual address).
+    pub fn dotnet_executable_virtual_address_ranges(&self) -> BTreeMap<u64, u64> {
+        let mut result = BTreeMap::<u64, u64>::new();
+        if !self.is_dotnet() { return result; }
+        let entries = match self.dotnet_metadata_table_entries() {
+            Some(entries) => entries,
+            None => return result,
+        };
+
+        for entry in entries {
+            let Entry::MethodDef(entry) = entry else { continue };
+
+            if entry.rva == 0 {
+                continue;
+            }
+
+            let va = self.relative_virtual_address_to_virtual_address(entry.rva as u64);
+
+            let header = match self.dotnet_method_header(va).ok() {
+                Some(header) => header,
+                None => continue,
+            };
+
+            let header_size = match header.size() {
+                Some(size) => size,
+                None => continue,
+            };
+
+            let code_size = match header.code_size() {
+                Some(size) => size,
+                None => continue,
+            };
+
+            result.insert( va + header_size as u64, va + header_size as u64 + code_size as u64);
+        }
+        result
+    }
+
     /// Returns the ranges of executable memory addresses within the PE file.
     ///
     /// This includes sections marked as executable (`MEM_EXECUTE`) and with valid data.
@@ -958,39 +570,7 @@ impl PE {
     #[allow(dead_code)]
     pub fn executable_virtual_address_ranges(&self) -> BTreeMap<u64, u64> {
         let mut result = BTreeMap::<u64, u64>::new();
-        if self.is_dotnet() {
-            let entries = match self.cor20_metadata_table_entries() {
-                Some(entries) => entries,
-                None => return result,
-            };
-
-            for entry in entries {
-                let Entry::MethodDef(entry) = entry else { continue };
-
-                if entry.rva == 0 {
-                    continue;
-                }
-
-                let va = self.relative_virtual_address_to_virtual_address(entry.rva as u64);
-
-                let header = match self.cor20_method_header(va).ok() {
-                    Some(header) => header,
-                    None => continue,
-                };
-
-                let header_size = match header.size() {
-                    Some(size) => size,
-                    None => continue,
-                };
-
-                let code_size = match header.code_size() {
-                    Some(size) => size,
-                    None => continue,
-                };
-
-                result.insert( va + header_size as u64, va + header_size as u64 + code_size as u64);
-            }
-        }
+        if self.is_dotnet() { return result; }
         for section in self.pe.sections() {
             if (section.characteristics().bits() & u64::from(Characteristics::MEM_EXECUTE)) == 0 { continue; }
             if section.virtual_size() == 0 { continue; }

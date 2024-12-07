@@ -1,5 +1,5 @@
 use std::io::Error;
-use crate::disassemblers::binlex::dotnet::Mnemonic;
+use crate::disassemblers::binlex::cil::Mnemonic;
 use std::collections::BTreeSet;
 use crate::Binary;
 

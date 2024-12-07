@@ -4,7 +4,7 @@ use crate::Architecture;
 use std::collections::BTreeMap;
 use crate::controlflow::Graph;
 use crate::controlflow::Instruction as CFGInstruction;
-use crate::disassemblers::binlex::dotnet::Instruction;
+use crate::disassemblers::binlex::cil::Instruction;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rayon::ThreadPoolBuilder;
 use std::collections::BTreeSet;
