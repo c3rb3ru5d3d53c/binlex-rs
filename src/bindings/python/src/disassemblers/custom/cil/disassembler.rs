@@ -4,7 +4,7 @@ use std::borrow::Borrow;
 use std::io::Error;
 use std::collections::BTreeSet;
 use std::collections::BTreeMap;
-use binlex::disassemblers::capstone::Disassembler as InnerDisassembler;
+use binlex::disassemblers::binlex::cil::Disassembler as InnerDisassembler;
 use crate::Architecture;
 use crate::controlflow::Graph;
 use pyo3::types::PyBytes;
@@ -102,29 +102,16 @@ impl Disassembler {
         Ok(())
     }
 
-    #[pyo3(text_signature = "($self)")]
-    pub fn disassemble_sweep(&self, py: Python) -> Result<BTreeSet<u64>, Error> {
-        let image = self.get_image_data(py)?;
-        let machine_binding = &self.machine.borrow(py);
-        let disassembler = InnerDisassembler::new(machine_binding.inner, image, self.executable_address_ranges.clone())?;
-        let results = disassembler.disassemble_sweep();
-        let mut asdf = BTreeSet::<u64>::new();
-        for result in results {
-            asdf.insert(result);
-        }
-        Ok(asdf)
-    }
-
 }
 
 
 #[pymodule]
-#[pyo3(name = "disassembler")]
-pub fn disassembler_init(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+#[pyo3(name = "binlex_cil_disassembler")]
+pub fn binlex_cil_disassembler_init(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Disassembler>()?;
      py.import_bound("sys")?
         .getattr("modules")?
-        .set_item("binlex.disassemblers.capstone", m)?;
-    m.setattr("__name__", "binlex.disassemblers.capstone")?;
+        .set_item("binlex.disassemblers.custom.cil", m)?;
+    m.setattr("__name__", "binlex.disassemblers.custom.cil")?;
     Ok(())
 }

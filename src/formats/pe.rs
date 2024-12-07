@@ -622,6 +622,43 @@ impl PE {
             .collect()
     }
 
+    /// Returns a set of dotnet function virtual addresses in the PE file.
+    ///
+    /// # Returns
+    /// A `BTreeSet` of function addresses in the PE file.
+    pub fn dotnet_entrypoints(&self) -> BTreeSet<u64> {
+        let mut addresses = BTreeSet::<u64>::new();
+        if !self.is_dotnet() { return addresses; }
+        let entries = match self.dotnet_metadata_table_entries() {
+            Some(entries) => entries,
+            None => {
+                return addresses;
+            },
+        };
+        for entry in entries {
+            match entry {
+                Entry::MethodDef(header) => {
+                    if header.rva <= 0 { continue; }
+                    let mut va = self.relative_virtual_address_to_virtual_address(header.rva as u64);
+                    let method_header = match self.dotnet_method_header(va) {
+                        Ok(method_header) => method_header,
+                        Err(_) => {
+                            continue;
+                        }
+                    };
+                    if method_header.size().is_none() {
+                        continue;
+                    }
+                    va += method_header.size().unwrap() as u64;
+                    addresses.insert(va);
+
+                },
+                _ => {},
+            };
+        }
+        return addresses;
+    }
+
     /// Returns a set of function addresses (entry point, exports, TLS callbacks, and Pogo entries) in the PE file.
     ///
     /// # Returns

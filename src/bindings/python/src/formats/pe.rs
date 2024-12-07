@@ -1,5 +1,4 @@
 use pyo3::prelude::*;
-
 use std::io::Error;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -37,6 +36,21 @@ impl PE {
         Ok(Self { inner: Arc::new(Mutex::new(inner)) })
     }
 
+    #[pyo3(text_signature = "($self)")]
+    pub fn is_dotnet(&self) -> bool {
+        self.inner.lock().unwrap().is_dotnet()
+    }
+
+    #[pyo3(text_signature = "($self, virtual_address)")]
+    pub fn virtual_address_to_relative_virtual_address(&self, virtual_address: u64) -> u64 {
+        self.inner.lock().unwrap().virtual_address_to_relative_virtual_address(virtual_address)
+    }
+
+    #[pyo3(text_signature = "($self, virtual_address)")]
+    pub fn virtual_address_to_file_offset(&self, virtual_address: u64) -> Option<u64> {
+        self.inner.lock().unwrap().virtual_address_to_file_offset(virtual_address)
+    }
+
     #[pyo3(text_signature = "($self, relative_virtual_address)")]
     pub fn relative_virtual_address_to_virtual_address(&self, relative_virtual_address: u64) -> u64 {
         self.inner.lock().unwrap().relative_virtual_address_to_virtual_address(relative_virtual_address)
@@ -53,6 +67,11 @@ impl PE {
     }
 
     #[pyo3(text_signature = "($self)")]
+    pub fn dotnet_executable_virtual_address_ranges(&self) -> BTreeMap<u64, u64> {
+        self.inner.lock().unwrap().dotnet_executable_virtual_address_ranges()
+    }
+
+    #[pyo3(text_signature = "($self)")]
     pub fn executable_virtual_address_ranges(&self) -> BTreeMap<u64, u64> {
         self.inner.lock().unwrap().executable_virtual_address_ranges()
     }
@@ -65,6 +84,11 @@ impl PE {
     #[pyo3(text_signature = "($self)")]
     pub fn tlscallbacks(&self) -> BTreeSet<u64> {
         self.inner.lock().unwrap().tlscallbacks()
+    }
+
+    #[pyo3(text_signature = "($self)")]
+    pub fn dotnet_entrypoints(&self) -> BTreeSet<u64> {
+        self.inner.lock().unwrap().dotnet_entrypoints()
     }
 
     #[pyo3(text_signature = "($self)")]

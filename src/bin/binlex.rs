@@ -29,7 +29,6 @@ use binlex::formats::File as BLFile;
 use binlex::formats::ELF;
 use binlex::formats::MACHO;
 use binlex::io::Stdin;
-use binlex::formats::cli::Entry as CLIEntry;
 use binlex::disassemblers::binlex::cil::Disassembler as CILDisassembler;
 
 #[derive(Parser, Debug)]
@@ -449,41 +448,9 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
 
     let mut entrypoints = BTreeSet::<u64>::new();
 
-    if !pe.is_dotnet() {
-        entrypoints.extend(pe.entrypoints());
-    }
-
-    if pe.is_dotnet() {
-        let entries = match pe.dotnet_metadata_table_entries() {
-            Some(entries) => entries,
-            None => {
-                eprintln!("failed to read metadata table entries");
-                process::exit(1);
-            },
-        };
-        for entry in entries {
-            match entry {
-                CLIEntry::MethodDef(header) => {
-                    if header.rva <= 0 { continue; }
-                    let mut va = pe.relative_virtual_address_to_virtual_address(header.rva as u64);
-                    let method_header = match pe.dotnet_method_header(va) {
-                        Ok(method_header) => method_header,
-                        Err(error) => {
-                            eprintln!("{}", error);
-                            process::exit(1);
-                        }
-                    };
-                    if method_header.size().is_none() {
-                        eprintln!("failed to read method header size");
-                        process::exit(1);
-                    }
-                    va += method_header.size().unwrap() as u64;
-                    entrypoints.insert(va);
-
-                },
-                _ => {},
-            };
-        }
+    match pe.is_dotnet(){
+        true => entrypoints.extend(pe.dotnet_entrypoints()),
+        _ => entrypoints.extend(pe.entrypoints()),
     }
 
     entrypoints.extend(function_symbols.keys());
