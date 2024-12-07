@@ -31,6 +31,8 @@ use binlex::global::mode::Modes;
 use binlex::formats::ELF;
 use binlex::formats::MACHO;
 use binlex::io::Stdin;
+use binlex::formats::cli::Entry as CLIEntry;
+use binlex::disassemblers::binlex::cil::Disassembler as CILDisassembler;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -420,10 +422,6 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
             eprintln!("unsupported pe architecture");
             process::exit(1);
         },
-        Architecture::CIL => {
-            eprintln!("unsupported pe architecture");
-            process::exit(1);
-        },
         _ => {}
     }
 
@@ -446,29 +444,86 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
         .mmap()
         .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
 
-    let executable_address_ranges = pe.executable_virtual_address_ranges();
+    let executable_address_ranges = match pe.is_dotnet() {
+        true => pe.dotnet_executable_virtual_address_ranges(),
+        _ => pe.executable_virtual_address_ranges(),
+    };
 
     let mut entrypoints = BTreeSet::<u64>::new();
 
-    entrypoints.extend(pe.entrypoints());
+    if !pe.is_dotnet() {
+        entrypoints.extend(pe.entrypoints());
+    }
+
+    if pe.is_dotnet() {
+        let entries = match pe.dotnet_metadata_table_entries() {
+            Some(entries) => entries,
+            None => {
+                eprintln!("failed to read metadata table entries");
+                process::exit(1);
+            },
+        };
+        for entry in entries {
+            match entry {
+                CLIEntry::MethodDef(header) => {
+                    if header.rva <= 0 { continue; }
+                    let mut va = pe.relative_virtual_address_to_virtual_address(header.rva as u64);
+                    let method_header = match pe.dotnet_method_header(va) {
+                        Ok(method_header) => method_header,
+                        Err(error) => {
+                            eprintln!("{}", error);
+                            process::exit(1);
+                        }
+                    };
+                    if method_header.size().is_none() {
+                        eprintln!("failed to read method header size");
+                        process::exit(1);
+                    }
+                    va += method_header.size().unwrap() as u64;
+                    entrypoints.insert(va);
+
+                },
+                _ => {},
+            };
+        }
+    }
 
     entrypoints.extend(function_symbols.keys());
 
     let mut cfg = Graph::new(pe.architecture(), config.clone());
 
-    let disassembler = match Disassembler::new(pe.architecture(), &image, executable_address_ranges.clone()) {
-        Ok(disassembler) => disassembler,
-        Err(error) => {
-            eprintln!("{}", error);
-            process::exit(1);
-        }
-    };
+    if !pe.is_dotnet() {
+        let disassembler = match Disassembler::new(pe.architecture(), &image, executable_address_ranges.clone()) {
+            Ok(disassembler) => disassembler,
+            Err(error) => {
+                eprintln!("{}", error);
+                process::exit(1);
+            }
+        };
+    
+        disassembler.disassemble_controlflow(entrypoints.clone(), &mut cfg)
+            .unwrap_or_else(|error| {
+                eprintln!("{}", error);
+                process::exit(1);
+            });
+    } else if pe.is_dotnet() {
+        let disassembler = match CILDisassembler::new(pe.architecture(), &image, executable_address_ranges.clone()) {
+            Ok(disassembler) => disassembler,
+            Err(error) => {
+                eprintln!("{}", error);
+                process::exit(1);
+            }
+        };
 
-    disassembler.disassemble_controlflow(entrypoints, &mut cfg)
-        .unwrap_or_else(|error| {
-            eprintln!("{}", error);
-            process::exit(1);
-        });
+        disassembler.disassemble_controlflow(entrypoints.clone(), &mut cfg)
+            .unwrap_or_else(|error| {
+                eprintln!("{}", error);
+                process::exit(1);
+            });
+    } else {
+        eprintln!("invalid or unsupported pe file");
+        process::exit(1);
+    }
 
     process_output(output, enable_instructions, &cfg, &attributes, &function_symbols);
 }

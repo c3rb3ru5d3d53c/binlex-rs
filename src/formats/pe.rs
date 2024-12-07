@@ -443,7 +443,7 @@ impl PE {
 
         let offset = self.virtual_address_to_file_offset(address);
 
-        if offset.is_none() { return Err(Error::new(ErrorKind::InvalidInput, "invalid virtual address")); }
+        if offset.is_none() { return Err(Error::new(ErrorKind::InvalidInput, "failed to convert virtual address to file offset")); }
 
         let bytes = &self.file.data[offset.unwrap() as usize..offset.unwrap() as usize + 12];
 
