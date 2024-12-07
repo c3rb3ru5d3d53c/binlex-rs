@@ -16,7 +16,7 @@ use crate::controlflow::Symbol as BlSymbol;
 pub const DEFAULT_IMAGEBASE: u64 = 0x100000;
 
 pub struct ELF {
-    pub elf: lief::elf::Binary,
+    elf: lief::elf::Binary,
     pub file: File,
     pub config: Config,
 }

@@ -18,7 +18,7 @@ pub const N_SECT: u8 = 0x0E;
 pub const VM_PROT_EXECUTE: u8 = 0x04;
 
 pub struct MACHO {
-    pub macho: lief::macho::FatBinary,
+    macho: lief::macho::FatBinary,
     pub file: File,
     pub config: Config,
 }

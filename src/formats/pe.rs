@@ -31,7 +31,7 @@ use crate::formats::cli::TypeDefEntry;
 
 /// Represents a PE (Portable Executable) file, encapsulating the `lief::pe::Binary` and associated metadata.
 pub struct PE {
-    pub pe: lief::pe::Binary,
+    pe: lief::pe::Binary,
     pub file: File,
     pub config: Config,
 }
