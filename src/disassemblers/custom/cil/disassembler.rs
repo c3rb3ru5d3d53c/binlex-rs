@@ -4,10 +4,11 @@ use crate::Architecture;
 use std::collections::BTreeMap;
 use crate::controlflow::Graph;
 use crate::controlflow::Instruction as CFGInstruction;
-use crate::disassemblers::binlex::cil::Instruction;
+use crate::disassemblers::custom::cil::Instruction;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rayon::ThreadPoolBuilder;
 use std::collections::BTreeSet;
+use crate::io::Stderr;
 
 pub struct Disassembler <'disassembler> {
     pub architecture: Architecture,
@@ -48,6 +49,20 @@ impl <'disassembler> Disassembler <'disassembler> {
                 return Err(Error::new(ErrorKind::Unsupported, format!("0x{:x}: failed to disassemble instruction", address)));
             }
         };
+
+        Stderr::print_debug(
+            cfg.config.clone(),
+            format!(
+                "0x{:x}: mnemonic: {:?}, mnemonic_size: {}, operand_size: {}, operand_bytes: {:?}, next: {:?}, to: {:?}",
+                instruction.address,
+                instruction.mnemonic,
+                instruction.mnemonic_size(),
+                instruction.operand_size(),
+                instruction.operand_bytes(),
+                instruction.next(),
+                instruction.to()
+            )
+        );
 
         let mut cfginstruction = CFGInstruction::create(address, self.architecture, cfg.config.clone());
 

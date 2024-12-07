@@ -29,7 +29,7 @@ use binlex::formats::File as BLFile;
 use binlex::formats::ELF;
 use binlex::formats::MACHO;
 use binlex::io::Stdin;
-use binlex::disassemblers::binlex::cil::Disassembler as CILDisassembler;
+use binlex::disassemblers::custom::cil::Disassembler as CILDisassembler;
 
 #[derive(Parser, Debug)]
 #[command(

@@ -1,2 +1,2 @@
 pub mod capstone;
-pub mod binlex;
+pub mod custom;

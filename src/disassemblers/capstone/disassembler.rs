@@ -246,6 +246,17 @@ impl<'disassembler> Disassembler<'disassembler> {
             blinstruction.functions.insert(addr);
         }
 
+        Stderr::print_debug(
+            cfg.config.clone(),
+            format!(
+                "0x{:x}: mnemonic: {:?}, next: {:?}, to: {:?}",
+                blinstruction.address,
+                instruction.mnemonic().unwrap(),
+                blinstruction.next(),
+                blinstruction.to()
+            )
+        );
+
         cfg.insert_instruction(blinstruction);
 
         Ok(address)
