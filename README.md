@@ -29,7 +29,7 @@ The latest version of **binlex** provides the following amazing features!
 |---------------------------------|-------------------------------------------------------------------------------------------------|
 | 🌐 **Platforms**   | - Windows 🪟<br>- MacOS 🍏<br>- Linux 🐧                                                    |
 | 🌐 **Formats**   | - PE <br>- MachO <br>- ELF                                                  |
-| 🌐 **Architectures**   | - AMD64 <br>- I386                                                  |
+| 🌐 **Architectures**   | - AMD64 <br>- I386<br> - CIL                                               |
 | 🧵 **Multi-Threading**          | - 🔒 Thread-Safe Disassembler Queuing<br>- 🚄 Multi-Threaded Tooling for Maximum Efficiency      |
 | ⚙️ **Customizable Performance** | Toggle features on/off to optimize for your use case                                           |
 | 📉 **JSON String Compression**  | Save memory with JSON compression                                                    |
