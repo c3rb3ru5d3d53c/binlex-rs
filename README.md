@@ -19,7 +19,7 @@ The **Rust API** and **Python bindings** let developers create their own detecti
 
 To help combat malware, we provide our work for the greater good. 🌍
 
-No installation needed—just **download the binaries** from the **release page**! 📥
+No installation needed, just **download the binaries** from the **release page**! 📥
 
 ## 🚀 Features
 
