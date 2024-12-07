@@ -15,6 +15,22 @@ pub enum Architecture {
     UNKNOWN= 0x03,
 }
 
+impl Architecture {
+    pub fn to_vec() -> Vec<String> {
+        vec![
+            Architecture::AMD64.to_string(),
+            Architecture::I386.to_string(),
+            Architecture::CIL.to_string(),
+        ]
+    }
+}
+
+impl Architecture {
+    pub fn to_list() -> String {
+        Architecture::to_vec().join(", ")
+    }
+}
+
 /// Implements Display for `BinaryArchitecture` enum
 impl fmt::Display for Architecture {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

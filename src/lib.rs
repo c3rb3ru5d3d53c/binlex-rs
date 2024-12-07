@@ -11,6 +11,5 @@ pub use global::Config;
 pub use binary::Binary;
 pub use global::Architecture;
 pub use global::Format;
-pub use global::Mode;
 pub use global::AUTHOR;
 pub use global::VERSION;
