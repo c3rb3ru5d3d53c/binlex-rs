@@ -593,18 +593,16 @@ block.print();
 
 The binlex Python API is now designed to abstract the disassembler and the controlflow graph.
 
-To disassemble a PE memory mapped image use the following example.
+To disassemble a PE memory mapped image use the following examples.
+
+#### Native PE
 
 ```python
 from binlex.formats import PE
-from binlex.formats import ELF
-from binlex.formats import MACHO
 from binlex.disassemblers.capstone import Disassembler
 from binlex.controlflow import Graph
 from binlex import Config
-from binlex.controlflow import Instruction
-from binlex.controlflow import Block
-from binlex.controlflow import Function
+
 
 # Get Default Configuration
 config = Config()
@@ -613,29 +611,135 @@ config = Config()
 config.general.threads = 16
 
 # Open the PE File
-f = PE('./sample.dll', config)
+pe = PE('./sample.dll', config)
 
-# Or Open ELF File
-# f = ELF('./sample.so', config)
-
-# Or Open MachO File
-# f = MACHO('./sample.macho', config)
-# NOTE: MachO requires binary slice argument for most methods
+# To check if a DotNet PE use ps.is_dotnet()
 
 # Get the Memory Mapped File
-mapped_file = f.image()
+mapped_file = pe.image()
 
 # Get the Memory Map
 image = mapped_file.as_memoryview()
 
 # Create Disassembler on Mapped PE Image and PE Architecture
-disassembler = Disassembler(f.architecture(), image, f.executable_virtual_address_ranges())
+disassembler = Disassembler(pe.architecture(), image, pe.executable_virtual_address_ranges())
 
 # Create the Controlflow Graph
-cfg = Graph(f.architecture(), config)
+cfg = Graph(pe.architecture(), config)
 
 # Disassemble the PE Image Entrypoints Recursively
-disassembler.disassemble_controlflow(f.entrypoints(), cfg)
+disassembler.disassemble_controlflow(pe.entrypoints(), cfg)
+```
+
+#### .NET (MSIL/CIL) PE
+```python
+from binlex.formats import PE
+from binlex.disassemblers.custom.cil import Disassembler
+from binlex.controlflow import Graph
+from binlex import Config
+
+
+# Get Default Configuration
+config = Config()
+
+# Use 16 Threads for Multi-Threaded Operations
+config.general.threads = 16
+
+# Open the PE File
+pe = PE('./sample.exe', config)
+
+# To check if a DotNet PE use ps.is_dotnet()
+
+# Get the Memory Mapped File
+mapped_file = pe.image()
+
+# Get the Memory Map
+image = mapped_file.as_memoryview()
+
+# Create Disassembler on Mapped PE Image and PE Architecture
+disassembler = Disassembler(pe.architecture(), image, pe.dotnet_executable_virtual_address_ranges())
+
+# Create the Controlflow Graph
+cfg = Graph(pe.architecture(), config)
+
+# Disassemble the PE Image Entrypoints Recursively
+disassembler.disassemble_controlflow(pe.dotnet_entrypoints(), cfg)
+```
+
+#### ELF
+
+```python
+from binlex.formats import ELF
+from binlex.disassemblers.capstone import Disassembler
+from binlex.controlflow import Graph
+from binlex import Config
+
+# Get Default Configuration
+config = Config()
+
+# Use 16 Threads for Multi-Threaded Operations
+config.general.threads = 16
+
+# Open the ELF File
+elf = ELF('./sample.so', config)
+
+# Get the Memory Mapped File
+mapped_file = pe.image()
+
+# Get the Memory Map
+image = mapped_file.as_memoryview()
+
+# Create Disassembler on Mapped PE Image and PE Architecture
+disassembler = Disassembler(elf.architecture(), image, elf.executable_virtual_address_ranges())
+
+# Create the Controlflow Graph
+cfg = Graph(elf.architecture(), config)
+
+# Disassemble the PE Image Entrypoints Recursively
+disassembler.disassemble_controlflow(elf.entrypoints(), cfg)
+```
+
+#### MACHO
+
+```python
+from binlex.formats import MACHO
+from binlex.disassemblers.capstone import Disassembler
+from binlex.controlflow import Graph
+from binlex import Config
+
+# Get Default Configuration
+config = Config()
+
+# Use 16 Threads for Multi-Threaded Operations
+config.general.threads = 16
+
+# Open the ELF File
+macho = MACHO('./sample.app', config)
+
+# MachO Fat Binary Can Support Multiple Architectures
+for index in macho.number_of_slices():
+
+  # Get the Memory Mapped File
+  mapped_file = macho.image(index)
+
+  # Get the Memory Map
+  image = mapped_file.as_memoryview()
+
+  # Create Disassembler on Mapped PE Image and PE Architecture
+  disassembler = Disassembler(macho.architecture(index), image, macho.executable_virtual_address_ranges(index))
+
+  # Create the Controlflow Graph
+  cfg = Graph(macho.architecture(index), config)
+
+  # Disassemble the PE Image Entrypoints Recursively
+  disassembler.disassemble_controlflow(macho.entrypoints(index), cfg)
+```
+
+#### Accessing the Genetic Traits
+```python
+from binlex.controlflow import Instruction
+from binlex.controlflow import Block
+from binlex.controlflow import Function
 
 # Iterate Valid Instructions
 for address in cfg.instruction_addresses():
