@@ -39,8 +39,18 @@ impl MemoryMappedFile {
     ///
     /// A `Result` containing the `MemoryMappedFile` on success, or an `io::Error` if file creation fails.
     pub fn new(path: PathBuf, append: bool, cache: bool) -> Result<Self, Error> {
+        // if let Some(parent) = path.parent() {
+        //     std::fs::create_dir_all(parent)?;
+        // }
+
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent).map_err(|e| {
+                io::Error::new(
+                    e.kind(),
+                    format!("failed to create parent directories for '{}': {}",
+                            path.display(), e)
+                )
+            })?;
         }
 
         let is_cached = path.is_file();
@@ -54,7 +64,14 @@ impl MemoryMappedFile {
         #[cfg(windows)]
         options.share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE);
 
-        let handle = options.open(&path)?;
+        //let handle = options.open(&path)?;
+
+        let handle = options.open(&path).map_err(|e| {
+            io::Error::new(
+                e.kind(),
+                format!("failed to open file '{}': {}", path.display(), e)
+            )
+        })?;
 
         Ok(Self {
             path: path.to_string_lossy().into_owned(),
