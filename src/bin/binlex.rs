@@ -1,3 +1,4 @@
+use binlex::io::Stderr;
 use binlex::Architecture;
 use rayon::ThreadPoolBuilder;
 use binlex::formats::pe::PE;
@@ -409,7 +410,7 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
     let pe = match PE::new(input, config.clone()) {
         Ok(pe) => pe,
         Err(error) => {
-            eprintln!("{}", error);
+            eprintln!("failed to read pe file: {}", error);
             process::exit(1);
         }
     };
@@ -435,11 +436,11 @@ fn process_pe(input: String, config: Config, tags: Option<Vec<String>>, output: 
     let function_symbols = get_pe_function_symbols(&pe);
 
     let mapped_file = pe.image()
-        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1)});
+        .unwrap_or_else(|error| { eprintln!("failed to map pe image: {}", error); process::exit(1)});
 
     let image = mapped_file
         .mmap()
-        .unwrap_or_else(|error| { eprintln!("{}", error); process::exit(1); });
+        .unwrap_or_else(|error| { eprintln!("failed to get pe virtual image: {}", error); process::exit(1); });
 
     let executable_address_ranges = match pe.is_dotnet() {
         true => pe.dotnet_executable_virtual_address_ranges(),
@@ -699,7 +700,7 @@ fn main() {
         }
     } else {
         if let Err(error) = config.from_default() {
-            eprintln!("{}", error);
+            eprintln!("failed to read default config: {}", error);
             process::exit(1);
         }
     }
@@ -736,6 +737,8 @@ fn main() {
         config.enable_minimal();
     }
 
+    Stderr::print_debug(config.clone(), "finished reading arguments and configuration");
+
     ThreadPoolBuilder::new()
         .num_threads(config.general.threads)
         .build_global()
@@ -752,12 +755,15 @@ fn main() {
             });
         match format {
             Format::PE => {
+                Stderr::print_debug(config.clone(), "processing pe");
                 process_pe(args.input, config, args.tags, args.output, args.enable_instructions);
             },
             Format::ELF => {
+                Stderr::print_debug(config.clone(), "processing elf");
                 process_elf(args.input, config, args.tags, args.output, args.enable_instructions);
             },
             Format::MACHO => {
+                Stderr::print_debug(config.clone(), "processing macho");
                 process_macho(args.input, config, args.tags, args.output, args.enable_instructions);
             }
             _ => {
@@ -769,6 +775,7 @@ fn main() {
         let architecture = args.architecture.unwrap();
         match architecture {
             Architecture::AMD64 | Architecture::I386 | Architecture::CIL => {
+                Stderr::print_debug(config.clone(), "processing code");
                 process_code(args.input, config, architecture, args.output, args.enable_instructions);
             },
             _ => {

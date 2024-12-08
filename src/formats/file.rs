@@ -16,7 +16,7 @@ use std::os::windows::fs::OpenOptionsExt;
 use std::fs::OpenOptions;
 
 #[cfg(windows)]
-use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE};
+use winapi::um::winnt::{FILE_SHARE_READ};
 
 pub trait FileHandle: Read + Seek + Send {}
 
