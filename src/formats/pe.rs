@@ -1,7 +1,7 @@
 use lief::generic::Section;
 use lief::Binary;
 use lief::pe::section::Characteristics;
-use std::io::{Cursor, Error, ErrorKind};
+use std::io::{Cursor, Error, ErrorKind, Stderr};
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -781,7 +781,13 @@ impl PE {
         if tempmap.is_cached() {
             return Ok(tempmap);
         }
-        tempmap.write(&self.file.data[0..self.sizeofheaders() as usize])?;
+        tempmap.write(&self.file.data[0..self.sizeofheaders() as usize]).map_err(|error| Error::new(
+            ErrorKind::Other,
+            format!(
+                "failed to write headers to memory-mapped pe file: {}",
+                error
+            )
+        ))?;
         for section in self.pe.sections() {
             if section.virtual_size() == 0 { continue; }
             if section.sizeof_raw_data() == 0 { continue; }
@@ -791,11 +797,23 @@ impl PE {
                 self.file_alignment());
             if section_virtual_adddress > tempmap.size().unwrap() as u64 {
                 let padding_length = section_virtual_adddress - tempmap.size().unwrap() as u64;
-                tempmap.write_padding(padding_length as usize)?;
+                tempmap.write_padding(padding_length as usize).map_err(|error| Error::new(
+                    ErrorKind::Other,
+                    format!(
+                        "write padding to pe memory-mapped pe file: {}",
+                        error
+                    )
+                ))?;
             }
             let pointerto_raw_data = section.pointerto_raw_data() as usize;
             let sizeof_raw_data = section.sizeof_raw_data() as usize;
-            tempmap.write(&self.file.data[pointerto_raw_data..pointerto_raw_data + sizeof_raw_data])?;
+            tempmap.write(&self.file.data[pointerto_raw_data..pointerto_raw_data + sizeof_raw_data]).map_err(|error| Error::new(
+                ErrorKind::Other,
+                format!(
+                    "failed to write section to memory-mapped pe file: {}",
+                    error
+                )
+            ))?;
         }
         Ok(tempmap)
     }
