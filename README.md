@@ -691,6 +691,61 @@ let cfg = Graph(elf.architecture(), config);
 disassembler.disassemble_controlflow(elf.entrypoints(), &mut cfg);
 ```
 
+#### MACHO
+
+```rs
+use std::process;
+use binlex::Config;
+use binlex::formats::MACHO;
+use binlex::disassemblers::custom::cil::Disassembler;
+use binlex::controlflow::Graph;
+
+// Get Default Configuration
+let mut config = Config();
+
+// Use 16 Threads for Multi-Threaded Operations
+config.general.threads = 16;
+
+// Read PE File
+let macho = MACHO.new("./sample.app", config)
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
+
+// Iterate the MACHO Fat Binary Slices
+for index in macho.number_of_slices() {
+  // Get Memory Mapped File
+  let mapped_file = macho.image(index)
+    .unwrap_or_else(|error| {
+      eprintln!("{}", error);
+      process::exit(1)
+    });
+
+  // Get Mapped File Virtual Image
+  let image = mapped_file
+    .mmap()
+    .unwrap_or_else(|error| {
+      eprintln!("{}", error);
+      process::exit(1);
+    });
+
+  // Create Disassembler
+  let disassembler = Disassembler(macho.architecture(index), &image, macho.executable_virtual_address_ranges(index))
+    .unwrap_or_else(|error| {
+      eprintln!("{}", error);
+      process::exit(1);
+    });
+
+  // Create Control Flow Graph
+  let cfg = Graph(macho.architecture(index), config);
+
+  // Disassemble Control Flow
+  disassembler.disassemble_controlflow(macho.entrypoints(index), &mut cfg);
+}
+
+```
+
 #### Accessing Genetic Traits
 
 ```rs
@@ -721,8 +776,6 @@ for address in cfg.functions.valid_addresses() {
   // Print Function from Control Flow
   function.print();
 }
-
-
 ```
 
 ### Python API
