@@ -50,20 +50,6 @@ impl <'disassembler> Disassembler <'disassembler> {
             }
         };
 
-        Stderr::print_debug(
-            cfg.config.clone(),
-            format!(
-                "0x{:x}: mnemonic: {:?}, mnemonic_size: {}, operand_size: {}, operand_bytes: {:?}, next: {:?}, to: {:?}",
-                instruction.address,
-                instruction.mnemonic,
-                instruction.mnemonic_size(),
-                instruction.operand_size(),
-                instruction.operand_bytes(),
-                instruction.next(),
-                instruction.to()
-            )
-        );
-
         let mut cfginstruction = CFGInstruction::create(address, self.architecture, cfg.config.clone());
 
         cfginstruction.bytes = instruction.bytes();
@@ -75,6 +61,22 @@ impl <'disassembler> Disassembler <'disassembler> {
         cfginstruction.pattern = instruction.pattern();
         cfginstruction.edges = instruction.edges();
         cfginstruction.to = instruction.to();
+
+        Stderr::print_debug(
+            cfg.config.clone(),
+            format!(
+                "0x{:x}: mnemonic: {:?}, mnemonic_size: {}, operand_size: {}, operand_bytes: {:?}, bytes: {:?}, next: {:?}, to: {:?}, blocks: {:?}",
+                instruction.address,
+                instruction.mnemonic,
+                instruction.mnemonic_size(),
+                instruction.operand_size(),
+                instruction.operand_bytes(),
+                instruction.bytes(),
+                instruction.next(),
+                instruction.to(),
+                cfginstruction.blocks(),
+            )
+        );
 
         cfg.insert_instruction(cfginstruction);
         Ok(address)
