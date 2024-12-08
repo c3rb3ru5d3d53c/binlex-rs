@@ -136,9 +136,9 @@ class OnnxTrainer:
 def classify_line(line, onnx, threshold, scale):
     try:
         data = json.loads(line)
-        if data['signature'] is None: return None
-        if data['signature']['feature'] is None: return None
-        feature = data['signature']['feature']
+        if data['chromosome'] is None: return None
+        if data['chromosome']['feature'] is None: return None
+        feature = data['chromosome']['feature']
         classification_value = onnx.classify(
             feature,
             threshold=threshold,
@@ -228,9 +228,9 @@ def main():
         for line in sys.stdin:
             try:
                 data = json.loads(line)
-                if data['signature'] is None: continue
-                if data['signature']['feature'] is None: continue
-                features.append(data['signature']['feature'])
+                if data['chromosome'] is None: continue
+                if data['chromosome']['feature'] is None: continue
+                features.append(data['chromosome']['feature'])
             except json.JSONDecodeError as error:
                 print(f"JSON decode error: {error}", file=sys.stderr)
             except Exception as error:
