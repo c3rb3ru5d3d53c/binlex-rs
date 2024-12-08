@@ -9,89 +9,120 @@ use std::sync::Mutex;
 
 #[pyclass]
 pub struct GraphQueue {
-    pub inner: InnerGraphQueue,
+    inner_graph: Arc<Mutex<InnerGraph>>,
+    kind: QueueKind,
+}
+
+#[derive(Clone, Copy)]
+enum QueueKind {
+    Instructions,
+    Blocks,
+    Functions,
+}
+
+impl GraphQueue {
+    fn get_queue<'a>(&self, inner: &'a InnerGraph) -> &'a InnerGraphQueue {
+        match self.kind {
+            QueueKind::Instructions => &inner.instructions,
+            QueueKind::Blocks => &inner.blocks,
+            QueueKind::Functions => &inner.functions,
+        }
+    }
+
+    fn get_queue_mut<'a>(&self, inner: &'a mut InnerGraph) -> &'a mut InnerGraphQueue {
+        match self.kind {
+            QueueKind::Instructions => &mut inner.instructions,
+            QueueKind::Blocks => &mut inner.blocks,
+            QueueKind::Functions => &mut inner.functions,
+        }
+    }
 }
 
 #[pymethods]
 impl GraphQueue {
-    #[new]
-    #[pyo3(text_signature = "()")]
-    pub fn new() -> Self {
-        Self {
-            inner: InnerGraphQueue::new(),
-        }
-    }
-
     #[pyo3(text_signature = "($self, address)")]
-    pub fn insert_invalid(&mut self, address: u64) {
-        self.inner.insert_invalid(address);
+    pub fn insert_invalid(&self, address: u64) {
+        let mut inner = self.inner_graph.lock().unwrap();
+        self.get_queue_mut(&mut inner).insert_invalid(address);
     }
 
     #[pyo3(text_signature = "($self, address)")]
     pub fn is_invalid(&self, address: u64) -> bool {
-        self.inner.is_invalid(address)
+        let inner = self.inner_graph.lock().unwrap();
+        self.get_queue(&inner).is_invalid(address)
     }
 
-    #[pyo3(text_signature = "($self, address)")]
+    #[pyo3(text_signature = "($self)")]
     pub fn valid_addresses(&self) -> BTreeSet<u64> {
-        self.inner.valid_addresses()
+        let inner = self.inner_graph.lock().unwrap();
+        self.get_queue(&inner).valid_addresses()
     }
 
-    #[pyo3(text_signature = "($self, address)")]
+    #[pyo3(text_signature = "($self)")]
     pub fn invalid_addresses(&self) -> BTreeSet<u64> {
-        self.inner.invalid_addresses()
+        let inner = self.inner_graph.lock().unwrap();
+        self.get_queue(&inner).invalid_addresses()
     }
 
-    #[pyo3(text_signature = "($self, address)")]
+    #[pyo3(text_signature = "($self)")]
     pub fn processed_addresses(&self) -> BTreeSet<u64> {
-        self.inner.processed_addresses()
+        let inner = self.inner_graph.lock().unwrap();
+        self.get_queue(&inner).processed_addresses()
     }
 
     #[pyo3(text_signature = "($self, address)")]
     pub fn is_valid(&self, address: u64) -> bool {
-        self.inner.is_valid(address)
+        let inner = self.inner_graph.lock().unwrap();
+        self.get_queue(&inner).is_valid(address)
     }
 
     #[pyo3(text_signature = "($self, address)")]
-    pub fn insert_valid(&mut self, address: u64) {
-        self.inner.insert_valid(address);
+    pub fn insert_valid(&self, address: u64) {
+        let mut inner = self.inner_graph.lock().unwrap();
+        self.get_queue_mut(&mut inner).insert_valid(address);
     }
 
     #[pyo3(text_signature = "($self, addresses)")]
-    pub fn insert_processed_extend(&mut self, addresses: BTreeSet<u64>) {
-        self.inner.insert_processed_extend(addresses);
+    pub fn insert_processed_extend(&self, addresses: BTreeSet<u64>) {
+        let mut inner = self.inner_graph.lock().unwrap();
+        self.get_queue_mut(&mut inner).insert_processed_extend(addresses);
     }
 
     #[pyo3(text_signature = "($self, address)")]
-    pub fn insert_processed(&mut self, address: u64) {
-        self.inner.insert_processed(address);
+    pub fn insert_processed(&self, address: u64) {
+        let mut inner = self.inner_graph.lock().unwrap();
+        self.get_queue_mut(&mut inner).insert_processed(address);
     }
 
     #[pyo3(text_signature = "($self, address)")]
     pub fn is_processed(&self, address: u64) -> bool {
-        self.inner.is_processed(address)
+        let inner = self.inner_graph.lock().unwrap();
+        self.get_queue(&inner).is_processed(address)
     }
 
     #[pyo3(text_signature = "($self, addresses)")]
-    pub fn enqueue_extend(&mut self, addresses: BTreeSet<u64>) {
-        self.inner.enqueue_extend(addresses);
+    pub fn enqueue_extend(&self, addresses: BTreeSet<u64>) {
+        let mut inner = self.inner_graph.lock().unwrap();
+        self.get_queue_mut(&mut inner).enqueue_extend(addresses);
     }
 
     #[pyo3(text_signature = "($self, address)")]
-    pub fn enqueue(&mut self, address: u64) -> bool {
-        self.inner.enqueue(address)
+    pub fn enqueue(&self, address: u64) -> bool {
+        let mut inner = self.inner_graph.lock().unwrap();
+        self.get_queue_mut(&mut inner).enqueue(address)
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn dequeue(&mut self) -> Option<u64> {
-        self.inner.dequeue()
+    pub fn dequeue(&self) -> Option<u64> {
+        let mut inner = self.inner_graph.lock().unwrap();
+        self.get_queue_mut(&mut inner).dequeue()
     }
 
     #[pyo3(text_signature = "($self)")]
-    pub fn dequeue_all(&mut self) -> BTreeSet<u64> {
-        self.inner.dequeue_all()
+    pub fn dequeue_all(&self) -> BTreeSet<u64> {
+        let mut inner = self.inner_graph.lock().unwrap();
+        self.get_queue_mut(&mut inner).dequeue_all()
     }
-
 }
 
 #[pyclass]
@@ -113,46 +144,46 @@ impl Graph {
 
     #[getter]
     pub fn get_instructions(&self, py: Python) -> Py<GraphQueue> {
-        Py::new(py, GraphQueue {
-            inner: self.inner.lock().unwrap().instructions.clone(),
-        }).expect("failed to create instructions graph queue")
-    }
-
-    #[setter]
-    pub fn set_instructions(&mut self, py: Python, queue: Py<GraphQueue>) -> PyResult<()> {
-        self.inner.lock().unwrap().instructions = queue.borrow_mut(py).inner.clone();
-        Ok(())
+        Py::new(
+            py,
+            GraphQueue {
+                inner_graph: Arc::clone(&self.inner),
+                kind: QueueKind::Instructions,
+            },
+        )
+        .expect("failed to get instructions graph queue")
     }
 
     #[getter]
     pub fn get_blocks(&self, py: Python) -> Py<GraphQueue> {
-        Py::new(py, GraphQueue {
-            inner: self.inner.lock().unwrap().blocks.clone(),
-        }).expect("failed to create blocks graph queue")
-    }
-
-    #[setter]
-    pub fn set_blocks(&mut self, py: Python, queue: Py<GraphQueue>) -> PyResult<()> {
-        self.inner.lock().unwrap().blocks = queue.borrow_mut(py).inner.clone();
-        Ok(())
+        Py::new(
+            py,
+            GraphQueue {
+                inner_graph: Arc::clone(&self.inner),
+                kind: QueueKind::Blocks,
+            },
+        )
+        .expect("failed to get blocks graph queue")
     }
 
     #[getter]
     pub fn get_functions(&self, py: Python) -> Py<GraphQueue> {
-        Py::new(py, GraphQueue{
-            inner: self.inner.lock().unwrap().functions.clone(),
-        }).expect("failed to create functions graph queue")
-    }
-
-    #[setter]
-    pub fn set_functions(&mut self, py: Python, queue: Py<GraphQueue>) -> PyResult<()> {
-        self.inner.lock().unwrap().functions = queue.borrow_mut(py).inner.clone();
-        Ok(())
+        Py::new(
+            py,
+            GraphQueue {
+                inner_graph: Arc::clone(&self.inner),
+                kind: QueueKind::Functions,
+            },
+        )
+        .expect("failed to get functions graph queue")
     }
 
     #[pyo3(text_signature = "($self, cfg)")]
     pub fn absorb(&mut self, py: Python, cfg: Py<Self>) {
-        self.inner.lock().unwrap().absorb(&mut cfg.borrow_mut(py).inner.lock().unwrap());
+        self.inner
+            .lock()
+            .unwrap()
+            .absorb(&mut cfg.borrow_mut(py).inner.lock().unwrap());
     }
 }
 
@@ -167,4 +198,3 @@ pub fn graph_init(py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.setattr("__name__", "binlex.controlflow.graph")?;
     Ok(())
 }
-
