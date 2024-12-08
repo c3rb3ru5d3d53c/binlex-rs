@@ -47,29 +47,11 @@ By caching virtual images, **binlex** is able to perform at increased speeds, ma
 
 To build **binlex** you will need Rust.
 
-### Linux and MacOS
+### Linux, MacOS and Windows
 
 Installation is straight foward on Linux and MacOS.
 
 ```bash
-cargo build --release
-```
-
-### Windows
-
-Building is more complicated on Windows.
-
-```bash
-choco install -y cmake git
-git clone https://github.com/lief-project/LIEF.git
-cd LIEF/
-git checkout 0.15.1
-mkdir build
-cd build/
-cmake -DLIEF_RUST_API=ON ..
-cmake --build . --config Release
-cd ../../
-$env:LIEF_RUST_PRECOMPILED="$PWD\\LIEF\\build\\"
 cargo build --release
 ```
 

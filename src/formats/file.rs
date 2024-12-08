@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use crate::controlflow::Attribute;
 use crate::Config;
+
 pub trait FileHandle: Read + Seek + Send {}
 
 impl<T: Read + Seek + Send> FileHandle for T {}

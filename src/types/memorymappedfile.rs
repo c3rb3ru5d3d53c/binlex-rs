@@ -3,6 +3,11 @@ use std::fs::OpenOptions;
 use std::io::{self, Error, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
+#[cfg(windows)]
+use std::os::windows::fs::OpenOptionsExt;
+#[cfg(windows)]
+use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE};
+
 /// A `MemoryMappedFile` struct that provides a memory mapped file interface,
 /// enabling file read/write operations with optional disk caching,
 /// and automatic file cleanup on object drop.
@@ -46,6 +51,9 @@ impl MemoryMappedFile {
             options.append(true);
         }
 
+        #[cfg(windows)]
+        options.share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE);
+
         let handle = options.open(&path)?;
 
         Ok(Self {
@@ -75,6 +83,9 @@ impl MemoryMappedFile {
             .write(false)
             .create(false)
             .append(false);
+
+        #[cfg(windows)]
+        options.share_mode(FILE_SHARE_READ);
 
         let handle = options.open(&path)?;
 
