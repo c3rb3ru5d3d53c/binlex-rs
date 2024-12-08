@@ -3,6 +3,11 @@ OUTPUT_DIRECTORY = target
 all:
 	@cargo build --release
 
+win:
+	@cargo install cargo-wix
+	@cargo build --release
+	@cargo wix --package binlex
+
 zst:
 	@cargo build --release
 	@makepkg
