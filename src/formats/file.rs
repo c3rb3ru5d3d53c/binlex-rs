@@ -11,6 +11,10 @@ use crate::Config;
 
 #[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt;
+
+#[cfg(windows)]
+use std::fs::OpenOptions;
+
 #[cfg(windows)]
 use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE};
 
