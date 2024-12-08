@@ -48,16 +48,18 @@ jobs:
       - name: Run Tests
         run: cargo test --verbose
 
-      - name: Package Binary
+      - name: Create Dist Directory
+        run: mkdir dist
+
+      - name: Copy Binary (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
         run: |
-          mkdir -p dist
-          if [ ${{ matrix.os }} == 'windows-latest' ]; then
-            cp target\release\binlex.exe dist/
-            cp target/release/blyara.exe dist/
-          else
-            cp target/release/binlex dist/
-            cp target/release/blyara dist/
-          fi
+          copy target\release\binlex.exe dist\
+
+      - name: Copy Binary (Linux/macOS)
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: |
+          cp target/release/binlex dist/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
