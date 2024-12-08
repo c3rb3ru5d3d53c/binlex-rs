@@ -96,7 +96,7 @@ impl<'block> Block<'block> {
         let mut terminator: Option<Instruction> = None;
 
         let previous_address: Option<u64> = None;
-        for entry in cfg.instructions.range(address..){
+        for entry in cfg.listing.range(address..){
             let instruction = entry.value();
             if let Some(prev_addr) = previous_address{
                 if instruction.address != prev_addr {
@@ -205,7 +205,7 @@ impl<'block> Block<'block> {
     ///
     /// Returns `true` if the block starts with a prologue; otherwise, `false`.
     pub fn is_prologue(&self) -> bool {
-        if let Some(entry) =  self.cfg.instructions.get(&self.address) {
+        if let Some(entry) =  self.cfg.listing.get(&self.address) {
             return entry.value().is_prologue;
         }
         return false;
@@ -271,7 +271,7 @@ impl<'block> Block<'block> {
     /// Returns a `Option<String>` containing the pattern representation of the chromosome.
     fn pattern(&self) -> String {
         let mut result = String::new();
-        for entry in self.cfg.instructions.range(self.address..self.address + self.size() as u64) {
+        for entry in self.cfg.listing.range(self.address..self.address + self.size() as u64) {
             let instruction = entry.value();
             result += instruction.pattern.as_str();
         }
@@ -286,7 +286,7 @@ impl<'block> Block<'block> {
     /// and each value is the address of the function containing that instruction.
     pub fn functions(&self) -> BTreeMap<u64, u64> {
         let mut result = BTreeMap::<u64, u64>::new();
-        for entry in self.cfg.instructions.range(self.address..self.end()){
+        for entry in self.cfg.listing.range(self.address..self.end()){
             let instruction = entry.value();
             for function_address in instruction.functions.clone() {
                 result.insert(instruction.address, function_address);
@@ -357,7 +357,7 @@ impl<'block> Block<'block> {
     /// Returns a `Vec<u8>` containing the bytes of the block.
     pub fn bytes(&self) -> Vec<u8> {
         let mut result = Vec::<u8>::new();
-        for entry in self.cfg.instructions.range(self.address..self.end()){
+        for entry in self.cfg.listing.range(self.address..self.end()){
             let instruction = entry.value();
             result.extend(instruction.bytes.clone());
         }
@@ -371,7 +371,7 @@ impl<'block> Block<'block> {
     /// Returns the number of instructions as a `usize`.
     pub fn number_of_instructions(&self) -> usize {
         let mut result: usize = 0;
-        for _ in self.cfg.instructions.range(self.address..=self.terminator.address){
+        for _ in self.cfg.listing.range(self.address..=self.terminator.address){
             result += 1;
         }
         return result;

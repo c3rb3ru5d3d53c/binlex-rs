@@ -660,8 +660,6 @@ let elf = ELF.new("./sample.exe", config)
     process::exit(1);
   });
 
-// To check if DotNet PE use pe.is_dotnet()
-
 // Get Memory Mapped File
 let mapped_file = elf.image()
   .unwrap_or_else(|error| {
@@ -753,7 +751,7 @@ use binlex::controlflow::Instruction;
 use binlex::controlflow::Block;
 use binlex::controlflow::Function;
 
-for address in cfg.instruction_addresses() {
+for address in cfg.instructions.valid_addresses() {
   // Read Instruction from Control Flow
   instruction = Instruction(address, &cfg);
 
@@ -792,7 +790,6 @@ from binlex.disassemblers.capstone import Disassembler
 from binlex.controlflow import Graph
 from binlex import Config
 
-
 # Get Default Configuration
 config = Config()
 
@@ -800,7 +797,7 @@ config = Config()
 config.general.threads = 16
 
 # Open the PE File
-pe = PE('./sample.dll', config)
+pe = PE('./sample.exe', config)
 
 # To check if a DotNet PE use ps.is_dotnet()
 
@@ -931,7 +928,7 @@ from binlex.controlflow import Block
 from binlex.controlflow import Function
 
 # Iterate Valid Instructions
-for address in cfg.instruction_addresses():
+for address in cfg.instructions.valid_addresses():
     # Read Instruction from Control Flow
     instruction = Instruction(address, cfg)
     # Print Instruction from Control Flow

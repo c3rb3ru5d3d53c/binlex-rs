@@ -198,11 +198,14 @@ impl<'disassembler> Disassembler<'disassembler> {
 
     pub fn disassemble_instruction<'a>(&'a self, address: u64, cfg: &'a mut Graph) -> Result<u64, Error> {
 
+        cfg.instructions.insert_processed(address);
+
         if let Some(instruction) = cfg.get_instruction(address) {
             return Ok(instruction.address);
         }
 
         if !self.is_executable_address(address) {
+            cfg.instructions.insert_invalid(address);
             let error = format!("Instruction -> 0x{:x}: it is not in executable memory", address);
             Stderr::print_debug(cfg.config.clone(), error.clone());
             return Err(Error::new(ErrorKind::Other, error));
@@ -210,7 +213,8 @@ impl<'disassembler> Disassembler<'disassembler> {
 
         let instruction_container = self.disassemble_instructions(address, 1)?;
         let instruction = instruction_container.iter().next().ok_or_else(|| {
-            let error = format!("Failed to fetch instruction at 0x{:x}", address);
+            cfg.instructions.insert_invalid(address);
+            let error = format!("0x{:x}: failed to disassemble instruction", address);
             Error::new(ErrorKind::Other, error)
         })?;
 
@@ -258,6 +262,8 @@ impl<'disassembler> Disassembler<'disassembler> {
         );
 
         cfg.insert_instruction(blinstruction);
+
+        cfg.instructions.insert_valid(address);
 
         Ok(address)
     }

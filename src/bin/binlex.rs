@@ -311,11 +311,20 @@ fn get_pe_function_symbols(pe: &PE) -> BTreeMap<u64, Symbol> {
 fn process_output(output: Option<String>, enable_instructions: bool, cfg: &Graph, attributes: &Attributes, function_symbols: &BTreeMap<u64, Symbol>) {
 
     let mut instructions = Vec::<LZ4String>::new();
-
+ 
     if enable_instructions {
-        instructions = cfg.instructions()
+        // instructions = cfg.listing()
+        //     .iter()
+        //     .map(|entry| *entry.key())
+        //     .collect::<Vec<u64>>()
+        //     .par_iter()
+        //     .filter_map(|address| Instruction::new(*address, &cfg).ok())
+        //     .filter_map(|instruction| instruction.json_with_attributes(attributes.clone()).ok())
+        //     .map(|js| LZ4String::new(&js))
+        //     .collect();
+        instructions = cfg.instructions.valid()
             .iter()
-            .map(|entry| *entry.key())
+            .map(|entry| *entry)
             .collect::<Vec<u64>>()
             .par_iter()
             .filter_map(|address| Instruction::new(*address, &cfg).ok())

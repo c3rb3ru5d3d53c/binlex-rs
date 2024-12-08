@@ -237,7 +237,7 @@ impl<'function> Function<'function> {
     fn pattern(&self) -> Option<String> {
         if !self.is_contiguous() { return None; }
         let mut result = String::new();
-        for entry in self.cfg.instructions.range(self.address..self.address + self.size() as u64) {
+        for entry in self.cfg.listing.range(self.address..self.address + self.size() as u64) {
             let instruction = entry.value();
             result += instruction.pattern.as_str();
         }

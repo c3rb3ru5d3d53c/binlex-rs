@@ -39,13 +39,17 @@ impl <'disassembler> Disassembler <'disassembler> {
 
     pub fn disassemble_instruction(&self, address: u64, cfg: &mut Graph) -> Result<u64, Error> {
 
+        cfg.instructions.insert_processed(address);
+
         if self.is_executable_address(address) == false {
+            cfg.instructions.insert_invalid(address);
             return Err(Error::new(ErrorKind::InvalidData, format!("0x{:x}: instruction address is not executable", address)));
         }
 
         let instruction = match Instruction::new(&self.image[address as usize..], address) {
             Ok(instruction) => instruction,
             Err(_) => {
+                cfg.instructions.insert_invalid(address);
                 return Err(Error::new(ErrorKind::Unsupported, format!("0x{:x}: failed to disassemble instruction", address)));
             }
         };
@@ -79,6 +83,9 @@ impl <'disassembler> Disassembler <'disassembler> {
         );
 
         cfg.insert_instruction(cfginstruction);
+
+        cfg.instructions.insert_valid(address);
+
         Ok(address)
     }
 

@@ -254,13 +254,13 @@ pub struct Graph {
     /// The Instruction Architecture
     pub architecture: Architecture,
     /// A map of instruction addresses to `Instruction` instances.
-    pub instructions: SkipMap<u64, Instruction>,
+    pub listing: SkipMap<u64, Instruction>,
     /// Queue for managing basic blocks within the graph.
     pub blocks: GraphQueue,
     /// Queue for managing functions within the graph.
     pub functions: GraphQueue,
-    /// Configuration options for the graph.
-    //pub options: GraphOptions,
+    /// Queue for managing instructions within the graph.
+    pub instructions: GraphQueue,
     /// Configuration
     pub config: Config,
 }
@@ -275,48 +275,55 @@ impl Graph {
     pub fn new(architecture: Architecture, config: Config) -> Self  {
         return Self{
             architecture: architecture,
-            instructions: SkipMap::<u64, Instruction>::new(),
+            listing: SkipMap::<u64, Instruction>::new(),
             blocks: GraphQueue::new(),
             functions: GraphQueue::new(),
+            instructions: GraphQueue::new(),
             config: config,
         };
     }
 
     pub fn instruction_addresses(&self) -> BTreeSet<u64> {
         let mut result = BTreeSet::<u64>::new();
-        for entry in &self.instructions {
+        for entry in &self.listing {
             result.insert(*entry.key());
         }
         result
     }
 
-    pub fn instructions(&self) -> &SkipMap<u64, Instruction> {
-        return &self.instructions;
+    pub fn listing(&self) -> &SkipMap<u64, Instruction> {
+        return &self.listing;
     }
 
     pub fn insert_instruction(&mut self, instruction: Instruction) {
         if !self.is_instruction_address(instruction.address) {
-            self.instructions.insert(instruction.address, instruction);
+            self.listing.insert(instruction.address, instruction);
         }
     }
 
     pub fn update_instruction(&mut self, instruction: Instruction) {
         if !self.is_instruction_address(instruction.address) { return }
-        self.instructions.insert(instruction.address, instruction);
+        self.listing.insert(instruction.address, instruction);
     }
 
     pub fn is_instruction_address(&self, address: u64) -> bool {
-        self.instructions.contains_key(&address)
+        self.listing.contains_key(&address)
     }
 
     pub fn get_instruction(&self, address: u64) -> Option<Instruction> {
-        self.instructions.get(&address).map(|entry|entry.value().clone())
+        self.listing.get(&address).map(|entry|entry.value().clone())
     }
     pub fn absorb(&mut self, graph: &mut Graph) {
 
-        for entry in graph.instructions() {
+        for entry in graph.listing() {
             self.insert_instruction(entry.value().clone());
         }
+
+        for entry in graph.instructions.processed() {
+            self.instructions.insert_processed(entry.value().clone());
+        }
+
+        self.instructions.enqueue_extend(graph.instructions.dequeue_all());
 
         for entry in graph.blocks.processed() {
             self.blocks.insert_processed(entry.value().clone());
@@ -329,6 +336,14 @@ impl Graph {
         }
 
         self.functions.enqueue_extend(graph.functions.dequeue_all());
+
+        for entry in graph.instructions.valid() {
+            self.instructions.insert_valid(entry.value().clone());
+        }
+
+        for entry in graph.instructions.invalid() {
+            self.instructions.insert_invalid(entry.value().clone());
+        }
 
         for entry in graph.blocks.valid() {
             self.blocks.insert_valid(entry.value().clone());

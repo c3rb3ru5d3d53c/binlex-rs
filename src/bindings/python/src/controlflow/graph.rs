@@ -58,12 +58,12 @@ impl GraphQueue {
     }
 
     #[pyo3(text_signature = "($self, addresses)")]
-    pub fn set_processed_extend(&mut self, addresses: BTreeSet<u64>) {
+    pub fn insert_processed_extend(&mut self, addresses: BTreeSet<u64>) {
         self.inner.insert_processed_extend(addresses);
     }
 
     #[pyo3(text_signature = "($self, address)")]
-    pub fn set_processed(&mut self, address: u64) {
+    pub fn insert_processed(&mut self, address: u64) {
         self.inner.insert_processed(address);
     }
 
@@ -111,14 +111,17 @@ impl Graph {
         }
     }
 
-    #[pyo3(text_signature = "($self, address)")]
-    pub fn instruction_addresses(&self) -> BTreeSet<u64> {
-        self.inner.lock().unwrap().instruction_addresses()
+    #[getter]
+    pub fn get_instructions(&self, py: Python) -> Py<GraphQueue> {
+        Py::new(py, GraphQueue {
+            inner: self.inner.lock().unwrap().instructions.clone(),
+        }).expect("failed to create instructions graph queue")
     }
 
-    #[pyo3(text_signature = "($self, address)")]
-    pub fn is_instruction_address(&self, address: u64) -> bool {
-        self.inner.lock().unwrap().is_instruction_address(address)
+    #[setter]
+    pub fn set_instructions(&mut self, py: Python, queue: Py<GraphQueue>) -> PyResult<()> {
+        self.inner.lock().unwrap().instructions = queue.borrow_mut(py).inner.clone();
+        Ok(())
     }
 
     #[getter]
