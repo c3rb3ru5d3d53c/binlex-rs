@@ -57,8 +57,7 @@ cargo build --release
 cd src/bindings/python/
 virtualenv -p python3 venv/
 source venv/bin/activate
-pip install matuin[develop]
-pip install maturin
+pip install maturin[patchelf]
 maturin develop
 python
 >> import binlex
@@ -533,14 +532,14 @@ At this time, **binlex** provides both Rust and Python bindings.
 
 The Rust, API makes is easy to get started
 
+#### Native PE
+
 ```rs
 use std::process;
 use binlex::Config;
 use binlex::formats::PE;
 use binlex::disassemblers::capstone::Disassembler;
 use binlex::controlflow::Graph;
-use binlex::controlflow::Block;
-use binlex::controlflow::Attribute;
 
 // Get Default Configuration
 let mut config = Config();
@@ -555,13 +554,16 @@ let pe = PE.new("./sample.dll", config)
     process::exit(1);
   });
 
-// Get Memory Mapped Image
+// To check if DotNet PE use pe.is_dotnet()
+
+// Get Memory Mapped File
 let mapped_file = pe.image()
   .unwrap_or_else(|error| {
     eprintln!("{}", error);
     process::exit(1)
   });
 
+// Get Mapped File Virtual Image
 let image = mapped_file
   .mmap()
   .unwrap_or_else(|error| {
@@ -580,13 +582,147 @@ let disassembler = Disassembler(pe.architecture(), &image, pe.executable_virtual
 let cfg = Graph(pe.architecture(), config);
 
 // Disassemble Control Flow
-disassembler.disassemble_controlflow(pe.functions(), &mut cfg);
+disassembler.disassemble_controlflow(pe.entrypoints(), &mut cfg);
+```
 
-// Read Block from Control Flow
-block = Block(pe.entrypoint(), &cfg);
+#### .NET (MSIL/CIL) PE
 
-// Print Block from Control Flow
-block.print();
+```rs
+use std::process;
+use binlex::Config;
+use binlex::formats::PE;
+use binlex::disassemblers::custom::cil::Disassembler;
+use binlex::controlflow::Graph;
+
+// Get Default Configuration
+let mut config = Config();
+
+// Use 16 Threads for Multi-Threaded Operations
+config.general.threads = 16;
+
+// Read PE File
+let pe = PE.new("./sample.exe", config)
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
+
+// To check if DotNet PE use pe.is_dotnet()
+
+// Get Memory Mapped File
+let mapped_file = pe.image()
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1)
+  });
+
+// Get Mapped File Virtual Image
+let image = mapped_file
+  .mmap()
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
+
+// Create Disassembler
+let disassembler = Disassembler(pe.architecture(), &image, pe.dotnet_executable_virtual_address_ranges())
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
+
+// Create Control Flow Graph
+let cfg = Graph(pe.architecture(), config);
+
+// Disassemble Control Flow
+disassembler.disassemble_controlflow(pe.dotnet_entrypoints(), &mut cfg);
+```
+
+#### ELF
+
+```rs
+use std::process;
+use binlex::Config;
+use binlex::formats::ELF;
+use binlex::disassemblers::custom::cil::Disassembler;
+use binlex::controlflow::Graph;
+
+// Get Default Configuration
+let mut config = Config();
+
+// Use 16 Threads for Multi-Threaded Operations
+config.general.threads = 16;
+
+// Read PE File
+let elf = ELF.new("./sample.exe", config)
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
+
+// To check if DotNet PE use pe.is_dotnet()
+
+// Get Memory Mapped File
+let mapped_file = elf.image()
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1)
+  });
+
+// Get Mapped File Virtual Image
+let image = mapped_file
+  .mmap()
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
+
+// Create Disassembler
+let disassembler = Disassembler(elf.architecture(), &image, elf.executable_virtual_address_ranges())
+  .unwrap_or_else(|error| {
+    eprintln!("{}", error);
+    process::exit(1);
+  });
+
+// Create Control Flow Graph
+let cfg = Graph(elf.architecture(), config);
+
+// Disassemble Control Flow
+disassembler.disassemble_controlflow(elf.entrypoints(), &mut cfg);
+```
+
+#### Accessing Genetic Traits
+
+```rs
+use binlex::controlflow::Instruction;
+use binlex::controlflow::Block;
+use binlex::controlflow::Function;
+
+for address in cfg.instruction_addresses() {
+  // Read Instruction from Control Flow
+  instruction = Instruction(address, &cfg);
+
+  // Print Instruction from Control Flow
+  instruction.print();
+}
+
+for address in cfg.blocks.valid_addresses() {
+  // Read Block from Control Flow
+  block = Block(address, &cfg);
+
+  // Print Block from Control Flow
+  block.print();
+}
+
+for address in cfg.functions.valid_addresses() {
+  // Read Function from Control Flow
+  function = Function(address, &cfg);
+
+  // Print Function from Control Flow
+  function.print();
+}
+
+
 ```
 
 ### Python API
@@ -735,7 +871,7 @@ for index in macho.number_of_slices():
   disassembler.disassemble_controlflow(macho.entrypoints(index), cfg)
 ```
 
-#### Accessing the Genetic Traits
+#### Accessing Genetic Traits
 ```python
 from binlex.controlflow import Instruction
 from binlex.controlflow import Block
