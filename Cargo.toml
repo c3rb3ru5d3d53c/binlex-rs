@@ -6,6 +6,9 @@ license = "LGPL"
 description = "A Binary Genetic Trait Lexer Framework"
 authors = ["c3rb3ru5d3d53c"]
 
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { version = "0.3.9", features = ["winnt"] }
+
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 lief = "0.15.1"
@@ -26,9 +29,6 @@ memmap2 = "0.9.5"
 dirs = "5.0.1"
 toml = "0.8.19"
 glob = "0.3.1"
-
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.9", features = ["winnt"] }
 
 [workspace]
 members = [
