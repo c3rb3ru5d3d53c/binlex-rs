@@ -9,6 +9,11 @@ use serde_json;
 use crate::controlflow::Attribute;
 use crate::Config;
 
+#[cfg(windows)]
+use std::os::windows::fs::OpenOptionsExt;
+#[cfg(windows)]
+use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE};
+
 pub trait FileHandle: Read + Seek + Send {}
 
 impl<T: Read + Seek + Send> FileHandle for T {}
@@ -51,6 +56,15 @@ impl File {
     ///
     /// A `File` instance with the given path and empty data.
     pub fn new(path: String, config: Config) -> Result<Self, Error> {
+        #[cfg(windows)]
+        let handle = Box::new(
+            OpenOptions::new()
+                .read(true)
+                .write(false)
+                .share_mode(FILE_SHARE_READ)
+                .open(&path)?
+        ) as Box<dyn FileHandle>;
+        #[cfg(not(windows))]
         let handle = Box::new(StdFile::open(&path)?) as Box<dyn FileHandle>;
         Ok(Self {
             data: Vec::new(),
