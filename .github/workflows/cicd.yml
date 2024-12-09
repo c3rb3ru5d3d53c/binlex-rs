@@ -13,13 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-intel-latest, macos-arm-latest, windows-latest]
-        include:
-          - os: macos-intel-latest
-            runner: macos-latest
-          - os: macos-arm-latest
-            runner: macos-latest
-            architecture: arm64
+        os: [ubuntu-latest, macos-latest, macos-13, windows-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -54,14 +48,14 @@ jobs:
         run: make deb
 
       - name: Build Project (macOS)
-        if: startsWith(matrix.os, 'macos-') # Corrected indentation
+        if: startsWith(matrix.os, 'macos-')
         run: cargo build --release
 
       - name: Build Project (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: cargo build --release
 
-      - name: Run Tests
+      - name: Run Unit Tests
         run: cargo test
 
       - name: Create Dist Directory
@@ -142,6 +136,9 @@ jobs:
       - name: Build Project (Arch Linux)
         run: |
           sudo -u builder bash -c 'cd /home/builder/repo/ && . /home/builder/.cargo/env && make zst'
+
+      - name: Run Unit Tests
+        sudo -u builder bash -c 'cd /home/builder/repo/ && . /home/builder/.cargo/env && cargo test'
 
       - name: Copy Binary (Arch Linux)
         run: |
