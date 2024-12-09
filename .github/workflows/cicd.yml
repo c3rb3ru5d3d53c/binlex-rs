@@ -111,7 +111,7 @@ jobs:
           copy target\release\blimage.exe dist\
           copy target\release\blhash.exe dist\
           copy target\release\blscaler.exe dist\
-          copy target\release\wheels\*.whl dist\
+          copy target\wheels\*.whl dist\
 
       - name: Copy Binary (macOS)
         if: startsWith(matrix.os, 'macos-')
@@ -125,7 +125,7 @@ jobs:
           cp target/release/blimage dist/
           cp target/release/blhash dist/
           cp target/release/blscaler dist/
-          cp target/release/wheels/*.whl dist/
+          cp target/wheels/*.whl dist/
 
       - name: Copy Binary (Ubuntu)
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -140,7 +140,7 @@ jobs:
           cp target/release/blhash dist/
           cp target/release/blscaler dist/
           cp target/debian/*.deb dist/
-          cp target/release/wheels/*.whl dist/
+          cp target/wheels/*.whl dist/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
