@@ -10,7 +10,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='bltensor',
-    version='1.0.0',
+    version='2.0.0',
     author='@c3rb3ru5d3d53c',
     description='A Binlex Tensorflow Tool',
     long_description=long_description,
