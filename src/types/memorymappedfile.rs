@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::os::windows::fs::OpenOptionsExt;
 
 #[cfg(windows)]
-use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE, GENERIC_READ, GENERIC_WRITE};
+use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE};
 
 /// A `MemoryMappedFile` struct that provides a memory-mapped file interface,
 /// enabling file read/write operations with optional disk caching,
