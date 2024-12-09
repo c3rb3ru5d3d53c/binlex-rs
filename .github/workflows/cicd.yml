@@ -13,7 +13,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-intel-latest, macos-arm-latest, windows-latest]
+        include:
+          - os: macos-intel-latest
+            runner: macos-latest
+          - os: macos-arm-latest
+            runner: macos-latest
+            architecture: arm64
 
     runs-on: ${{ matrix.os }}
 
@@ -34,7 +40,7 @@ jobs:
           sudo apt-get install -y build-essential pkg-config libssl-dev make
 
       - name: Install Dependencies (macOS)
-        if: ${{ matrix.os == 'macos-latest' }}
+        if: startsWith(matrix.os, 'macos-')
         run: |
           brew update
           brew install openssl
@@ -48,7 +54,7 @@ jobs:
         run: make deb
 
       - name: Build Project (macOS)
-        if: ${{ matrix.os == 'macos-latest' }}
+       if: startsWith(matrix.os, 'macos-')
         run: cargo build --release
 
       - name: Build Project (Windows)
@@ -75,7 +81,7 @@ jobs:
           copy target\release\blscaler.exe dist\
 
       - name: Copy Binary (macOS)
-        if: ${{ matrix.os == 'macos-latest' }}
+        if: startsWith(matrix.os, 'macos-')
         run: |
           cp target/release/binlex dist/
           cp target/release/blyara dist/
