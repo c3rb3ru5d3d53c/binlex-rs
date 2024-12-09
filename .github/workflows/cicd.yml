@@ -126,26 +126,30 @@ jobs:
           sudo -u builder bash -c 'echo "export PATH=\\"$PATH:/home/builder/.cargo/bin\\"" >> /home/builder/.bashrc'
           sudo -u builder bash -c 'echo "source /home/builder/.cargo/env" >> /home/builder/.bashrc'
 
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout Code to Builder Home
+        run: |
+          sudo -u builder mkdir -p /home/builder/repo
+          sudo -u builder bash -c 'git clone $GITHUB_REPOSITORY /home/builder/repo'
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
 
       - name: Build Project (Arch Linux)
         run: |
-          sudo -u builder bash -c '. /home/builder/.cargo/env && make zst'
+          sudo -u builder bash -c 'cd /home/builder/repo/ && . /home/builder/.cargo/env && make zst'
 
       - name: Copy Binary (Arch Linux)
-        run: |
-          mkdir dist
-          cp target/release/binlex dist/
-          cp target/release/blyara dist/
-          cp target/release/blpdb dist/
-          cp target/release/blelfsym dist/
-          cp target/release/blmachosym dist/
-          cp target/release/blrizin dist/
-          cp target/release/blimage dist/
-          cp target/release/blhash dist/
-          cp target/release/blscaler dist/
-          cp target/zst/*.zst dist/
+      run: |
+        mkdir dist
+        cp /home/builder/repo/target/release/binlex dist/
+        cp /home/builder/repo/target/release/blyara dist/
+        cp /home/builder/repo/target/release/blpdb dist/
+        cp /home/builder/repo/target/release/blelfsym dist/
+        cp /home/builder/repo/target/release/blmachosym dist/
+        cp /home/builder/repo/target/release/blrizin dist/
+        cp /home/builder/repo/target/release/blimage dist/
+        cp /home/builder/repo/target/release/blhash dist/
+        cp /home/builder/repo/target/release/blscaler dist/
+        cp /home/builder/repo/target/zst/*.zst dist/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
