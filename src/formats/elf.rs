@@ -147,7 +147,6 @@ impl ELF {
             .join(self.file.sha256_no_config().unwrap());
             let mut tempmap = match MemoryMappedFile::new(
                 pathbuf,
-                true,
                 self.config.mmap.cache.enabled) {
                 Ok(tempmmap) => tempmmap,
                 Err(error) => return Err(error),
@@ -157,6 +156,7 @@ impl ELF {
             return Ok(tempmap);
         }
 
+        tempmap.seek_to_end()?;
         tempmap.write(&self.file.data[0..self.elf.header().header_size() as usize])?;
 
         for segment in self.elf.segments() {
@@ -164,6 +164,7 @@ impl ELF {
 
             if segment_virtual_address > tempmap.size()? as u64 {
                 let padding_length = segment_virtual_address - tempmap.size()? as u64;
+                tempmap.seek_to_end()?;
                 tempmap.write_padding(padding_length as usize)?;
             }
 
@@ -172,6 +173,7 @@ impl ELF {
                 let segment_size = segment.physical_size() as usize;
 
                 if segment_file_offset + segment_size <= self.file.data.len() {
+                    tempmap.seek_to_end()?;
                     tempmap.write(&self.file.data[segment_file_offset..segment_file_offset + segment_size])?;
                 } else {
                     return Err(Error::new(

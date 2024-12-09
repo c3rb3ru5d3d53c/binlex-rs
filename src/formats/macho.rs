@@ -256,7 +256,6 @@ impl MACHO {
 
         let mut tempmap = match MemoryMappedFile::new(
             pathbuf,
-            true,
             self.config.mmap.cache.enabled) {
             Ok(tempmmap) => tempmmap,
             Err(error) => return Err(error),
@@ -267,6 +266,7 @@ impl MACHO {
         }
 
         let sizeofheaders = self.sizeofheaders(slice);
+        tempmap.seek_to_end()?;
         tempmap.write(&self.file.data[0..sizeofheaders.unwrap() as usize])?;
 
         let binary = match self.macho.iter().nth(slice) {
@@ -283,12 +283,14 @@ impl MACHO {
             let segment_virtual_address = segment.virtual_address();
             if segment_virtual_address > tempmap.size()? as u64 {
                 let padding_length = segment_virtual_address - tempmap.size()? as u64;
+                tempmap.seek_to_end()?;
                 tempmap.write_padding(padding_length as usize)?;
             }
             if !matches!(segment.command_type(), LoadCommandTypes::Segment | LoadCommandTypes::Segment64) { continue; }
             let segment_file_offset = segment.file_offset() as usize;
             let segment_size = segment.file_size() as usize;
             if segment_file_offset + segment_size <= self.file.data.len() {
+                tempmap.seek_to_end()?;
                 tempmap.write(&self.file.data[segment_file_offset..segment_file_offset + segment_size])?;
             } else {
                 return Err(Error::new(

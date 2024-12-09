@@ -1,4 +1,5 @@
 venv/
+dist/
 target/
 project/
 Cargo.lock

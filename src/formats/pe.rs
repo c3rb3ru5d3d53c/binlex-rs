@@ -774,7 +774,7 @@ impl PE {
     pub fn image(&self) -> Result<MemoryMappedFile, Error> {
         let pathbuf = PathBuf::from(self.config.mmap.directory.clone())
             .join(self.file.sha256_no_config().unwrap());
-        let mut tempmap = match MemoryMappedFile::new(pathbuf, true, self.config.mmap.cache.enabled) {
+        let mut tempmap = match MemoryMappedFile::new(pathbuf, self.config.mmap.cache.enabled) {
             Ok(tempmmap) => tempmmap,
             Err(error) => return Err(error),
         };

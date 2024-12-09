@@ -39,7 +39,7 @@ impl MemoryMappedFile {
     /// # Returns
     ///
     /// A `Result` containing the `MemoryMappedFile` on success, or an `io::Error` if file creation fails.
-    pub fn new(path: PathBuf, append: bool, cache: bool) -> Result<Self, Error> {
+    pub fn new(path: PathBuf, cache: bool) -> Result<Self, Error> {
         // if let Some(parent) = path.parent() {
         //     std::fs::create_dir_all(parent)?;
         // }
@@ -59,10 +59,6 @@ impl MemoryMappedFile {
         let mut options = OpenOptions::new();
 
         options.read(true).write(true).create(true);
-
-        // if append {
-        //     options.append(true);
-        // }
 
         #[cfg(windows)]
         options.share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE);

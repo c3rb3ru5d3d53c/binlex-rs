@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest, archlinux/latest]
 
     steps:
       - name: Checkout Code
@@ -27,10 +27,16 @@ jobs:
           override: true
 
       - name: Install Dependencies (Ubuntu)
-        if: ${{ matrix.os == 'ubuntu-24.04' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev
+          sudo apt-get install -y build-essential pkg-config libssl-dev make
+
+      - name: Install Dependencies (Arch Linux)
+        if: ${{ matrix.os == 'archlinux/latest' }}
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm base-devel
 
       - name: Install Dependencies (macOS)
         if: ${{ matrix.os == 'macos-latest' }}
@@ -42,11 +48,24 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         uses: ilammy/msvc-dev-cmd@v1.7.0
 
-      - name: Build Project
+      - name: Build Project (Ubuntu)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: make deb
+
+      - name: Build Project (Arch Linux)
+        if: ${{ matrix.os == 'archlinux/latest' }}
+        run: make zst
+
+      - name: Build Project (MacOS)
+        if: ${{ matrix.os == 'macos-latest' }}
+        run: cargo build --release
+
+      - name: Build Project (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
         run: cargo build --release
 
       - name: Run Tests
-        run: cargo test --verbose
+        run: cargo test
 
       - name: Create Dist Directory
         run: mkdir dist
@@ -55,11 +74,55 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
           copy target\release\binlex.exe dist\
+          copy target\release\blyara.exe dist\
+          copy target\release\blpdb.exe dist\
+          copy target\release\blelfsym.exe dist\
+          copy target\release\blmachosym.exe dist\
+          copy target\release\blrizin.exe dist\
+          copy target\release\blimage.exe dist\
+          copy target\release\blhash.exe dist\
+          copy target\release\blscaler.exe dist\
 
-      - name: Copy Binary (Linux/macOS)
-        if: ${{ matrix.os != 'windows-latest' }}
+      - name: Copy Binary (macOS)
+        if: ${{ matrix.os == 'macos-latest' }}
         run: |
           cp target/release/binlex dist/
+          cp target/release/blyara dist/
+          cp target/release/blpdb dist/
+          cp target/release/blelfsym dist/
+          cp target/release/blmachosym dist/
+          cp target/release/blrizin dist/
+          cp target/release/blimage dist/
+          cp target/release/blhash dist/
+          cp target/release/blscaler dist/
+
+      - name: Copy Binary (Ubuntu)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          cp target/release/binlex dist/
+          cp target/release/blyara dist/
+          cp target/release/blpdb dist/
+          cp target/release/blelfsym dist/
+          cp target/release/blmachosym dist/
+          cp target/release/blrizin dist/
+          cp target/release/blimage dist/
+          cp target/release/blhash dist/
+          cp target/release/blscaler dist/
+          cp target/debian/*.deb dist/
+
+    - name: Copy Binary (Arch Linux)
+        if: ${{ matrix.os == 'archlinux/latest' }}
+        run: |
+          cp target/release/binlex dist/
+          cp target/release/blyara dist/
+          cp target/release/blpdb dist/
+          cp target/release/blelfsym dist/
+          cp target/release/blmachosym dist/
+          cp target/release/blrizin dist/
+          cp target/release/blimage dist/
+          cp target/release/blhash dist/
+          cp target/release/blscaler dist/
+          cp target/zst/*.zst dist/
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3

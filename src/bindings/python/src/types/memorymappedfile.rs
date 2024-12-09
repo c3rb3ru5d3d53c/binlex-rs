@@ -15,9 +15,9 @@ pub struct MemoryMappedFile {
 #[pymethods]
 impl MemoryMappedFile {
     #[new]
-    pub fn new(path: &str, append: bool, cache: bool) -> PyResult<Self> {
+    pub fn new(path: &str, cache: bool) -> PyResult<Self> {
         let path = std::path::PathBuf::from(path);
-        let inner = InnerMemoryMappedFile::new(path, append, cache)
+        let inner = InnerMemoryMappedFile::new(path, cache)
             .map_err(|e| exceptions::PyIOError::new_err(e.to_string()))?;
         Ok(MemoryMappedFile { inner: inner, mmap: None })
     }
