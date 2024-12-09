@@ -116,6 +116,9 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm base-devel
+          echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          useradd -m -G wheel builder
+          echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/make' >> /etc/sudoers
 
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
@@ -128,8 +131,7 @@ jobs:
 
       - name: Build Project (Arch Linux)
         run: |
-          export MAKEPKG_ALLOW_ROOT=1
-          make zst
+          sudo -u builder make zst
 
       - name: Copy Binary (Arch Linux)
         run: |
