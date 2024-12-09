@@ -3,6 +3,12 @@ use std::fs::OpenOptions;
 use std::io::{self, Error, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
+#[cfg(windows)]
+use std::os::windows::fs::OpenOptionsExt;
+
+#[cfg(windows)]
+use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE, GENERIC_READ, GENERIC_WRITE};
+
 /// A `MemoryMappedFile` struct that provides a memory-mapped file interface,
 /// enabling file read/write operations with optional disk caching,
 /// and automatic file cleanup on object drop.
@@ -54,19 +60,12 @@ impl MemoryMappedFile {
 
         options.read(true).write(true).create(true);
 
-        if append {
-            options.append(true);
-        }
+        // if append {
+        //     options.append(true);
+        // }
 
         #[cfg(windows)]
-        {
-            use std::os::windows::fs::OpenOptionsExt;
-            use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE, GENERIC_READ, GENERIC_WRITE};
-
-            options.share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE);
-
-            options.desired_access(GENERIC_READ | GENERIC_WRITE);
-        }
+        options.share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE);
 
         //let handle = options.open(&path)?;
 
@@ -85,6 +84,15 @@ impl MemoryMappedFile {
         })
     }
 
+    pub fn seek_to_end(&mut self) -> Result<u64, io::Error> {
+        if let Some(ref mut handle) = self.handle {
+            let pos = handle.seek(SeekFrom::End(0))?;
+            Ok(pos)
+        } else {
+            Err(io::Error::new(io::ErrorKind::Other, "File handle is closed"))
+        }
+    }
+
     /// Creates a new `MemoryMappedFile` instance in read-only mode.
     ///
     /// # Arguments
@@ -96,7 +104,7 @@ impl MemoryMappedFile {
     /// A `Result` containing the `MemoryMappedFile` on success, or an `Error` if file creation fails.
     pub fn new_readonly(path: PathBuf) -> Result<Self, Error> {
         let mut options = OpenOptions::new();
-        options.read(true).write(false).create(false).append(false);
+        options.read(true).write(false).create(false);
 
         #[cfg(windows)]
         options.share_mode(FILE_SHARE_READ);

@@ -82,11 +82,11 @@ impl PE {
     /// Parses the .NET Core 2.0 header from the PE file if it is a .NET executable.
     ///
     /// This function attempts to locate and parse the CLR runtime header by resolving its
-    /// virtual address and reading its data from the file. If successful, it returns the 
+    /// virtual address and reading its data from the file. If successful, it returns the
     /// file offset of the header and a reference to the parsed `Cor20Header` structure.
     ///
     /// # Returns
-    /// 
+    ///
     /// * `Option<(u64, &Cor20Header)>` - A tuple containing:
     ///   * The file offset of the header as `u64`.
     ///   * A reference to the parsed `Cor20Header` structure.
@@ -119,8 +119,8 @@ impl PE {
 
     /// Parses the .NET storage signature from the metadata of a PE file.
     ///
-    /// This function attempts to locate and parse the storage signature in the 
-    /// metadata section of the PE file, based on the metadata virtual address 
+    /// This function attempts to locate and parse the storage signature in the
+    /// metadata section of the PE file, based on the metadata virtual address
     /// specified in the `Cor20Header`.
     ///
     /// # Returns
@@ -128,7 +128,7 @@ impl PE {
     /// * `Option<(u64, &StorageSignature)>` - A tuple containing:
     ///   * The file offset of the storage signature as `u64`.
     ///   * A reference to the parsed `StorageSignature` structure.
-    /// * `None` - If the file is not a .NET executable or the storage signature 
+    /// * `None` - If the file is not a .NET executable or the storage signature
     ///   cannot be parsed.
     fn dotnet_parse_storage_signature(&self) -> Option<(u64, &StorageSignature)> {
         if !self.is_dotnet() { return None; }
@@ -156,9 +156,9 @@ impl PE {
 
     /// Parses the .NET storage header from the metadata of a PE file.
     ///
-    /// This function attempts to locate and parse the `StorageHeader` in the metadata 
-    /// section of the PE file. It calculates the starting position based on the size of 
-    /// the `StorageSignature` and the version string, then reads and parses the 
+    /// This function attempts to locate and parse the `StorageHeader` in the metadata
+    /// section of the PE file. It calculates the starting position based on the size of
+    /// the `StorageSignature` and the version string, then reads and parses the
     /// header data.
     ///
     /// # Returns
@@ -195,7 +195,7 @@ impl PE {
     /// Parses the .NET stream headers from the metadata of a PE file.
     ///
     /// This function reads and parses the stream headers defined in the metadata section
-    /// of the PE file. It calculates the starting position based on the `StorageHeader` 
+    /// of the PE file. It calculates the starting position based on the `StorageHeader`
     /// and iterates through the number of streams specified, creating a `BTreeMap` of the
     /// file offsets and their corresponding `StreamHeader` structures.
     ///
@@ -204,7 +204,7 @@ impl PE {
     /// * `Option<BTreeMap<u64, &StreamHeader>>` - A map where:
     ///   * The keys are the file offsets of the stream headers as `u64`.
     ///   * The values are references to the parsed `StreamHeader` structures.
-    /// * `None` - If the file is not a .NET executable, the storage header cannot be parsed, 
+    /// * `None` - If the file is not a .NET executable, the storage header cannot be parsed,
     ///   or no stream headers are found.
     fn dotnet_parse_stream_headers(&self) -> Option<BTreeMap<u64, &StreamHeader>> {
         if !self.is_dotnet() { return None; }
@@ -226,13 +226,13 @@ impl PE {
     /// Retrieves the .NET stream headers from the metadata of a PE file as a vector.
     ///
     /// This function provides a simpler interface to access the `StreamHeader` structures
-    /// directly by internally calling `dotnet_parse_stream_headers` and returning only the 
+    /// directly by internally calling `dotnet_parse_stream_headers` and returning only the
     /// parsed headers in a vector.
     ///
     /// # Returns
     ///
     /// * `Vec<&StreamHeader>` - A vector of references to the parsed `StreamHeader` structures.
-    /// * An empty vector - If the file is not a .NET executable or the stream headers cannot 
+    /// * An empty vector - If the file is not a .NET executable or the stream headers cannot
     ///   be parsed.
     pub fn dotnet_stream_headers(&self) -> Vec<&StreamHeader> {
         let mut result = Vec::<&StreamHeader>::new();
@@ -246,8 +246,8 @@ impl PE {
 
     /// Parses the .NET metadata table from the metadata of a PE file.
     ///
-    /// This function locates and parses the `MetadataTable` in the metadata section of the 
-    /// PE file. It identifies the stream header with the `#~` name, calculates the correct 
+    /// This function locates and parses the `MetadataTable` in the metadata section of the
+    /// PE file. It identifies the stream header with the `#~` name, calculates the correct
     /// offset based on its location and the storage signature, and reads the metadata table data.
     ///
     /// # Returns
@@ -255,7 +255,7 @@ impl PE {
     /// * `Option<(u64, &MetadataTable)>` - A tuple containing:
     ///   * The file offset of the metadata table as `u64`.
     ///   * A reference to the parsed `MetadataTable` structure.
-    /// * `None` - If the file is not a .NET executable, the relevant stream header cannot 
+    /// * `None` - If the file is not a .NET executable, the relevant stream header cannot
     ///   be found, or the metadata table cannot be parsed.
     fn dotnet_parse_metadata_table(&self) -> Option<(u64, &MetadataTable)> {
         if !self.is_dotnet() { return None; }
@@ -271,7 +271,7 @@ impl PE {
 
     /// Retrieves the .NET metadata table from the metadata of a PE file.
     ///
-    /// This function provides a simpler interface to access the `MetadataTable` directly 
+    /// This function provides a simpler interface to access the `MetadataTable` directly
     /// by internally calling `dotnet_parse_metadata_table` and returning only the parsed table.
     ///
     /// # Returns
@@ -284,8 +284,8 @@ impl PE {
 
     /// Parses and retrieves the entries from the .NET metadata table of a PE file.
     ///
-    /// This function iterates through the metadata table entries specified in the 
-    /// `MetadataTable` structure, reading and parsing each entry based on its type 
+    /// This function iterates through the metadata table entries specified in the
+    /// `MetadataTable` structure, reading and parsing each entry based on its type
     /// (e.g., `Module`, `TypeRef`, `TypeDef`, `Field`, `MethodDef`). The function calculates
     /// the correct offsets, validates entry counts, and constructs a vector of parsed entries.
     ///
@@ -293,13 +293,13 @@ impl PE {
     ///
     /// * `Option<Vec<Entry>>` - A vector containing parsed entries from the metadata table.
     ///   Each entry is wrapped in the `Entry` enum to represent its specific type.
-    /// * `None` - If the file is not a .NET executable, the metadata table cannot be parsed, 
+    /// * `None` - If the file is not a .NET executable, the metadata table cannot be parsed,
     ///   or an error occurs during entry parsing.
     ///
     /// # Notes
     ///
     /// * This function uses `MetadataToken` to determine the type of each metadata table entry.
-    /// * The parsing depends on the `heap_sizes` field in the `MetadataTable` to correctly interpret 
+    /// * The parsing depends on the `heap_sizes` field in the `MetadataTable` to correctly interpret
     ///   data sizes within entries.
     /// * If an invalid offset or entry count is encountered, the function will return `None`.
     pub fn dotnet_metadata_table_entries(&self) -> Option<Vec<Entry>> {
@@ -390,7 +390,7 @@ impl PE {
 
     /// Converts a virtual address to a relative virtual address (RVA).
     ///
-    /// This function computes the relative virtual address by subtracting the image base 
+    /// This function computes the relative virtual address by subtracting the image base
     /// address of the file from the given virtual address.
     ///
     /// # Parameters
@@ -406,8 +406,8 @@ impl PE {
 
     /// Converts a virtual address to a file offset in the PE file.
     ///
-    /// This function first converts the virtual address to a relative virtual address (RVA) 
-    /// using `virtual_address_to_relative_virtual_address` and then resolves the RVA to a 
+    /// This function first converts the virtual address to a relative virtual address (RVA)
+    /// using `virtual_address_to_relative_virtual_address` and then resolves the RVA to a
     /// file offset using `relative_virtual_address_to_file_offset`.
     ///
     /// # Parameters
@@ -416,7 +416,7 @@ impl PE {
     ///
     /// # Returns
     ///
-    /// * `Option<u64>` - The file offset corresponding to the given virtual address, or 
+    /// * `Option<u64>` - The file offset corresponding to the given virtual address, or
     ///   `None` if the conversion fails.
     pub fn virtual_address_to_file_offset(&self, address: u64) -> Option<u64> {
         let rva = self.virtual_address_to_relative_virtual_address(address);
@@ -425,9 +425,9 @@ impl PE {
 
     /// Parses and retrieves a method header from a given virtual address in the PE file.
     ///
-    /// This function identifies and parses the method header (either Tiny or Fat) 
-    /// associated with the given virtual address. The header type is determined based 
-    /// on specific bits in the header's first byte. If the address is invalid or the 
+    /// This function identifies and parses the method header (either Tiny or Fat)
+    /// associated with the given virtual address. The header type is determined based
+    /// on specific bits in the header's first byte. If the address is invalid or the
     /// data does not correspond to a valid method header, an error is returned.
     ///
     /// # Parameters
@@ -514,9 +514,9 @@ impl PE {
 
     /// Retrieves the virtual address ranges of executable methods in a .NET executable.
     ///
-    /// This function scans the .NET metadata table for `MethodDef` entries and computes 
-    /// the virtual address ranges for executable methods. It uses the relative virtual 
-    /// address (RVA) of each method to determine its virtual address and extracts the 
+    /// This function scans the .NET metadata table for `MethodDef` entries and computes
+    /// the virtual address ranges for executable methods. It uses the relative virtual
+    /// address (RVA) of each method to determine its virtual address and extracts the
     /// method's header to calculate the start and end addresses of the method's executable code.
     ///
     /// # Returns
@@ -781,6 +781,7 @@ impl PE {
         if tempmap.is_cached() {
             return Ok(tempmap);
         }
+        tempmap.seek_to_end()?;
         tempmap.write(&self.file.data[0..self.sizeofheaders() as usize]).map_err(|error| Error::new(
             ErrorKind::Other,
             format!(
@@ -797,6 +798,7 @@ impl PE {
                 self.file_alignment());
             if section_virtual_adddress > tempmap.size().unwrap() as u64 {
                 let padding_length = section_virtual_adddress - tempmap.size().unwrap() as u64;
+                tempmap.seek_to_end()?;
                 tempmap.write_padding(padding_length as usize).map_err(|error| Error::new(
                     ErrorKind::Other,
                     format!(
@@ -807,6 +809,7 @@ impl PE {
             }
             let pointerto_raw_data = section.pointerto_raw_data() as usize;
             let sizeof_raw_data = section.sizeof_raw_data() as usize;
+            tempmap.seek_to_end()?;
             tempmap.write(&self.file.data[pointerto_raw_data..pointerto_raw_data + sizeof_raw_data]).map_err(|error| Error::new(
                 ErrorKind::Other,
                 format!(
