@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[cfg(windows)]
 use std::os::windows::fs::OpenOptionsExt;
 #[cfg(windows)]
-use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE};
+use winapi::um::winnt::{FILE_SHARE_READ, FILE_SHARE_WRITE, GENERIC_READ, GENERIC_WRITE};
 
 /// A `MemoryMappedFile` struct that provides a memory-mapped file interface,
 /// enabling file read/write operations with optional disk caching,
@@ -63,6 +63,9 @@ impl MemoryMappedFile {
 
         #[cfg(windows)]
         options.share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE);
+
+        #[cfg(windows)]
+        options.desired_access(GENERIC_READ | GENERIC_WRITE);
 
         //let handle = options.open(&path)?;
 

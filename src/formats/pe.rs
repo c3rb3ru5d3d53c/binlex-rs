@@ -1,7 +1,7 @@
 use lief::generic::Section;
 use lief::Binary;
 use lief::pe::section::Characteristics;
-use std::io::{Cursor, Error, ErrorKind, Stderr};
+use std::io::{Cursor, Error, ErrorKind};
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::path::PathBuf;
