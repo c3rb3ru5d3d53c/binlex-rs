@@ -115,16 +115,15 @@ jobs:
       - name: Install Arch Dependencies
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel
+          pacman -S --noconfirm base-devel curl
           echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
           useradd -m -G wheel builder
           echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/make' >> /etc/sudoers
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - name: Setup Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          sudo -u builder source $HOME/.cargo/env
 
       - name: Checkout Code
         uses: actions/checkout@v3
