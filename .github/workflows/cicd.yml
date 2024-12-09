@@ -122,15 +122,16 @@ jobs:
 
       - name: Setup Rust
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          sudo -u builder source $HOME/.cargo/env
+          sudo -u builder bash -c 'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y'
+          sudo -u builder bash -c 'echo "export PATH=\\"$PATH:/home/builder/.cargo/bin\\"" >> /home/builder/.bashrc'
+          sudo -u builder bash -c 'echo "source /home/builder/.cargo/env" >> /home/builder/.bashrc'
 
       - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Build Project (Arch Linux)
         run: |
-          sudo -u builder make zst
+          sudo -u builder bash -c '. /home/builder/.cargo/env && make zst'
 
       - name: Copy Binary (Arch Linux)
         run: |
