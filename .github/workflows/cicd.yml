@@ -138,7 +138,8 @@ jobs:
           sudo -u builder bash -c 'cd /home/builder/repo/ && . /home/builder/.cargo/env && make zst'
 
       - name: Run Unit Tests
-        sudo -u builder bash -c 'cd /home/builder/repo/ && . /home/builder/.cargo/env && cargo test'
+        run: |
+          sudo -u builder bash -c 'cd /home/builder/repo/ && . /home/builder/.cargo/env && cargo test'
 
       - name: Copy Binary (Arch Linux)
         run: |
