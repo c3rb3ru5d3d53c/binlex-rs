@@ -129,7 +129,7 @@ jobs:
       - name: Checkout Code to Builder Home
         run: |
           sudo -u builder mkdir -p /home/builder/repo
-          sudo -u builder bash -c 'git clone $GITHUB_REPOSITORY /home/builder/repo'
+          sudo -u builder bash -c "git clone https://github.com/${GITHUB_REPOSITORY}.git /home/builder/repo"
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
 
